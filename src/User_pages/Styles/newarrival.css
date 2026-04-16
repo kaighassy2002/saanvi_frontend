@@ -1,0 +1,163 @@
+/* ===================================
+   New Arrivals Section
+=================================== */
+.section-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 3rem;
+}
+
+.section-title {
+  font-family: 'Bodoni Moda', serif;
+  font-size: 3.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--black);
+  letter-spacing: 3px;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  text-align: center;
+  color: #666;
+  margin-bottom: 3rem;
+  font-style: italic;
+}
+
+/* ===================================
+   Swiper Slider
+=================================== */
+.new-arrivals-swiper__root {
+  position: relative;
+  padding-bottom: 60px;
+}
+
+/* Pagination */
+.new-arrivals-swiper__root .swiper-pagination {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+}
+
+/* Bullets */
+.new-arrivals-swiper__root .swiper-pagination-bullet {
+  background: #4B0082; /* dark purple */
+  
+  opacity: 0.4;
+  width: 8px;
+  height: 8px;
+  margin: 0 6px !important;
+  transition: all 0.3s ease;
+}
+
+.new-arrivals-swiper__root .swiper-pagination-bullet-active {
+  background: #4B0082; 
+  color: #4B0082;/* active bullet */
+  opacity: 1;
+  width: 18px;
+  border-radius: 10px;
+}
+
+/* ===================================
+   Swiper Arrows (Hidden)
+=================================== */
+.swiper-button-next,
+.swiper-button-prev {
+  display: none !important;
+}
+
+/* ===================================
+   Product Card
+=================================== */
+.product-card {
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.product-image-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: #f8f8f8;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.1);
+}
+
+.offer-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: var(--gold);
+  color: var(--black);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Info */
+.product-info {
+  padding: 1.5rem;
+}
+
+.product-name {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.product-price {
+  display: flex;
+  gap: 1rem;
+}
+
+.current-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #999;
+}
+
+/* ===================================
+   Responsive
+=================================== */
+@media (max-width: 768px) {
+  .section-container {
+    padding: 0 1.5rem;
+  }
+
+  .section-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-title {
+    font-size: 2rem;
+  }
+}
