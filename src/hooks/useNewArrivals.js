@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CATALOG_UPDATED_EVENT } from '../services/config'
 import { fetchPublicProducts } from '../services/catalogService'
-import { getLocalNewArrivalIds } from '../services/localCatalog'
-import { USE_LOCAL_API } from '../services/config'
-import { apiRequest } from '../services/apiClient'
-
-async function fetchNewArrivalIds() {
-  if (USE_LOCAL_API) return getLocalNewArrivalIds()
-  try {
-    const data = await apiRequest('/api/merchandising/new-arrivals', { auth: false })
-    return Array.isArray(data) ? data : data.ids || []
-  } catch {
-    return []
-  }
-}
 
 export function useNewArrivals() {
   const [products, setProducts] = useState([])
@@ -22,15 +9,8 @@ export function useNewArrivals() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [all, ids] = await Promise.all([fetchPublicProducts(), fetchNewArrivalIds()])
-      const picked = ids
-        .map((i) => all.find((p) => String(p.id) === String(i)))
-        .filter(Boolean)
-      if (picked.length === 0) {
-        setProducts(all.slice(0, 6))
-      } else {
-        setProducts(picked)
-      }
+      const all = await fetchPublicProducts()
+      setProducts(all.slice(0, 6))
     } catch {
       setProducts([])
     } finally {

@@ -9,6 +9,9 @@ const useDevProxy = import.meta.env.DEV && import.meta.env.VITE_DEV_PROXY === 't
 
 export const API_BASE = useDevProxy ? '' : viteUrl
 
+/** Goks tenant slug — identifies which store's catalog to fetch. Set via VITE_STORE_SLUG. */
+export const STORE_SLUG = import.meta.env.VITE_STORE_SLUG || 'saanvi'
+
 /** When empty and not using dev proxy, catalog/orders/users use localStorage. */
 export const USE_LOCAL_API = !useDevProxy && !API_BASE
 
