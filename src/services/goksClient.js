@@ -1,14 +1,4 @@
-/**
- * Saanvi storefront API adapter.
- *
- * Wraps @goks/storefront-sdk with this site's env config.
- * To plug a new client site in: copy this file, set the 3 env vars — done.
- *
- * VITE_API_URL        = Goks backend origin
- * VITE_STORE_SLUG     = tenant slug in Goks
- * VITE_STOREFRONT_KEY = from Goks → Settings → Storefront → Rotate Token
- */
-import { createGoksClient } from '@goks/storefront-sdk'
+import { createGoksClient } from './goksApiClient.js'
 
 const client = createGoksClient({
   apiUrl: import.meta.env.VITE_API_URL || '',
