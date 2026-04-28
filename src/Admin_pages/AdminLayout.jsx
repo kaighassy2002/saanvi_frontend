@@ -1,9 +1,7 @@
 import React from 'react'
 import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
-import { API_BASE } from '../services/config'
-
-const GOKS_URL = API_BASE.replace('/api', '') || 'http://localhost:3001'
+const GOKS_URL = import.meta.env.VITE_GOKS_DASHBOARD_URL || 'http://localhost:3001'
 
 function AdminLayout() {
   const { isAdmin, logout, profile } = useAdminAuth()
