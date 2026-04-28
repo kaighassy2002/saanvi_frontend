@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CATALOG_UPDATED_EVENT } from '../services/config'
-import { fetchPublicProducts } from '../services/catalogService'
+import { fetchGoksFeatured, fetchGoksProducts } from '../services/goksClient'
+import { getPublicProductsLocal } from '../services/localCatalog'
+import { USE_LOCAL_API } from '../services/config'
 
 export function useNewArrivals() {
   const [products, setProducts] = useState([])
@@ -9,8 +11,20 @@ export function useNewArrivals() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const all = await fetchPublicProducts()
-      setProducts(all.slice(0, 6))
+      let items
+      if (USE_LOCAL_API) {
+        const all = await getPublicProductsLocal()
+        items = all.slice(0, 6)
+      } else {
+        // Try featured endpoint first; fall back to first 6 published products
+        try {
+          items = await fetchGoksFeatured()
+        } catch {
+          const all = await fetchGoksProducts({ limit: 6 })
+          items = all.slice(0, 6)
+        }
+      }
+      setProducts(items)
     } catch {
       setProducts([])
     } finally {

@@ -1,66 +1,28 @@
-import { API_BASE, STORAGE_KEYS, USE_LOCAL_API } from './config'
+/**
+ * Order placement and retrieval.
+ *
+ * Orders are not yet implemented in the Goks public API.
+ * When they are, replace the localStorage path with:
+ *   POST /api/public/{slug}/orders   (requires customer JWT)
+ *   GET  /api/public/{slug}/orders   (requires customer JWT)
+ *
+ * Until then, orders are stored locally (USE_LOCAL_API behaviour).
+ */
+import { STORAGE_KEYS, USE_LOCAL_API } from './config'
 import { appendCheckoutOrder, getStorefrontOrdersForCurrentUser } from './localOrders'
 
-/**
- * Place order: localStorage when USE_LOCAL_API; else POST /api/orders (MongoDB).
- * Requires a customer JWT (enforced here and on the server).
- */
 export async function placeStorefrontOrder(payload) {
   const token = localStorage.getItem(STORAGE_KEYS.customerToken)
-  if (USE_LOCAL_API) {
-    if (!token) throw new Error('Please sign in to place an order.')
-    return appendCheckoutOrder(payload)
-  }
   if (!token) throw new Error('Please sign in to place an order.')
-  const headers = {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  }
-  const res = await fetch(`${API_BASE}/api/orders`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  })
-  const text = await res.text()
-  let data = null
-  if (text) {
-    try {
-      data = JSON.parse(text)
-    } catch {
-      data = text
-    }
-  }
-  if (!res.ok) {
-    const msg = typeof data === 'object' && data?.message ? data.message : text || res.statusText
-    throw new Error(String(msg))
-  }
-  return data
+  if (USE_LOCAL_API) return appendCheckoutOrder(payload)
+  // TODO: POST /api/public/${STORE_SLUG}/orders with Bearer token when Goks orders API ships
+  return appendCheckoutOrder(payload)
 }
 
-/** My orders: scoped localStorage or GET /api/auth/orders (requires login). */
 export async function fetchMyOrders() {
-  if (USE_LOCAL_API) {
-    return getStorefrontOrdersForCurrentUser()
-  }
+  if (USE_LOCAL_API) return getStorefrontOrdersForCurrentUser()
   const token = localStorage.getItem(STORAGE_KEYS.customerToken)
   if (!token) return []
-  const res = await fetch(`${API_BASE}/api/auth/orders`, {
-    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-  })
-  const text = await res.text()
-  let data = null
-  if (text) {
-    try {
-      data = JSON.parse(text)
-    } catch {
-      data = null
-    }
-  }
-  if (!res.ok) {
-    const msg = typeof data === 'object' && data?.message ? data.message : text || res.statusText
-    throw new Error(String(msg))
-  }
-  const orders = Array.isArray(data) ? data : data?.orders
-  return Array.isArray(orders) ? orders : []
+  // TODO: GET /api/public/${STORE_SLUG}/orders with Bearer token when Goks orders API ships
+  return getStorefrontOrdersForCurrentUser()
 }
