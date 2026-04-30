@@ -12,3 +12,18 @@ export const registerAPI = async (reqBody) => {
 export const loginAPI = async (reqBody) => {
   return await commonAPI('POST', `${API_AUTH}/login`, reqBody)
 }
+
+/** POST /api/auth/forgot-password/request */
+export const requestPasswordResetOtpAPI = async (reqBody) => {
+  return await commonAPI('POST', `${API_AUTH}/forgot-password/request`, reqBody)
+}
+
+/** POST /api/auth/forgot-password/verify */
+export const verifyPasswordResetOtpAPI = async (reqBody) => {
+  return await commonAPI('POST', `${API_AUTH}/forgot-password/verify`, reqBody)
+}
+
+/** POST /api/auth/forgot-password/reset */
+export const resetPasswordWithOtpAPI = async (reqBody) => {
+  return await commonAPI('POST', `${API_AUTH}/forgot-password/reset`, reqBody)
+}

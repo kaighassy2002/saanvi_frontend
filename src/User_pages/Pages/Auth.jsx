@@ -3,7 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../Components/Footer'
 import PageIntro from '../Components/PageIntro'
 import SiteHeader from '../Components/SiteHeader'
-import { loginAPI, registerAPI } from '../../server/allApi'
+import {
+  loginAPI,
+  registerAPI,
+  requestPasswordResetOtpAPI,
+  verifyPasswordResetOtpAPI,
+  resetPasswordWithOtpAPI,
+} from '../../server/allApi'
 import { STORAGE_KEYS } from '../../services/config'
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
 
@@ -43,6 +49,33 @@ function Auth() {
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('error')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotStep, setForgotStep] = useState('request')
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotOtp, setForgotOtp] = useState('')
+  const [forgotResetToken, setForgotResetToken] = useState('')
+  const [forgotNewPassword, setForgotNewPassword] = useState('')
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+
+  function openForgotPassword() {
+    setShowForgotPassword(true)
+    setForgotStep('request')
+    setForgotOtp('')
+    setForgotResetToken('')
+    setForgotNewPassword('')
+    setForgotConfirmPassword('')
+  }
+
+  function closeForgotPassword() {
+    setShowForgotPassword(false)
+    setForgotStep('request')
+    setForgotOtp('')
+    setForgotResetToken('')
+    setForgotNewPassword('')
+    setForgotConfirmPassword('')
+    setForgotLoading(false)
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -112,6 +145,81 @@ function Auth() {
       setMessage(base + extra)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotRequest = async (e) => {
+    e.preventDefault()
+    setMessage('')
+    setMessageTone('error')
+    setForgotLoading(true)
+    try {
+      const raw = await requestPasswordResetOtpAPI({ email: forgotEmail.trim().toLowerCase() })
+      const data = dataFromCommonAPI(raw)
+      setMessageTone('success')
+      setMessage(data?.message || 'If an account exists for this email, an OTP has been sent.')
+      setForgotStep('verify')
+    } catch (err) {
+      setMessageTone('error')
+      setMessage(err?.message || 'Could not send OTP')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleForgotVerify = async (e) => {
+    e.preventDefault()
+    setMessage('')
+    setMessageTone('error')
+    setForgotLoading(true)
+    try {
+      const raw = await verifyPasswordResetOtpAPI({
+        email: forgotEmail.trim().toLowerCase(),
+        otp: forgotOtp.trim(),
+      })
+      const data = dataFromCommonAPI(raw)
+      const token = String(data?.resetToken || '')
+      if (!token) throw new Error('Invalid OTP verification response')
+      setForgotResetToken(token)
+      setForgotStep('reset')
+      setMessageTone('success')
+      setMessage('OTP verified. Set your new password.')
+    } catch (err) {
+      setMessageTone('error')
+      setMessage(err?.message || 'Invalid OTP')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleForgotReset = async (e) => {
+    e.preventDefault()
+    setMessage('')
+    setMessageTone('error')
+    if (forgotNewPassword.length < 8) {
+      setMessage('Password must be at least 8 characters')
+      return
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setMessage('New password and confirm password must match')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      const raw = await resetPasswordWithOtpAPI({
+        resetToken: forgotResetToken,
+        newPassword: forgotNewPassword,
+      })
+      const data = dataFromCommonAPI(raw)
+      setMessageTone('success')
+      setMessage(data?.message || 'Password reset successful. Please login.')
+      closeForgotPassword()
+      setMode('login')
+    } catch (err) {
+      setMessageTone('error')
+      setMessage(err?.message || 'Could not reset password')
+    } finally {
+      setForgotLoading(false)
     }
   }
 
@@ -202,7 +310,7 @@ function Auth() {
                     <input id="auth-login-remember" type="checkbox" name="remember" />
                     Remember me
                   </label>
-                  <button type="button" className="hover:text-gold">
+                  <button type="button" className="hover:text-gold" onClick={openForgotPassword}>
                     Forgot password?
                   </button>
                 </div>
@@ -288,6 +396,100 @@ function Auth() {
                 </button>
               </form>
             )}
+
+            {showForgotPassword ? (
+              <div className="mt-6 rounded-xl border border-[#e5d2bf] bg-[#fff7f0] p-4 sm:p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-playfair text-base text-ink">Reset password with OTP</h3>
+                  <button type="button" className="text-sm text-muted hover:text-ink" onClick={closeForgotPassword}>
+                    Close
+                  </button>
+                </div>
+
+                {forgotStep === 'request' ? (
+                  <form className="space-y-3" onSubmit={handleForgotRequest}>
+                    <label className="form-label" htmlFor="forgot-email">
+                      Account email
+                    </label>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      required
+                      className="royal-input"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
+                    <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                      {forgotLoading ? 'Sending OTP…' : 'Send OTP'}
+                    </button>
+                  </form>
+                ) : null}
+
+                {forgotStep === 'verify' ? (
+                  <form className="space-y-3" onSubmit={handleForgotVerify}>
+                    <p className="text-sm text-muted">
+                      Enter the 6-digit OTP sent to <span className="font-semibold text-ink">{forgotEmail}</span>.
+                    </p>
+                    <label className="form-label" htmlFor="forgot-otp">
+                      OTP
+                    </label>
+                    <input
+                      id="forgot-otp"
+                      type="text"
+                      required
+                      maxLength={6}
+                      className="royal-input tracking-[0.35em]"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button type="button" className="lux-button-outline w-full" onClick={() => setForgotStep('request')}>
+                        Resend OTP
+                      </button>
+                      <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                        {forgotLoading ? 'Verifying…' : 'Verify OTP'}
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+
+                {forgotStep === 'reset' ? (
+                  <form className="space-y-3" onSubmit={handleForgotReset}>
+                    <label className="form-label" htmlFor="forgot-new-password">
+                      New password
+                    </label>
+                    <input
+                      id="forgot-new-password"
+                      type="password"
+                      required
+                      minLength={8}
+                      className="royal-input"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                    />
+                    <label className="form-label" htmlFor="forgot-confirm-password">
+                      Confirm new password
+                    </label>
+                    <input
+                      id="forgot-confirm-password"
+                      type="password"
+                      required
+                      minLength={8}
+                      className="royal-input"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                    />
+                    <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                      {forgotLoading ? 'Updating password…' : 'Update password'}
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
