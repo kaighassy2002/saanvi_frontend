@@ -4,6 +4,7 @@ Customer-facing jewellery site and **admin dashboard** for the Aashmika Designs 
 
 ## Stack
 
+
 - **React 19** · **React Router 7**
 - **Vite 7**
 - **Tailwind CSS 4** · **Swiper**
