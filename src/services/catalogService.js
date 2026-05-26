@@ -4,14 +4,18 @@ import {
   getProductByIdLocal,
   getLocalCategories,
 } from './localCatalog'
-import { fetchGoksCategories, fetchGoksProducts, fetchGoksProduct } from './goksClient'
+import {
+  fetchBackendCategories,
+  fetchBackendProducts,
+  fetchBackendProductById,
+} from './jewelleryApi'
 
 /** Tab labels for collections page: "All" + merged categories */
 export async function fetchPublicCategoryTabs(products) {
   if (USE_LOCAL_API) return categoriesForListing(getLocalCategories(), products)
   try {
-    const cats = await fetchGoksCategories()
-    return ['All', ...cats.map((c) => c.name).sort()]
+    const cats = await fetchBackendCategories()
+    return categoriesForListing(cats, products)
   } catch {
     return categoriesForListing([], products)
   }
@@ -20,7 +24,7 @@ export async function fetchPublicCategoryTabs(products) {
 /** Public storefront — published products only */
 export async function fetchPublicProducts() {
   if (USE_LOCAL_API) return getPublicProductsLocal()
-  return fetchGoksProducts()
+  return fetchBackendProducts()
 }
 
 /** Single product for product detail page */
@@ -29,7 +33,7 @@ export async function fetchPublicProductById(id) {
     const p = getProductByIdLocal(id)
     return p?.published === false ? null : p ?? null
   }
-  return fetchGoksProduct(id)
+  return fetchBackendProductById(id)
 }
 
 /** Categories shown on storefront: "All" + admin list, merged with product categories */

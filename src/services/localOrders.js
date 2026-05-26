@@ -126,6 +126,15 @@ export function getStorefrontOrdersForCurrentUser() {
   return readStorefrontOrders(getCustomerStorageScope())
 }
 
+/** Whether the signed-in customer bought this product (non-cancelled storefront order). */
+export function localCustomerPurchasedProduct(productId) {
+  const pid = String(productId)
+  const orders = getStorefrontOrdersForCurrentUser().filter((o) => o.status !== 'Cancelled')
+  return orders.some((order) =>
+    (order.items || []).some((item) => String(item.productId) === pid)
+  )
+}
+
 function readOrders() {
   try {
     const s = localStorage.getItem(STORAGE_KEYS.orders)

@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../Components/Footer'
-import PageIntro from '../Components/PageIntro'
 import SiteHeader from '../Components/SiteHeader'
+import '../Styles/user-profile.css'
 import { CUSTOMER_SESSION_CHANGED_EVENT, STORAGE_KEYS } from '../../services/config'
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
 import {
@@ -36,8 +36,26 @@ function mapUserToProfile(data) {
   }
 }
 
+function profileInitials(firstName, lastName, email) {
+  const fn = String(firstName || '').trim()
+  const ln = String(lastName || '').trim()
+  if (fn && ln) return `${fn[0]}${ln[0]}`.toUpperCase()
+  if (fn.length >= 2) return fn.slice(0, 2).toUpperCase()
+  if (fn) return fn[0].toUpperCase()
+  const em = String(email || '').trim()
+  if (em.length >= 2) return em.slice(0, 2).toUpperCase()
+  return 'AD'
+}
+
+const ACCOUNT_TABS = [
+  { id: 'profile', label: 'Profile', icon: 'fa-solid fa-user' },
+  { id: 'addresses', label: 'Addresses', icon: 'fa-solid fa-location-dot' },
+  { id: 'security', label: 'Security', icon: 'fa-solid fa-lock' },
+]
+
 function UserProfile() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -83,7 +101,7 @@ function UserProfile() {
       setProfileData(next)
       applyProfileToStorage(data)
     } catch (err) {
-      if (err?.statusCode === 401) {
+      if (err?.status === 401 || err?.statusCode === 401) {
         localStorage.removeItem(STORAGE_KEYS.customerToken)
         localStorage.removeItem(STORAGE_KEYS.customerProfile)
         notifyCustomerSessionChanged()
@@ -109,6 +127,13 @@ function UserProfile() {
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'addresses' || tab === 'security' || tab === 'profile') {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     refreshSavedAddresses()
@@ -233,7 +258,7 @@ function UserProfile() {
       setIsEditingProfile(false)
       setProfileMessage({ tone: 'success', text: 'Profile updated.' })
     } catch (err) {
-      if (err?.statusCode === 401) {
+      if (err?.status === 401 || err?.statusCode === 401) {
         localStorage.removeItem(STORAGE_KEYS.customerToken)
         localStorage.removeItem(STORAGE_KEYS.customerProfile)
         notifyCustomerSessionChanged()
@@ -280,81 +305,138 @@ function UserProfile() {
     profileData.email ||
     'Member'
 
+  const initials = profileInitials(
+    profileData.firstName,
+    profileData.lastName,
+    profileData.email,
+  )
+
+  const profileFields = [
+    {
+      id: 'firstName',
+      label: 'First name',
+      value: profileData.firstName || '—',
+      icon: 'fa-solid fa-user',
+    },
+    {
+      id: 'lastName',
+      label: 'Last name',
+      value: profileData.lastName || '—',
+      icon: 'fa-solid fa-user-tag',
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      value: profileData.email || '—',
+      icon: 'fa-solid fa-envelope',
+    },
+    {
+      id: 'phone',
+      label: 'Phone',
+      value: profileData.phone || '—',
+      icon: 'fa-solid fa-phone',
+    },
+  ]
+
+  const renderAccountNav = () =>
+    ACCOUNT_TABS.map((tab) => (
+      <li key={tab.id} className="account-nav__item">
+        <button
+          type="button"
+          onClick={() => setActiveTab(tab.id)}
+          className={`account-nav__btn ${
+            activeTab === tab.id ? 'account-nav__btn--active' : ''
+          }`}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+        >
+          <span className="account-nav__icon" aria-hidden>
+            <i className={tab.icon} />
+          </span>
+          {tab.label}
+        </button>
+      </li>
+    ))
+
   return (
     <div className="page-shell">
       <SiteHeader />
 
-      <div className="section-container py-10 sm:py-14">
-        <PageIntro
-          eyebrow="Account Settings"
-          title="My Profile"
-          subtitle="Manage your details, saved addresses, and account security."
-        />
+      <div className="account-page section-container">
+        <header className="account-page__hero">
+          <div>
+            <p className="text-kicker mb-2">Account</p>
+            <h1 className="account-page__hero-title">My profile</h1>
+            <p className="account-page__hero-sub">
+              Manage your details, saved addresses, and account security.
+            </p>
+          </div>
+          <div className="account-page__hero-actions">
+            <Link to="/orders" className="account-page__hero-link">
+              <i className="fa-solid fa-bag-shopping text-xs" aria-hidden />
+              Orders
+            </Link>
+            <Link to="/collections" className="account-page__hero-link">
+              <i className="fa-solid fa-gem text-xs" aria-hidden />
+              Shop
+            </Link>
+          </div>
+        </header>
 
         {loading ? (
-          <p className="text-center font-playfair text-muted">Loading your profile…</p>
+          <div className="account-loading" aria-busy="true" aria-label="Loading profile">
+            <div className="account-skeleton account-skeleton--sidebar" />
+            <div className="account-skeleton account-skeleton--panel" />
+          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-            <div className="lg:col-span-1">
-              <div className="lux-card p-5 sm:p-6 sticky top-24">
-                <div className="text-center mb-5 sm:mb-6 pb-5 sm:pb-6 border-b border-[#dcc6a6]/60">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gold rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <i className="fa-solid fa-user text-3xl sm:text-4xl text-ink" />
-                  </div>
-                  <h3 className="card-title mb-1">{displayName}</h3>
-                  <p className="text-helper break-all">{profileData.email || '—'}</p>
-                </div>
-                <nav className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('profile')}
-                    className={`w-full text-left px-4 py-3 rounded-lg font-playfair transition-colors ${
-                      activeTab === 'profile'
-                        ? 'bg-gold text-ink'
-                        : 'text-muted hover:bg-[#f7ecee]'
-                    }`}
-                  >
-                    <i className="fa-solid fa-user mr-2" />
-                    Profile
-                  </button>
-                  <Link
-                    to="/orders"
-                    className="block w-full text-left px-4 py-3 rounded-lg font-playfair text-muted hover:bg-[#f7ecee] transition-colors"
-                  >
-                    <i className="fas fa-shopping-bag mr-2" />
-                    Orders
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('addresses')}
-                    className={`w-full text-left px-4 py-3 rounded-lg font-playfair transition-colors ${
-                      activeTab === 'addresses'
-                        ? 'bg-gold text-ink'
-                        : 'text-muted hover:bg-[#f7ecee]'
-                    }`}
-                  >
-                    <i className="fa-solid fa-location-dot mr-2" />
-                    Addresses
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('security')}
-                    className={`w-full text-left px-4 py-3 rounded-lg font-playfair transition-colors ${
-                      activeTab === 'security'
-                        ? 'bg-gold text-ink'
-                        : 'text-muted hover:bg-[#f7ecee]'
-                    }`}
-                  >
-                    <i className="fa-solid fa-lock mr-2" />
-                    Security
-                  </button>
-                </nav>
-              </div>
+          <>
+            <div className="account-tabs-mobile lg:hidden" role="tablist" aria-label="Account sections">
+              {ACCOUNT_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`account-tabs-mobile__btn ${
+                    activeTab === tab.id ? 'account-tabs-mobile__btn--active' : ''
+                  }`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            <div className="lg:col-span-3">
+            <div className="account-layout">
+              <aside className="account-sidebar">
+                <div className="account-card account-card--sidebar">
+                  <div className="account-profile-chip">
+                    <span className="account-profile-chip__avatar" aria-hidden>
+                      {initials}
+                    </span>
+                    <h2 className="account-profile-chip__name">{displayName}</h2>
+                    <p className="account-profile-chip__email">{profileData.email || '—'}</p>
+                    <span className="account-profile-chip__badge">
+                      <i className="fa-solid fa-badge-check text-[9px]" aria-hidden />
+                      Member
+                    </span>
+                  </div>
+                  <ul className="account-nav hidden lg:block">
+                    {renderAccountNav()}
+                    <li className="account-nav__item">
+                      <Link to="/orders" className="account-nav__link">
+                        <span className="account-nav__icon" aria-hidden>
+                          <i className="fa-solid fa-bag-shopping" />
+                        </span>
+                        Orders
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              </aside>
+
+              <main className="account-main">
               {loadError ? (
-                <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+                <p className="account-alert account-alert--warn mb-4" role="status">
                   {loadError} Showing cached details if available.{' '}
                   <button type="button" className="underline" onClick={loadProfile}>
                     Retry
@@ -363,14 +445,17 @@ function UserProfile() {
               ) : null}
 
               {activeTab === 'profile' && (
-                <div className="lux-card p-5 sm:p-6">
-                  <div className="mb-5 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
-                    <h2 className="card-heading">Profile Information</h2>
+                <div className="account-card account-panel">
+                  <div className="account-panel__head">
+                    <div>
+                      <h2 className="account-panel__title">Profile information</h2>
+                      <p className="account-panel__desc">Your contact details for orders and delivery.</p>
+                    </div>
                     {!isEditingProfile ? (
                       <button
                         type="button"
                         onClick={startEditProfile}
-                        className="inline-flex items-center gap-2 rounded-full border border-[#dcc6a6] bg-[#fff6eb] px-4 py-2 text-sm font-playfair text-ink transition hover:border-gold hover:bg-[#f7ecee]"
+                        className="account-btn-edit"
                         aria-label="Edit profile"
                       >
                         <i className="fa-solid fa-pen-to-square text-gold" aria-hidden />
@@ -381,10 +466,10 @@ function UserProfile() {
 
                   {profileMessage.text ? (
                     <p
-                      className={`mb-4 rounded-lg px-3 py-2 text-sm font-playfair ${
+                      className={`account-alert ${
                         profileMessage.tone === 'success'
-                          ? 'bg-emerald-50 text-emerald-900'
-                          : 'bg-red-50 text-red-900'
+                          ? 'account-alert--success'
+                          : 'account-alert--error'
                       }`}
                       role="status"
                     >
@@ -393,24 +478,19 @@ function UserProfile() {
                   ) : null}
 
                   {!isEditingProfile ? (
-                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-                      <div>
-                        <dt className="form-label mb-1">First name</dt>
-                        <dd className="font-playfair text-ink">{profileData.firstName || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="form-label mb-1">Last name</dt>
-                        <dd className="font-playfair text-ink">{profileData.lastName || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="form-label mb-1">Email</dt>
-                        <dd className="font-playfair text-ink break-all">{profileData.email || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="form-label mb-1">Phone</dt>
-                        <dd className="font-playfair text-ink">{profileData.phone || '—'}</dd>
-                      </div>
-                    </dl>
+                    <div className="account-field-grid">
+                      {profileFields.map((field) => (
+                        <div key={field.id} className="account-field">
+                          <span className="account-field__icon" aria-hidden>
+                            <i className={field.icon} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="account-field__label">{field.label}</p>
+                            <p className="account-field__value">{field.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <form onSubmit={saveProfile} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -471,17 +551,13 @@ function UserProfile() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3 pt-2">
-                        <button
-                          type="submit"
-                          disabled={savingProfile}
-                          className="rounded-full bg-gold text-ink px-6 sm:px-8 py-2.5 sm:py-3 font-playfair hover:bg-gold-dark transition-colors text-sm sm:text-base disabled:opacity-60"
-                        >
+                        <button type="submit" disabled={savingProfile} className="lux-button disabled:opacity-60">
                           {savingProfile ? 'Saving…' : 'Save changes'}
                         </button>
                         <button
                           type="button"
                           onClick={cancelEditProfile}
-                          className="rounded-full border border-[#dcc6a6] px-6 py-2.5 font-playfair text-muted transition hover:bg-[#f7ecee] text-sm sm:text-base"
+                          className="button-tertiary"
                         >
                           Cancel
                         </button>
@@ -492,82 +568,76 @@ function UserProfile() {
               )}
 
               {activeTab === 'addresses' && (
-                <div className="lux-card p-5 sm:p-6">
+                <div className="account-card account-panel">
                   {addressNotice.text ? (
                     <p
-                      className={`mb-4 rounded-lg px-3 py-2 text-sm font-playfair ${
+                      className={`account-alert ${
                         addressNotice.tone === 'success'
-                          ? 'bg-emerald-50 text-emerald-900'
-                          : 'bg-red-50 text-red-900'
+                          ? 'account-alert--success'
+                          : 'account-alert--error'
                       }`}
                       role="status"
                     >
                       {addressNotice.text}
                     </p>
                   ) : null}
-                  <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                  <div className="account-panel__head">
                     <div>
-                      <h2 className="card-heading">Saved addresses</h2>
-                      <p className="mt-1 text-sm text-muted">
-                        Save several addresses and pick one at checkout. Stored on this device for your
-                        account.
+                      <h2 className="account-panel__title">Saved addresses</h2>
+                      <p className="account-panel__desc">
+                        Save addresses for faster checkout. Stored on this device for your account.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={startAddAddress}
-                      className="shrink-0 rounded-full border border-[#dcc6a6] bg-[#fff6eb] px-4 py-2 text-sm font-playfair text-ink transition hover:border-gold"
-                    >
-                      <i className="fa-solid fa-plus mr-2" aria-hidden />
+                    <button type="button" onClick={startAddAddress} className="account-btn-edit">
+                      <i className="fa-solid fa-plus" aria-hidden />
                       Add address
                     </button>
                   </div>
 
                   {savedAddresses.length > 0 ? (
-                    <ul className="mb-8 grid gap-4 sm:grid-cols-2">
+                    <ul className="account-address-grid">
                       {savedAddresses.map((a) => (
-                        <li
-                          key={a.id}
-                          className="rounded-xl border border-[#dcc6a6] bg-[#fffaf2] p-4 text-sm"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <span className="font-playfair font-semibold text-ink">{a.label}</span>
-                            <span className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => startEditAddress(a)}
-                                className="text-gold hover:underline"
-                                aria-label={`Edit ${a.label}`}
-                              >
-                                <i className="fa-solid fa-pen" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteAddress(a.id)}
-                                className="text-red-800/80 hover:underline"
-                                aria-label={`Delete ${a.label}`}
-                              >
-                                <i className="fa-solid fa-trash" />
-                              </button>
-                            </span>
+                        <li key={a.id} className="account-address-card">
+                          <div className="account-address-card__actions">
+                            <button
+                              type="button"
+                              onClick={() => startEditAddress(a)}
+                              className="account-address-card__action"
+                              aria-label={`Edit ${a.label}`}
+                            >
+                              <i className="fa-solid fa-pen text-xs" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteAddress(a.id)}
+                              className="account-address-card__action account-address-card__action--danger"
+                              aria-label={`Delete ${a.label}`}
+                            >
+                              <i className="fa-solid fa-trash text-xs" />
+                            </button>
                           </div>
-                          <p className="text-muted">
+                          <span className="account-address-card__label">
+                            <i className="fa-solid fa-location-dot text-[9px]" aria-hidden />
+                            {a.label}
+                          </span>
+                          <p className="account-address-card__line">
                             {[a.firstName, a.lastName].filter(Boolean).join(' ')}
                             {a.phone ? ` · ${a.phone}` : ''}
                           </p>
-                          <p className="mt-1 font-playfair text-ink">
+                          <p className="account-address-card__line account-address-card__line--primary">
                             {a.address}, {a.city}, {a.state} {a.pincode}
                           </p>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mb-8 text-sm text-muted">
+                    <p className="account-empty">
                       No saved addresses yet. Add one below or from checkout.
                     </p>
                   )}
 
-                  <h3 className="card-title mb-4">
+                  <div className="account-form-block">
+                  <h3 className="account-form-block__title">
                     {addressEditingId ? 'Edit address' : 'Add new address'}
                   </h3>
                   <form onSubmit={saveAddressEntry} className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -674,35 +744,41 @@ function UserProfile() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 md:col-span-2">
-                      <button
-                        type="submit"
-                        className="rounded-full bg-gold px-6 py-2.5 font-playfair text-ink transition hover:bg-gold-dark"
-                      >
+                      <button type="submit" className="lux-button">
                         {addressEditingId ? 'Update address' : 'Save address'}
                       </button>
                       {addressEditingId || Object.values(addressForm).some(Boolean) ? (
-                        <button
-                          type="button"
-                          onClick={cancelAddressForm}
-                          className="rounded-full border border-[#dcc6a6] px-6 py-2.5 font-playfair text-muted transition hover:bg-[#f7ecee]"
-                        >
+                        <button type="button" onClick={cancelAddressForm} className="button-tertiary">
                           Cancel
                         </button>
                       ) : null}
                     </div>
                   </form>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'security' && (
-                <div className="lux-card p-5 sm:p-6">
-                  <h2 className="card-heading mb-5 sm:mb-6">Change password</h2>
+                <div className="account-card account-panel">
+                  <div className="account-panel__head">
+                    <div>
+                      <h2 className="account-panel__title">Security</h2>
+                      <p className="account-panel__desc">Update your password to keep your account safe.</p>
+                    </div>
+                  </div>
+                  <div className="account-security-tip">
+                    <i className="fa-solid fa-shield-halved account-security-tip__icon" aria-hidden />
+                    <p className="account-security-tip__text">
+                      Use at least 8 characters with a mix of letters and numbers. Avoid passwords you use on
+                      other sites.
+                    </p>
+                  </div>
                   {pwdMessage.text ? (
                     <p
-                      className={`mb-4 rounded-lg px-3 py-2 text-sm font-playfair ${
+                      className={`account-alert ${
                         pwdMessage.tone === 'success'
-                          ? 'bg-emerald-50 text-emerald-900'
-                          : 'bg-red-50 text-red-900'
+                          ? 'account-alert--success'
+                          : 'account-alert--error'
                       }`}
                       role="status"
                     >
@@ -757,15 +833,16 @@ function UserProfile() {
                     <button
                       type="submit"
                       disabled={pwdSaving}
-                      className="rounded-full bg-gold text-ink px-6 sm:px-8 py-2.5 sm:py-3 font-playfair hover:bg-gold-dark transition-colors text-sm sm:text-base disabled:opacity-60"
+                      className="lux-button disabled:opacity-60"
                     >
                       {pwdSaving ? 'Updating…' : 'Update password'}
                     </button>
                   </form>
                 </div>
               )}
+              </main>
             </div>
-          </div>
+          </>
         )}
       </div>
       <Footer />

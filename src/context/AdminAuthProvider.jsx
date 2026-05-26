@@ -1,55 +1,56 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
-import { API_BASE } from '../services/config'
+import { STORAGE_KEYS } from '../services/config'
+import { adminFetch, adminLoginRequest } from '../services/jewelleryApi'
 
 const AdminAuthContext = createContext(null)
 
-const ADMIN_TOKEN_KEY = 'saanvi_admin_token'
-const ADMIN_PROFILE_KEY = 'saanvi_admin_profile'
-
 export function AdminAuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(ADMIN_TOKEN_KEY))
+  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEYS.adminToken))
   const [profile, setProfile] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(ADMIN_PROFILE_KEY)) } catch { return null }
+    try {
+      return JSON.parse(localStorage.getItem(`${STORAGE_KEYS.adminToken}_profile`) || 'null')
+    } catch {
+      return null
+    }
   })
 
   const login = useCallback(async (email, password) => {
-    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data?.detail || 'Login failed')
-    const t = data.access_token
-    localStorage.setItem(ADMIN_TOKEN_KEY, t)
-    localStorage.setItem(ADMIN_PROFILE_KEY, JSON.stringify({ role: data.role, tenant_id: data.tenant_id }))
+    const data = await adminLoginRequest(email, password)
+    const t = data.token
+    const user = data.user || { email, role: 'admin' }
+    localStorage.setItem(STORAGE_KEYS.adminToken, t)
+    localStorage.setItem(`${STORAGE_KEYS.adminToken}_profile`, JSON.stringify(user))
     setToken(t)
-    setProfile({ role: data.role, tenant_id: data.tenant_id })
+    setProfile(user)
     return data
   }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem(ADMIN_TOKEN_KEY)
-    localStorage.removeItem(ADMIN_PROFILE_KEY)
+    localStorage.removeItem(STORAGE_KEYS.adminToken)
+    localStorage.removeItem(`${STORAGE_KEYS.adminToken}_profile`)
     setToken(null)
     setProfile(null)
   }, [])
 
-  const authFetch = useCallback(async (path, opts = {}) => {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...opts,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-        ...opts.headers,
-      },
-    })
-    if (res.status === 401) { logout(); throw new Error('Session expired') }
-    const json = await res.json()
-    if (!res.ok) throw new Error(json?.detail || 'Request failed')
-    return json
-  }, [token, logout])
+  const authFetch = useCallback(
+    async (path, opts = {}) => {
+      const { method = 'GET', body, ...rest } = opts
+      try {
+        return await adminFetch(path, {
+          method,
+          body: typeof body === 'string' ? JSON.parse(body) : body,
+          ...rest,
+        })
+      } catch (err) {
+        if (err?.status === 401) {
+          logout()
+          throw new Error('Session expired')
+        }
+        throw err
+      }
+    },
+    [logout]
+  )
 
   return (
     <AdminAuthContext.Provider value={{ token, profile, login, logout, authFetch, isAdmin: !!token }}>

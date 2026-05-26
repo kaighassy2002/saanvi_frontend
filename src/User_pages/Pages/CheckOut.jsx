@@ -7,6 +7,7 @@ import SiteHeader from '../Components/SiteHeader'
 import { useCart } from '../../hooks/useCart'
 import { isCustomerLoggedIn } from '../../services/customerStorageScope'
 import { STORAGE_KEYS } from '../../services/config'
+import { validateCartStockForCheckout } from '../../services/checkoutStock'
 import { placeStorefrontOrder } from '../../services/storefrontOrderService'
 import { readSavedAddresses } from '../../services/savedAddresses'
 
@@ -64,7 +65,7 @@ function CheckOut() {
     city: '',
     state: '',
     pincode: '',
-    paymentMethod: 'card',
+    paymentMethod: 'cod',
   })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
@@ -178,6 +179,12 @@ function CheckOut() {
     setSubmitting(true)
     setSubmitError('')
     try {
+      const stockError = await validateCartStockForCheckout(items)
+      if (stockError) {
+        setSubmitError(stockError)
+        setSubmitting(false)
+        return
+      }
       const shipping = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -211,12 +218,42 @@ function CheckOut() {
     }
   }
 
-  if (!isCustomerLoggedIn() || items.length === 0) {
-    return null
+  if (!isCustomerLoggedIn()) {
+    return (
+      <div className="page-shell page-shell--no-mobile-nav">
+        <SiteHeader />
+        <div className="section-container py-20 text-center">
+          <p className="font-playfair text-muted">Taking you to sign in…</p>
+          <p className="mt-2 text-sm text-muted">Your bag is saved. Sign in to finish checkout.</p>
+          <Link
+            to={`/auth?redirect=${encodeURIComponent('/checkout')}`}
+            className="lux-button mt-6 inline-flex"
+          >
+            Sign in now
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="page-shell page-shell--no-mobile-nav">
+        <SiteHeader />
+        <div className="section-container py-16 text-center">
+          <h2 className="card-heading">Your cart is empty</h2>
+          <Link to="/collections" className="lux-button mt-6 inline-flex">
+            Continue shopping
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    )
   }
 
   return (
-    <div className="page-shell">
+    <div className="page-shell page-shell--no-mobile-nav">
       <SiteHeader />
 
       <div className="section-container py-10 sm:py-14">
@@ -462,19 +499,27 @@ function CheckOut() {
               </div>
 
               <div className="lux-card p-5 sm:p-6">
-                <h2 className="card-heading mb-5 sm:mb-6">Payment Method</h2>
+                <h2 className="card-heading mb-3 sm:mb-4">Payment Method</h2>
+                <p className="mb-5 rounded-lg bg-[#fff6eb] px-3 py-2 font-playfair text-sm text-[#5a3d1a] sm:mb-6">
+                  We do not charge online at checkout. After you place your order, our team confirms
+                  availability and shares UPI or bank details if needed. Pay on delivery where COD is
+                  available.
+                </p>
                 <div className="space-y-3 sm:space-y-4">
                   <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="card"
-                      checked={formData.paymentMethod === 'card'}
+                      value="cod"
+                      checked={formData.paymentMethod === 'cod'}
                       onChange={handleChange}
                       className="mr-4"
                     />
-                    <i className="fa-solid fa-credit-card mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">Credit/Debit Card</span>
+                    <i className="fa-solid fa-money-bill-wave mr-4 text-2xl text-gold"></i>
+                    <span className="font-playfair">
+                      Cash on Delivery
+                      <span className="mt-0.5 block text-xs text-muted">Pay when your order arrives</span>
+                    </span>
                   </label>
                   <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
                     <input
@@ -486,19 +531,25 @@ function CheckOut() {
                       className="mr-4"
                     />
                     <i className="fa-solid fa-mobile-screen mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">UPI</span>
+                    <span className="font-playfair">
+                      UPI
+                      <span className="mt-0.5 block text-xs text-muted">Pay after order confirmation via UPI</span>
+                    </span>
                   </label>
                   <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="cod"
-                      checked={formData.paymentMethod === 'cod'}
+                      value="card"
+                      checked={formData.paymentMethod === 'card'}
                       onChange={handleChange}
                       className="mr-4"
                     />
-                    <i className="fa-solid fa-money-bill-wave mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">Cash on Delivery</span>
+                    <i className="fa-solid fa-credit-card mr-4 text-2xl text-gold"></i>
+                    <span className="font-playfair">
+                      Card / bank transfer
+                      <span className="mt-0.5 block text-xs text-muted">Details shared after confirmation — not charged now</span>
+                    </span>
                   </label>
                 </div>
               </div>

@@ -95,15 +95,21 @@ export function WishlistProvider({ children }) {
     [items]
   )
 
+  const itemCount = useMemo(
+    () => new Set(items.map((i) => String(i.productId))).size,
+    [items]
+  )
+
   const value = useMemo(
     () => ({
       items,
       toggle,
       remove,
       isInWishlist,
-      count: items.length,
+      count: itemCount,
+      itemCount,
     }),
-    [items, toggle, remove, isInWishlist]
+    [items, toggle, remove, isInWishlist, itemCount]
   )
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>

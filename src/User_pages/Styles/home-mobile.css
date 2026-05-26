@@ -1,0 +1,452 @@
+/* Mobile-first home (shown below lg only) */
+
+.home-mobile {
+  background: transparent;
+  overflow-x: clip;
+}
+
+/* Hero — full-bleed carousel */
+.home-mobile-hero {
+  position: relative;
+  background: #1f1514;
+}
+
+.home-mobile-hero .swiper-pagination {
+  bottom: 5.5rem !important;
+}
+
+.home-mobile-hero .swiper-pagination-bullet {
+  width: 0.4rem;
+  height: 0.4rem;
+  background: rgba(255, 255, 255, 0.45);
+  opacity: 1;
+}
+
+.home-mobile-hero .swiper-pagination-bullet-active {
+  width: 1.1rem;
+  border-radius: 999px;
+  background: #f3d894;
+}
+
+.home-mobile-hero__slide {
+  position: relative;
+  min-height: min(78vh, 560px);
+}
+
+.home-mobile-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.home-mobile-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(31, 21, 20, 0.15) 0%,
+    rgba(31, 21, 20, 0.35) 45%,
+    rgba(31, 21, 20, 0.88) 100%
+  );
+}
+
+.home-mobile-hero__content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 1.25rem 1.15rem 1.75rem;
+}
+
+.home-mobile-hero__tag {
+  display: inline-block;
+  margin: 0;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.25rem;
+  background: rgba(201, 163, 74, 0.9);
+  font-family: 'Playfair Display', serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #241714;
+}
+
+.home-mobile-hero__title {
+  margin: 0.65rem 0 0;
+  font-family: 'Bodoni Moda', serif;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  color: #fff8ee;
+  letter-spacing: -0.02em;
+}
+
+.home-mobile-hero__sub {
+  margin: 0.45rem 0 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: rgba(255, 248, 238, 0.88);
+}
+
+.home-mobile-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  margin-top: 1rem;
+  padding: 0 1.35rem;
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1f1514;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Quick shop strip */
+.home-mobile-quick {
+  padding: 1rem 0 0.25rem;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.home-mobile-quick__search-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 1rem 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #ebebeb;
+  background: #fafafa;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8125rem;
+  color: #94969f;
+  text-decoration: none;
+}
+
+.home-mobile-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0 1rem 0.85rem;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.home-mobile-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.home-mobile-chip {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #ebebeb;
+  background: #fff;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.home-mobile-chip--gold {
+  border-color: #e3d1b4;
+  background: #fff9f0;
+  color: #7a2c3a;
+}
+
+.home-mobile-chip__thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #f5f5f5;
+}
+
+/* Services — horizontal cards */
+.home-mobile-services {
+  padding: 0.85rem 0;
+  background: linear-gradient(180deg, #faf6ef, #fff);
+  border-bottom: 1px solid #f0e6d8;
+}
+
+.home-mobile-service-card {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 9.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid #f0e6d8;
+  background: #fff;
+}
+
+.home-mobile-service-card i {
+  font-size: 1rem;
+  color: #9f7a2c;
+}
+
+.home-mobile-service-card__title {
+  margin: 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1f1514;
+}
+
+.home-mobile-service-card__text {
+  margin: 0.1rem 0 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.6875rem;
+  color: #9a8578;
+}
+
+/* Section headers */
+.home-mobile-section {
+  padding: 1.35rem 0 0.5rem;
+}
+
+.home-mobile-section__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1rem 0.85rem;
+}
+
+.home-mobile-section__title {
+  margin: 0;
+  font-family: 'Bodoni Moda', serif;
+  font-size: 1.35rem;
+  color: #1f1514;
+}
+
+.home-mobile-section__link {
+  flex-shrink: 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7a2c3a;
+  text-decoration: none;
+}
+
+/* Promo snap cards */
+.home-mobile-promo-card {
+  flex-shrink: 0;
+  scroll-snap-align: center;
+  position: relative;
+  width: min(82vw, 300px);
+  min-height: 11rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.home-mobile-promo-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-mobile-promo-card__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(31, 21, 20, 0.85), transparent 55%);
+}
+
+.home-mobile-promo-card__body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem;
+  color: #fff;
+}
+
+.home-mobile-promo-card__label {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.home-mobile-promo-card__title {
+  margin: 0.25rem 0 0;
+  font-family: 'Bodoni Moda', serif;
+  font-size: 1.125rem;
+  line-height: 1.2;
+}
+
+/* Trending tabs — scrollable pills */
+.home-mobile-tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0 1rem 0.85rem;
+  scrollbar-width: none;
+}
+
+.home-mobile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.home-mobile-tab {
+  flex-shrink: 0;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #ebebeb;
+  background: #fff;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6f5d5b;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.home-mobile-tab--active {
+  border-color: #7a2c3a;
+  background: #7a2c3a;
+  color: #fff;
+}
+
+.home-mobile-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.5rem;
+  padding: 0 0.65rem 1rem;
+}
+
+/* Category cards — horizontal */
+.home-mobile-cat-card {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: 6.5rem;
+  text-decoration: none;
+}
+
+.home-mobile-cat-card__img-wrap {
+  aspect-ratio: 3 / 4;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  background: #f5f5f5;
+  border: 1px solid #ebebeb;
+}
+
+.home-mobile-cat-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.home-mobile-cat-card:active .home-mobile-cat-card__img {
+  transform: scale(1.03);
+}
+
+.home-mobile-cat-card__name {
+  display: block;
+  margin-top: 0.45rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+/* Bottom CTA */
+.home-mobile-cta {
+  margin: 0.5rem 1rem 1.5rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #2a1116, #4a2030);
+  text-align: center;
+}
+
+.home-mobile-cta__title {
+  margin: 0;
+  font-family: 'Bodoni Moda', serif;
+  font-size: 1.25rem;
+  color: #fff8ee;
+}
+
+.home-mobile-cta__text {
+  margin: 0.4rem 0 0.85rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8125rem;
+  color: rgba(255, 248, 238, 0.8);
+}
+
+.home-mobile-cta__btn {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f3d894, #c9a34a);
+  font-family: 'Playfair Display', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #241714;
+  text-decoration: none;
+}
+
+/* Product card mobile tweaks */
+.home-mobile .store-product-card--home .store-product-card__body {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.home-mobile .store-product-card--home h3 {
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.home-mobile .store-product-card--home .store-product-card__brand {
+  text-align: left;
+}
+
+.home-mobile .store-product-card--home .store-product-card__body .flex {
+  justify-content: flex-start;
+}
+
+.home-view--desktop {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .home-view--desktop {
+    display: block;
+  }
+
+  .home-view--mobile {
+    display: none !important;
+  }
+}

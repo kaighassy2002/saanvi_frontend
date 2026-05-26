@@ -28,8 +28,8 @@ function AdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-[#faf7f2] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-playfair text-2xl text-ink">Saanvi Admin</h1>
-          <p className="text-sm text-muted mt-1">Sign in with your Goks account</p>
+          <h1 className="font-playfair text-2xl text-ink">Aashmika Designs Admin</h1>
+          <p className="text-sm text-muted mt-1">Sign in with your admin credentials</p>
         </div>
 
         <div className="lux-card p-6">

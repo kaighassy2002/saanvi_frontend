@@ -1,14 +1,20 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
+import { useCartDrawer } from '../../hooks/useCartDrawer'
 import { useWishlist } from '../../hooks/useWishlist'
-import { STORAGE_KEYS } from '../../services/config'
+import { useCatalog } from '../../hooks/useCatalog'
+import { useProductSearch } from '../../hooks/useProductSearch'
+import { CUSTOMER_SESSION_CHANGED_EVENT, STORAGE_KEYS } from '../../services/config'
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
+import { getRecentSearches, pushRecentSearch } from '../../services/recentSearches'
+import AnnouncementBar from './AnnouncementBar'
+import BrandLogo from './BrandLogo'
+import SearchSuggestions from './SearchSuggestions'
+import ShopMegaMenu from './ShopMegaMenu'
+import '../Styles/site-header.css'
 
-const navItems = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/collections', label: 'Collections' },
-]
+const navItems = [{ to: '/', label: 'Home', end: true }]
 
 function readCustomerSession() {
   const token = localStorage.getItem(STORAGE_KEYS.customerToken)
@@ -22,7 +28,6 @@ function readCustomerSession() {
   return { token, profile }
 }
 
-/** Navbar label: first name only (never email). */
 function customerDisplayName(profile) {
   if (profile && typeof profile === 'object') {
     const fn = String(profile.firstName || '').trim()
@@ -36,39 +41,92 @@ function customerDisplayName(profile) {
   return 'Account'
 }
 
-function SiteHeader({ showSearch = true, inHero = false }) {
-  const { totalQuantity } = useCart()
-  const { count: wishlistCount } = useWishlist()
+function customerEmail(profile) {
+  if (profile && typeof profile === 'object') {
+    const email = String(profile.email || '').trim()
+    if (email) return email
+  }
+  return ''
+}
+
+function SiteHeader({
+  showSearch = true,
+  inHero = false,
+  showAnnouncement = true,
+  staticOnMobile = false,
+}) {
+  const { itemCount: cartItemCount } = useCart()
+  const { openDrawer } = useCartDrawer()
+  const { itemCount: wishlistItemCount } = useWishlist()
+  const { products } = useCatalog()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [recentSearches, setRecentSearches] = useState(() => getRecentSearches())
   const [customerSession, setCustomerSession] = useState(() => readCustomerSession())
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const searchWrapRef = useRef(null)
   const navigate = useNavigate()
+
+  const { products: suggestionProducts, categories: suggestionCategories } = useProductSearch(
+    products,
+    searchText,
+  )
+
+  useEffect(() => {
+    const sync = () => setCustomerSession(readCustomerSession())
+    window.addEventListener(CUSTOMER_SESSION_CHANGED_EVENT, sync)
+    return () => window.removeEventListener(CUSTOMER_SESSION_CHANGED_EVENT, sync)
+  }, [])
+
+  const profileMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!suggestionsOpen && !showProfileMenu) return undefined
+    const onDoc = (e) => {
+      if (suggestionsOpen && searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setSuggestionsOpen(false)
+      }
+      if (
+        showProfileMenu &&
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target)
+      ) {
+        setShowProfileMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [suggestionsOpen, showProfileMenu])
 
   const isSignedIn = Boolean(customerSession.token)
   const displayName = customerDisplayName(customerSession.profile)
+  const customerEmailLabel = customerEmail(customerSession.profile)
 
   const navLinkClass = ({ isActive }) =>
-    `rounded-full px-4 py-2 text-[11px] font-medium tracking-[0.14em] uppercase transition-all duration-300 ${
-      isActive
-        ? inHero
-          ? 'bg-[#f5ddb012] text-[#f1d08b] shadow-[inset_0_0_0_1px_rgba(241,208,139,0.28)]'
-          : 'bg-[#f7ecee] text-gold shadow-[inset_0_0_0_1px_rgba(201,163,74,0.2)]'
-        : inHero
-          ? 'text-[#f2dfbf] hover:bg-[#ffffff12] hover:text-gold'
-          : 'text-muted hover:bg-[#f9f0e4] hover:text-gold'
-    }`
+    `site-header__nav-link${isActive ? ' site-header__nav-link--active' : ''}`
 
-  const heroIconButtonClass =
-    'group relative flex h-11 w-11 items-center justify-center rounded-full bg-[#14090c66] text-[#f2dfbf] shadow-[0_18px_30px_-24px_rgba(0,0,0,0.9)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:bg-[#1d0d11cc] hover:text-gold'
+  const closeSearchUi = () => {
+    setSearchOpen(false)
+    setSuggestionsOpen(false)
+    setIsMenuOpen(false)
+    setSearchText('')
+  }
 
-  const defaultIconButtonClass =
-    'group relative flex h-11 w-11 items-center justify-center rounded-full bg-[#fff2df] text-muted shadow-[0_14px_26px_-24px_rgba(58,21,29,0.58)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#f9ecd7] hover:text-gold'
+  const runSearch = (query) => {
+    const trimmed = query.trim()
+    if (trimmed) {
+      pushRecentSearch(trimmed)
+      setRecentSearches(getRecentSearches())
+    }
+    navigate(trimmed ? `/collections?search=${encodeURIComponent(trimmed)}` : '/collections')
+    closeSearchUi()
+  }
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
-    const trimmed = searchText.trim()
-    navigate(trimmed ? `/collections?search=${encodeURIComponent(trimmed)}` : '/collections')
+    runSearch(searchText)
   }
 
   const handleCustomerLogout = () => {
@@ -82,209 +140,387 @@ function SiteHeader({ showSearch = true, inHero = false }) {
   }
 
   const closeProfileMenu = () => setShowProfileMenu(false)
+  const closeMenus = () => {
+    setIsMenuOpen(false)
+    setShowProfileMenu(false)
+  }
 
-  return (
-    <header
-      className={
-        inHero
-          ? 'absolute inset-x-0 top-0 z-50'
-          : 'sticky top-0 z-50 border-b border-[#dcc6a6] bg-[#fffaf2]/95 shadow-[0_10px_28px_-24px_rgba(58,21,29,0.65)] backdrop-blur-xl'
-      }
-    >
-      <div className="section-container py-4">
-        <div
-          className={`flex items-center justify-between gap-4 rounded-full px-4 py-3 sm:px-6 ${
-            inHero
-              ? 'border border-[#f2d9ab40] bg-[#12070acc] shadow-[0_28px_54px_-30px_rgba(0,0,0,0.95)] backdrop-blur-xl'
-              : 'bg-transparent'
-          }`}
-        >
-        <Link
-          to="/"
-          className={`font-bodoni text-2xl tracking-[0.28em] sm:text-3xl ${inHero ? 'text-[#fff0d8]' : 'text-ink'}`}
-        >
-          SAANVI
-        </Link>
+  const headerPositionClass = inHero
+    ? 'absolute inset-x-0 top-0'
+    : staticOnMobile
+      ? 'relative max-lg:shadow-none lg:sticky lg:top-0'
+      : 'sticky top-0'
 
+  const renderDesktopIconActions = () => (
+    <>
+      <Link to="/wishlist" className="site-header__icon-btn" aria-label="Wishlist">
+        <i className="fa-regular fa-heart text-[0.95rem]" aria-hidden />
+        {wishlistItemCount > 0 ? (
+          <span className="site-header__badge">{wishlistItemCount > 99 ? '99+' : wishlistItemCount}</span>
+        ) : null}
+      </Link>
+      <button type="button" className="site-header__icon-btn" aria-label="Cart" onClick={openDrawer}>
+        <i className="fa-solid fa-cart-shopping text-[0.9rem]" aria-hidden />
+        {cartItemCount > 0 ? (
+          <span className="site-header__badge">{cartItemCount > 99 ? '99+' : cartItemCount}</span>
+        ) : null}
+      </button>
+    </>
+  )
+
+  const renderDesktopSearch = () =>
+    showSearch ? (
+      <div ref={searchWrapRef} className="site-header__search">
+        <form onSubmit={handleSearchSubmit}>
+          <input
+            type="search"
+            placeholder="Search necklaces, rings…"
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value)
+              setSuggestionsOpen(e.target.value.trim().length >= 2)
+            }}
+            onFocus={() => {
+              if (searchText.trim().length >= 2) setSuggestionsOpen(true)
+            }}
+            className="site-header__search-input"
+            aria-label="Search products"
+          />
+          <button type="submit" aria-label="Search" className="site-header__search-btn">
+            <i className="fa-solid fa-magnifying-glass text-sm" aria-hidden />
+          </button>
+        </form>
+        {suggestionsOpen ? (
+          <SearchSuggestions
+            products={suggestionProducts}
+            categories={suggestionCategories}
+            onSelect={closeSearchUi}
+          />
+        ) : null}
+      </div>
+    ) : null
+
+  const renderAccount = () =>
+    isSignedIn ? (
+      <div className="relative" ref={profileMenuRef}>
         <button
           type="button"
-          className={`flex h-11 w-11 items-center justify-center rounded-full border text-xl md:hidden ${
-            inHero
-              ? 'border-[#f2d9ab52] bg-[#14090c99] text-[#f2dfbf]'
-              : 'border-[#dcc6a6] bg-[#fff6eb] text-muted'
-          }`}
-          onClick={() => setIsMenuOpen((prev) => !prev)}
-          aria-label="Toggle navigation menu"
+          className="site-header__account-btn"
+          aria-label="Account menu"
+          aria-expanded={showProfileMenu}
+          onClick={() => setShowProfileMenu((prev) => !prev)}
         >
-          <i className={`fa-solid ${isMenuOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
+          <i className="fa-regular fa-user shrink-0 text-sm" aria-hidden />
+          <span className="site-header__account-name hidden sm:inline">{displayName}</span>
         </button>
+        {showProfileMenu ? (
+          <div className="site-header__dropdown" role="menu">
+            <Link to="/orders" className="site-header__dropdown-link" onClick={closeProfileMenu} role="menuitem">
+              Orders
+            </Link>
+            <Link to="/profile" className="site-header__dropdown-link" onClick={closeProfileMenu} role="menuitem">
+              Profile
+            </Link>
+            <button
+              type="button"
+              className="site-header__dropdown-btn"
+              onClick={handleCustomerLogout}
+              role="menuitem"
+            >
+              Logout
+            </button>
+          </div>
+        ) : null}
+      </div>
+    ) : (
+      <NavLink to="/auth" className={navLinkClass} end>
+        Sign in
+      </NavLink>
+    )
 
-        <div className="hidden items-center gap-6 lg:flex">
-          <nav className="flex items-center gap-2 font-playfair">
-            {navItems.map((item) => (
-              <NavLink key={item.label} to={item.to} className={navLinkClass} end={item.end}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+  return (
+    <>
+      <header
+        className={`site-header z-50 ${inHero ? 'site-header--hero' : 'site-header--default'} ${headerPositionClass}`}
+      >
+        {showAnnouncement ? <AnnouncementBar variant={inHero ? 'hero' : 'default'} /> : null}
 
-          {showSearch && (
-            <form className="relative" onSubmit={handleSearchSubmit}>
+        <div className="section-container">
+          <div className={`site-header__bar ${inHero ? 'site-header__bar--hero' : ''}`}>
+            <BrandLogo variant={inHero ? 'hero' : 'default'} />
+
+            <div className="site-header__cluster site-header__cluster--desktop">
+              <nav className="site-header__nav" aria-label="Main">
+                {navItems.map((item) => (
+                  <NavLink key={item.label} to={item.to} className={navLinkClass} end={item.end}>
+                    {item.label}
+                  </NavLink>
+                ))}
+                <div className="site-header__shop-wrap group/shop">
+                  <NavLink to="/collections" className={navLinkClass}>
+                    Shop
+                  </NavLink>
+                  <ShopMegaMenu variant="desktop" inHero={inHero} onNavigate={closeMenus} />
+                </div>
+              </nav>
+            </div>
+
+            <div className="site-header__cluster site-header__cluster--actions">
+              {renderDesktopSearch()}
+              {renderDesktopIconActions()}
+              {renderAccount()}
+            </div>
+
+            <div className="site-header__cluster site-header__cluster--mobile">
+              {showSearch ? (
+                <button
+                  type="button"
+                  className="site-header__icon-btn"
+                  aria-label="Open search"
+                  onClick={() => setSearchOpen(true)}
+                >
+                  <i className="fa-solid fa-magnifying-glass" aria-hidden />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="site-header__icon-btn"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
+              >
+                <i className={`fa-solid text-lg ${isMenuOpen ? 'fa-xmark' : 'fa-bars'}`} aria-hidden />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {isMenuOpen ? (
+          <div
+            className={`site-header__menu lg:hidden ${inHero ? 'site-header__menu--hero' : ''}`}
+            id="mobile-nav"
+          >
+            <div className="site-header__menu-panel">
+              {showSearch ? (
+                <form className="site-header__menu-search" onSubmit={handleSearchSubmit}>
+                  <div className="relative">
+                    <input
+                      type="search"
+                      placeholder="Search jewellery…"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      className={
+                        inHero
+                          ? 'input-search border-[#f2d9ab52] bg-[#14090c66] text-[#f5e6cc]'
+                          : 'input-search'
+                      }
+                      aria-label="Search products"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted"
+                      aria-label="Search"
+                    >
+                      <i className="fa-solid fa-magnifying-glass" aria-hidden />
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              <div className="site-header__menu-scroll">
+                <nav className="site-header__menu-nav" aria-label="Mobile">
+                  {navItems.map((item) => (
+                    <NavLink
+                      key={item.label}
+                      to={item.to}
+                      className={navLinkClass}
+                      end={item.end}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                  <NavLink
+                    to="/collections"
+                    className={navLinkClass}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Shop all
+                  </NavLink>
+                  <ShopMegaMenu variant="mobile" inHero={inHero} onNavigate={() => setIsMenuOpen(false)} />
+                </nav>
+
+                <div className="site-header__menu-actions">
+                  <NavLink
+                    to="/wishlist"
+                    className="site-header__menu-action"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <span className="site-header__menu-action-icon" aria-hidden>
+                      <i className="fa-regular fa-heart" />
+                    </span>
+                    <span className="site-header__menu-action-label">Wishlist</span>
+                    {wishlistItemCount > 0 ? (
+                      <span className="site-header__menu-action-badge">
+                        {wishlistItemCount > 99 ? '99+' : wishlistItemCount}
+                      </span>
+                    ) : null}
+                  </NavLink>
+                  <button
+                    type="button"
+                    className="site-header__menu-action"
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      openDrawer()
+                    }}
+                  >
+                    <span className="site-header__menu-action-icon" aria-hidden>
+                      <i className="fa-solid fa-cart-shopping" />
+                    </span>
+                    <span className="site-header__menu-action-label">Cart</span>
+                    {cartItemCount > 0 ? (
+                      <span className="site-header__menu-action-badge">
+                        {cartItemCount > 99 ? '99+' : cartItemCount}
+                      </span>
+                    ) : null}
+                  </button>
+                </div>
+              </div>
+
+              <div className="site-header__menu-account">
+                {isSignedIn ? (
+                  <div className="site-header__menu-account-card">
+                    <div className="site-header__menu-account-head">
+                      <span className="site-header__menu-account-avatar" aria-hidden>
+                        <i className="fa-regular fa-user" />
+                      </span>
+                      <div className="site-header__menu-account-meta">
+                        <p className="site-header__menu-account-name">{displayName}</p>
+                        {customerEmailLabel ? (
+                          <p className="site-header__menu-account-email">{customerEmailLabel}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="site-header__menu-account-links">
+                      <NavLink
+                        to="/profile"
+                        className="site-header__menu-account-link"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <i className="fa-regular fa-user" aria-hidden />
+                        Profile
+                      </NavLink>
+                      <NavLink
+                        to="/orders"
+                        className="site-header__menu-account-link"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <i className="fa-solid fa-box" aria-hidden />
+                        Orders
+                      </NavLink>
+                      <button
+                        type="button"
+                        className="site-header__menu-account-link site-header__menu-account-link--logout"
+                        onClick={handleCustomerLogout}
+                      >
+                        <i className="fa-solid fa-right-from-bracket" aria-hidden />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <NavLink
+                    to="/auth"
+                    className="site-header__menu-signin"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <i className="fa-regular fa-user" aria-hidden />
+                    Sign in / Register
+                  </NavLink>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </header>
+
+      {searchOpen ? (
+        <div className="search-overlay lg:hidden" role="dialog" aria-modal="true" aria-label="Search">
+          <div className="flex items-center gap-3 border-b border-[#eadfc9] bg-white px-4 py-3">
+            <BrandLogo variant="default" size="compact" className="shrink-0" />
+            <form className="relative min-w-0 flex-1" onSubmit={handleSearchSubmit}>
               <input
-                type="text"
-                placeholder="Search jewellery..."
+                type="search"
+                autoFocus
+                placeholder="Search necklaces, bridal sets, rings…"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                className={`w-60 rounded-full py-3 pl-5 pr-11 text-sm outline-none transition ${
-                  inHero
-                    ? 'border border-[#f2d9ab52] bg-[#14090c99] text-[#f5e6cc] placeholder:text-[#f5e6cca8] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md focus:border-[#f2d9ab] focus:ring-2 focus:ring-[#f2d9ab40]'
-                    : 'border border-[#dcc6a6] bg-[#fff6eb] text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] focus:border-[#7a2c3a] focus:ring-2 focus:ring-[#7a2c3a]/20'
-                }`}
+                className="input-search py-2.5"
+                aria-label="Search products"
               />
               <button
                 type="submit"
-                aria-label="Search products"
-                className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm transition ${
-                  inHero ? 'text-[#f2dfbf] hover:text-gold' : 'text-muted hover:text-[#7a2c3a]'
-                }`}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a2c3a]"
+                aria-label="Search"
               >
-                <i className="fa-solid fa-magnifying-glass"></i>
+                <i className="fa-solid fa-magnifying-glass" aria-hidden />
               </button>
             </form>
-          )}
-
-          <div className={`flex items-center gap-2 ${inHero ? 'text-[#f2dfbf]' : 'text-muted'}`}>
-            <Link
-              to="/wishlist"
-              className={inHero ? heroIconButtonClass : defaultIconButtonClass}
-              aria-label="Wishlist"
+            <button
+              type="button"
+              onClick={() => setSearchOpen(false)}
+              className="site-header__icon-btn shrink-0"
+              aria-label="Close search"
             >
-              <i className="fa-regular fa-heart"></i>
-              {wishlistCount > 0 ? (
-                <span className="absolute -right-2 -top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-ink sm:text-xs">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
-                </span>
-              ) : null}
-            </Link>
-            <Link
-              to="/cart"
-              className={inHero ? heroIconButtonClass : defaultIconButtonClass}
-              aria-label="Shopping cart"
-            >
-              <i className="fa-solid fa-cart-shopping"></i>
-              {totalQuantity > 0 ? (
-                <span className="absolute -right-2 -top-2 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-ink sm:text-xs">
-                  {totalQuantity > 99 ? '99+' : totalQuantity}
-                </span>
-              ) : null}
-            </Link>
-            {isSignedIn ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  className={`flex max-w-[11rem] items-center gap-2 rounded-full px-3 py-2 text-left transition duration-300 hover:-translate-y-0.5 hover:text-gold ${
-                    inHero ? 'text-[#f2dfbf]' : 'text-muted'
-                  } ${
-                    inHero
-                      ? 'bg-[#14090c66] shadow-[0_18px_30px_-24px_rgba(0,0,0,0.9)] backdrop-blur-md hover:bg-[#1d0d11cc]'
-                      : 'bg-[#fff2df] shadow-[0_14px_26px_-24px_rgba(58,21,29,0.58)] hover:bg-[#f9ecd7]'
-                  }`}
-                  aria-label="Account menu"
-                  aria-expanded={showProfileMenu}
-                  onClick={() => setShowProfileMenu((prev) => !prev)}
-                >
-                  <span className="truncate font-playfair text-sm tracking-[0.08em]">{displayName}</span>
-                  <i className="fa-regular fa-user shrink-0 text-lg" aria-hidden />
-                </button>
-                {showProfileMenu && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-[#dcc6a6] bg-[#fffaf2] p-2 text-sm text-ink shadow-lg">
-                    <Link
-                      to="/orders"
-                      className="block rounded-lg px-3 py-2 hover:bg-[#f7ecee]"
-                      onClick={closeProfileMenu}
-                    >
-                      Orders
-                    </Link>
-                    <Link
-                      to="/profile"
-                      className="block rounded-lg px-3 py-2 hover:bg-[#f7ecee]"
-                      onClick={closeProfileMenu}
-                    >
-                      Profile
-                    </Link>
-                    <button
-                      type="button"
-                      className="block w-full rounded-lg px-3 py-2 text-left hover:bg-[#f7ecee]"
-                      onClick={handleCustomerLogout}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
+              <i className="fa-solid fa-xmark" aria-hidden />
+            </button>
+          </div>
+          <div className="section-container py-6">
+            {searchText.trim().length >= 2 &&
+            (suggestionProducts.length > 0 || suggestionCategories.length > 0) ? (
+              <div className="mb-6">
+                <SearchSuggestions
+                  products={suggestionProducts}
+                  categories={suggestionCategories}
+                  onSelect={closeSearchUi}
+                  className="!static !mt-0 !border-[#eadfc9] !shadow-none"
+                />
               </div>
-            ) : (
-              <NavLink to="/auth" className={navLinkClass} end>
-                Sign in
-              </NavLink>
-            )}
+            ) : null}
+            {recentSearches.length > 0 ? (
+              <>
+                <p className="text-kicker">Recent searches</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {recentSearches.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      onClick={() => runSearch(term)}
+                      className="rounded-full border border-[#e3d1b4] bg-white px-4 py-2 font-playfair text-sm text-muted transition hover:border-[#7a2c3a] hover:text-[#7a2c3a]"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            <p className={`text-kicker ${recentSearches.length > 0 ? 'mt-6' : ''}`}>Popular searches</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {['Necklace', 'Bridal Set', 'Earrings', 'Bangles', 'Ring'].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => runSearch(term)}
+                  className="rounded-full border border-[#e3d1b4] bg-white px-4 py-2 font-playfair text-sm text-muted transition hover:border-[#7a2c3a] hover:text-[#7a2c3a]"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-        </div>
-      </div>
-
-      {isMenuOpen && (
-        <div
-          className={`border-t px-4 py-4 md:hidden ${
-            inHero
-              ? 'border-[#f2d9ab66] bg-[#2a1116ed] backdrop-blur'
-              : 'border-[#dcc6a6] bg-[#fffaf2]'
-          }`}
-        >
-          <nav className="flex flex-col gap-3 font-playfair">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                className={navLinkClass}
-                end={item.end}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            <NavLink to="/wishlist" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
-              Wishlist
-            </NavLink>
-            <NavLink to="/cart" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
-              Cart
-            </NavLink>
-            {isSignedIn ? (
-              <>
-                <NavLink to="/profile" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
-                  Profile
-                </NavLink>
-                <NavLink to="/orders" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
-                  Orders
-                </NavLink>
-                <button
-                  type="button"
-                  className={`text-left text-sm tracking-[0.12em] uppercase transition-colors ${
-                    inHero ? 'text-[#f2dfbf] hover:text-gold' : 'text-muted hover:text-gold'
-                  }`}
-                  onClick={handleCustomerLogout}
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <NavLink to="/auth" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
-                Login/Register
-              </NavLink>
-            )}
-          </nav>
-        </div>
-      )}
-    </header>
+      ) : null}
+    </>
   )
 }
 

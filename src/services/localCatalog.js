@@ -20,6 +20,7 @@ export function normalizeProduct(raw) {
     description: raw.description || '',
     specifications: raw.specifications || {
       material: '',
+      color: '',
       weight: '',
       length: '',
       certification: '',

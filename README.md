@@ -1,6 +1,6 @@
-# SAANVI — Jewellery Storefront (React)
+# Aashmika Designs — Jewellery Storefront (React)
 
-Customer-facing jewellery site and **admin dashboard** for the SAANVI project. Built with **Vite** and **React 19**, styled with **Tailwind CSS v4**. It talks to **`jewellery_backend`** when configured, or falls back to **browser localStorage** for demos without a server.
+Customer-facing jewellery site and **admin dashboard** for the Aashmika Designs project. Built with **Vite** and **React 19**, styled with **Tailwind CSS v4**. It talks to **`jewellery_backend`** when configured, or falls back to **browser localStorage** for demos without a server.
 
 ## Stack
 
@@ -35,6 +35,7 @@ cp .env.example .env
 |----------|-------------|
 | `VITE_DEV_PROXY` | Set to **`true`** to proxy `/api` → `http://localhost:5000` (see `vite.config.js`). Recommended with the default backend port. |
 | `VITE_API_URL` | Full origin of the API **without** a trailing slash, e.g. `http://localhost:5000`. Used when **`VITE_DEV_PROXY`** is not `true`. |
+| `VITE_STORE_WHATSAPP` | WhatsApp number for customer chat (digits only, India code 91, e.g. `919876543210`). See `.env.example`. |
 
 **Recommended local flow:** backend on port **5000**, frontend with:
 
@@ -50,9 +51,12 @@ For `npm run build`, set the public API URL (no Vite proxy in production):
 
 ```env
 VITE_API_URL=https://your-api.example.com
+VITE_STORE_WHATSAPP=919876543210
 ```
 
 See `.env.production.example` for a template.
+
+**Before launch:** follow the step-by-step checklist in [`docs/LAUNCH_CHECKLIST.md`](../docs/LAUNCH_CHECKLIST.md) (env vars, build, and 15 manual E2E tests).
 
 ### Local-only mode (no backend)
 
@@ -82,18 +86,27 @@ If **`VITE_DEV_PROXY`** is not enabled and **`VITE_API_URL`** is empty, the app 
 | `/orders` | My orders (API requires customer login for server-backed list) |
 | `/profile` | Profile |
 | `/auth` | Register / login |
+| `/shipping` | Shipping & delivery policy |
+| `/returns` | Returns & refunds policy |
+| `/contact` | Contact & WhatsApp |
+| `/privacy-policy` | Privacy policy |
 
 ### Admin
 
 | Path | Area |
 |------|------|
 | `/admin/login` | Admin sign-in |
-| `/admin` | Dashboard |
-| `/admin/products` | Product list & CRUD |
-| `/admin/categories` | Categories |
-| `/admin/orders` | Orders |
-| `/admin/customers` | Customers |
-| `/admin/merchandising` | New arrivals IDs |
+| `/admin` | Dashboard (KPIs, recent orders) |
+| `/admin/products` | Product list |
+| `/admin/products/new` | Add product |
+| `/admin/products/:id/edit` | Edit / delete product |
+| `/admin/orders` | Order list |
+| `/admin/orders/:publicId` | Order detail (status, tracking, notes) |
+| `/admin/categories` | Category editor |
+| `/admin/merchandising` | New-arrivals product picker |
+| `/admin/reviews` | Review moderation |
+
+Customer account management (`/admin/customers`) is planned for a later release; the backend exposes `GET/PATCH /api/admin/users` when needed.
 
 Admin JWT is stored under the key defined in `STORAGE_KEYS.adminToken` in `src/services/config.js`.
 
@@ -103,7 +116,11 @@ Admin JWT is stored under the key defined in `STORAGE_KEYS.adminToken` in `src/s
 2. In `jewellery_frontend`, use `.env` with `VITE_DEV_PROXY=true`  
 3. Run `npm run dev` and open the printed local URL  
 
-Customer **register/login** is required to **add to cart**, open the **cart**, **checkout**, and place orders. With the API active, checkout uses `POST /api/orders` with a customer JWT. **My Orders** loads from `GET /api/auth/orders` when the user is signed in.
+Customer **register/login** is required to **add to cart**, open the **cart**, and **checkout** (`/checkout` redirects to `/auth` if unsigned in). With the API active, checkout uses `POST /api/orders` with a customer JWT. **My Orders** loads from `GET /api/auth/orders` when the user is signed in.
+
+**Payments at launch:** COD default; UPI and card are *pay after order confirmation* (no online payment gateway). Copy on checkout and order success explains next steps; optional WhatsApp link uses `VITE_STORE_WHATSAPP`.
+
+**Categories:** Home grid and shop mega-menu load category names from `GET /api/categories` (same source as admin **Categories**). Hero images use fallbacks in `src/services/shopCategories.js`.
 
 ## Project layout
 

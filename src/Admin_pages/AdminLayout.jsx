@@ -1,8 +1,6 @@
 import React from 'react'
 import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
-const GOKS_URL = import.meta.env.VITE_GOKS_DASHBOARD_URL || 'http://localhost:3001'
-
 function AdminLayout() {
   const { isAdmin, logout, profile } = useAdminAuth()
   const navigate = useNavigate()
@@ -19,45 +17,30 @@ function AdminLayout() {
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-[#e8d5c0] flex flex-col py-6 px-4 shrink-0">
         <div className="mb-8">
-          <span className="font-playfair text-lg text-ink">Saanvi</span>
+          <span className="font-playfair text-lg text-ink">Aashmika Designs</span>
           <span className="block text-xs text-muted mt-0.5">Store Admin</span>
         </div>
 
         <nav className="flex-1 space-y-1">
-          <NavLink
-            to="/admin"
-            end
-            className={({ isActive }) =>
-              `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-[#f4e8db] text-ink font-medium' : 'text-muted hover:text-ink hover:bg-[#faf7f2]'}`
-            }
-          >
-            Featured Items
-          </NavLink>
-
-          <a
-            href={`${GOKS_URL}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block px-3 py-2 rounded-lg text-sm text-muted hover:text-ink hover:bg-[#faf7f2] transition"
-          >
-            Inventory →
-          </a>
-          <a
-            href={`${GOKS_URL}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block px-3 py-2 rounded-lg text-sm text-muted hover:text-ink hover:bg-[#faf7f2] transition"
-          >
-            Orders →
-          </a>
-          <a
-            href={`${GOKS_URL}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block px-3 py-2 rounded-lg text-sm text-muted hover:text-ink hover:bg-[#faf7f2] transition"
-          >
-            Customers →
-          </a>
+          {[
+            { to: '/admin', end: true, label: 'Dashboard' },
+            { to: '/admin/products', label: 'Products' },
+            { to: '/admin/orders', label: 'Orders' },
+            { to: '/admin/categories', label: 'Categories' },
+            { to: '/admin/merchandising', label: 'Merchandising' },
+            { to: '/admin/reviews', label: 'Reviews' },
+          ].map(({ to, end, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-[#f4e8db] text-ink font-medium' : 'text-muted hover:text-ink hover:bg-[#faf7f2]'}`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="mt-auto pt-4 border-t border-[#e8d5c0]">
