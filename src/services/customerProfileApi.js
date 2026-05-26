@@ -1,41 +1,30 @@
-import { commonAPI } from '../server/comonAPI'
-import { SERVER_URL } from '../server/serverURL'
-import { STORAGE_KEYS } from './config'
+import { STORAGE_KEYS, USE_LOCAL_API } from './config'
+import { customerGetMe, customerPatchMe } from './jewelleryApi'
 
-const API_AUTH = `${SERVER_URL}/api/auth`
-
-function customerAuthHeaders() {
-  const t = localStorage.getItem(STORAGE_KEYS.customerToken)
-  const base = { 'Content-Type': 'application/json' }
-  if (t) base.Authorization = `Bearer ${t}`
-  return base
+export function unwrapCustomerApi(payload) {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return payload.data
+  }
+  return payload
 }
 
-/** Axios success response or axios error (same as allApi pattern). */
 export async function customerGetMeRequest() {
-  return commonAPI('GET', `${API_AUTH}/me`, undefined, customerAuthHeaders())
+  if (USE_LOCAL_API) {
+    const raw = localStorage.getItem(STORAGE_KEYS.customerProfile)
+    if (!raw) throw new Error('Not signed in')
+    return JSON.parse(raw)
+  }
+  return customerGetMe()
 }
 
 export async function customerPatchMeRequest(body) {
-  return commonAPI('PATCH', `${API_AUTH}/me`, body, customerAuthHeaders())
-}
-
-export function unwrapCustomerApi(result) {
-  if (result?.response) {
-    const { status, data } = result.response
-    const raw =
-      (typeof data === 'object' && data != null && data.message) ||
-      (typeof data === 'string' ? data : null) ||
-      result.message ||
-      'Something went wrong'
-    const msg = typeof raw === 'string' ? raw : 'Request failed'
-    const err = new Error(msg)
-    err.statusCode = status
-    throw err
+  if (USE_LOCAL_API) {
+    const raw = localStorage.getItem(STORAGE_KEYS.customerProfile)
+    if (!raw) throw new Error('Not signed in')
+    const prev = JSON.parse(raw)
+    const next = { ...prev, ...body }
+    localStorage.setItem(STORAGE_KEYS.customerProfile, JSON.stringify(next))
+    return next
   }
-  const status = result?.status
-  if (status >= 200 && status < 300 && result?.data !== undefined) {
-    return result.data
-  }
-  throw new Error(result?.message || 'Could not reach server')
+  return customerPatchMe(body)
 }

@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import BrandLogo from '../Components/BrandLogo'
 import Footer from '../Components/Footer'
-import PageIntro from '../Components/PageIntro'
 import SiteHeader from '../Components/SiteHeader'
+<<<<<<< HEAD
 import {
   loginAPI,
   registerAPI,
@@ -11,7 +12,13 @@ import {
   resetPasswordWithOtpAPI,
 } from '../../server/allApi'
 import { STORAGE_KEYS } from '../../services/config'
+=======
+import { STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
+>>>>>>> origin/feature
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
+import { customerLogin, customerRegister } from '../../services/jewelleryApi'
+import '../Styles/auth-page.css'
+import '../Styles/footer-brand.css'
 
 function safeCustomerRedirect(raw) {
   if (raw == null || typeof raw !== 'string') return '/'
@@ -20,32 +27,36 @@ function safeCustomerRedirect(raw) {
   return t
 }
 
-/** commonAPI returns axios response on success, or the axios error object on failure (no throw). */
-function dataFromCommonAPI(result) {
-  if (result?.response) {
-    const { status, data } = result.response
-    const raw =
-      (typeof data === 'object' && data != null && data.message) ||
-      (typeof data === 'string' ? data : null) ||
-      result.message ||
-      'Something went wrong'
-    const msg = typeof raw === 'string' ? raw : 'Request failed'
-    const err = new Error(msg)
-    err.statusCode = status
-    throw err
-  }
-  const status = result?.status
-  if (status >= 200 && status < 300 && result?.data !== undefined) {
-    return result.data
-  }
-  throw new Error(result?.message || 'Could not reach server')
+function persistSession(token, user) {
+  localStorage.setItem(STORAGE_KEYS.customerToken, token)
+  localStorage.setItem(STORAGE_KEYS.customerProfile, JSON.stringify(user))
+  notifyCustomerSessionChanged()
 }
+
+const AUTH_PERKS = [
+  { icon: 'fa-solid fa-heart', text: 'Save wishlist and cart across devices' },
+  { icon: 'fa-solid fa-bag-shopping', text: 'Faster checkout with saved details' },
+  { icon: 'fa-solid fa-truck-fast', text: 'Track orders and delivery updates' },
+  { icon: 'fa-solid fa-star', text: 'Leave verified reviews on pieces you own' },
+]
+
+const MOBILE_PERKS = [
+  { icon: 'fa-solid fa-heart', text: 'Wishlist' },
+  { icon: 'fa-solid fa-truck-fast', text: 'Track orders' },
+  { icon: 'fa-solid fa-star', text: 'Reviews' },
+]
 
 function Auth() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirectAfterAuth = () => safeCustomerRedirect(searchParams.get('redirect'))
+  const redirectTarget = () => safeCustomerRedirect(searchParams.get('redirect'))
+
   const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('error')
   const [loading, setLoading] = useState(false)
@@ -77,76 +88,132 @@ function Auth() {
     setForgotLoading(false)
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
+  useEffect(() => {
+    const urlMode = searchParams.get('mode')
+    if (urlMode === 'register') setMode('register')
+    if (urlMode === 'login') setMode('login')
+  }, [searchParams])
+
+  const switchMode = (next) => {
+    setMode(next)
     setMessage('')
-    setMessageTone('error')
+  }
+
+  const showMessage = (text, tone = 'error') => {
+    setMessage(text)
+    setMessageTone(tone)
+  }
+
+  const handleLocalDemoSignIn = () => {
+    const trimmedEmail = email.trim().toLowerCase()
+    if (!trimmedEmail || !password) {
+      showMessage('Email and password required')
+      return
+    }
+    const user = {
+      id: 'local-demo',
+      email: trimmedEmail,
+      firstName: firstName.trim() || 'Guest',
+      lastName: lastName.trim() || 'User',
+      name: `${firstName.trim() || 'Guest'} ${lastName.trim() || 'User'}`.trim(),
+      phone: phone.replace(/\D/g, ''),
+    }
+    persistSession('local-demo-token', user)
+    showMessage('Signed in (demo mode).', 'success')
+    navigate(redirectTarget())
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
     setLoading(true)
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    const email = String(fd.get('email') || '').trim()
-    const password = String(fd.get('password') || '')
+    setMessage('')
+
     try {
-      const raw = await loginAPI({ email, password })
-      const data = dataFromCommonAPI(raw)
-      const token = data?.token || data?.accessToken
-      if (!token) throw new Error('No token in response')
-      localStorage.setItem(STORAGE_KEYS.customerToken, token)
-      if (data?.user && typeof data.user === 'object') {
-        localStorage.setItem(STORAGE_KEYS.customerProfile, JSON.stringify(data.user))
+      if (USE_LOCAL_API) {
+        handleLocalDemoSignIn()
+        return
       }
-      notifyCustomerSessionChanged()
-      setMessageTone('success')
-      setMessage('Signed in successfully.')
-      navigate(redirectAfterAuth())
+
+      if (mode === 'register') {
+        if (!firstName.trim()) {
+          showMessage('First name required')
+          return
+        }
+        const data = await customerRegister({
+          email: email.trim(),
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: phone.replace(/\D/g, ''),
+        })
+        persistSession(data.token, data.user)
+        showMessage('Account created. Welcome!', 'success')
+        navigate(redirectTarget())
+        return
+      }
+
+      const data = await customerLogin({
+        email: email.trim(),
+        password,
+      })
+      persistSession(data.token, data.user)
+      showMessage('Signed in.', 'success')
+      navigate(redirectTarget())
     } catch (err) {
-      setMessageTone('error')
-      setMessage(err?.message || 'Login failed')
+      showMessage(err?.message || 'Authentication failed')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegister = async (e) => {
-    e.preventDefault()
-    setMessage('')
-    setMessageTone('error')
-    setLoading(true)
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    const reqBody = {
-      firstName: String(fd.get('firstName') || '').trim(),
-      lastName: String(fd.get('lastName') || '').trim(),
-      email: String(fd.get('email') || '').trim().toLowerCase(),
-      phone: String(fd.get('phone') || '').trim(),
-      password: String(fd.get('password') || ''),
-    }
-    try {
-      const raw = await registerAPI(reqBody)
-      const data = dataFromCommonAPI(raw)
-      const token = data?.token || data?.accessToken
-      if (!token) throw new Error('No token in response')
-      localStorage.setItem(STORAGE_KEYS.customerToken, token)
-      if (data?.user && typeof data.user === 'object') {
-        localStorage.setItem(STORAGE_KEYS.customerProfile, JSON.stringify(data.user))
-      }
-      notifyCustomerSessionChanged()
-      setMessageTone('success')
-      setMessage('Account created. You are signed in.')
-      form.reset()
-      navigate(redirectAfterAuth())
-    } catch (err) {
-      setMessageTone('error')
-      const base = err?.message || 'Registration failed'
-      const extra =
-        err?.statusCode === 409
-          ? ' Try signing in, or use a different email address.'
-          : ''
-      setMessage(base + extra)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const isRegister = mode === 'register'
+  const redirect = redirectTarget()
+
+  const modeTabs = !USE_LOCAL_API ? (
+    <>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'login'}
+        className={`auth-page__tab${mode === 'login' ? ' auth-page__tab--active' : ''}`}
+        onClick={() => switchMode('login')}
+      >
+        Sign in
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'register'}
+        className={`auth-page__tab${mode === 'register' ? ' auth-page__tab--active' : ''}`}
+        onClick={() => switchMode('register')}
+      >
+        Register
+      </button>
+    </>
+  ) : null
+
+  const mobileModeTabs = !USE_LOCAL_API ? (
+    <>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'login'}
+        className={`auth-page__mobile-tab${mode === 'login' ? ' auth-page__mobile-tab--active' : ''}`}
+        onClick={() => switchMode('login')}
+      >
+        Sign in
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'register'}
+        className={`auth-page__mobile-tab${mode === 'register' ? ' auth-page__mobile-tab--active' : ''}`}
+        onClick={() => switchMode('register')}
+      >
+        Register
+      </button>
+    </>
+  ) : null
 
   const handleForgotRequest = async (e) => {
     e.preventDefault()
@@ -224,57 +291,124 @@ function Auth() {
   }
 
   return (
-    <div className="page-shell">
+    <div id="main-content" className="page-shell page-shell--no-mobile-nav" tabIndex={-1}>
       <SiteHeader />
-      <section className="section-container py-10 sm:py-14">
-        <div className="mx-auto max-w-4xl">
-          <PageIntro
-            eyebrow="Member Access"
-            title="Welcome To SAANVI"
-            subtitle="Sign in for saved carts, wishlist sync, and faster premium checkout."
-            stats={[
-              { label: 'Secure', value: '100%' },
-              { label: 'Quick Access', value: '1-Click' },
-            ]}
-          />
 
-          <div className="lux-card mt-8 p-6 sm:p-8">
-            <div className="mb-8 grid grid-cols-2 rounded-full bg-[#f4e8db] p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login')
-                  setMessage('')
-                  setMessageTone('error')
-                }}
-                className={`rounded-full py-2 font-playfair transition ${mode === 'login' ? 'bg-gold text-ink' : 'text-muted'}`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('register')
-                  setMessage('')
-                  setMessageTone('error')
-                }}
-                className={`rounded-full py-2 font-playfair transition ${mode === 'register' ? 'bg-gold text-ink' : 'text-muted'}`}
-              >
-                Register
-              </button>
+      <section className="auth-page">
+        <div className="auth-page__layout section-container">
+          <aside className="auth-page__visual hidden lg:flex">
+            <div className="auth-page__visual-inner">
+              <div className="auth-page__logo-wrap">
+                <div className="site-footer__brand-wrap">
+                  <BrandLogo variant="footer" />
+                </div>
+              </div>
+              <h2 className="auth-page__visual-title">Your jewellery wardrobe, always with you</h2>
+              <p className="auth-page__visual-text">
+                Join {USE_LOCAL_API ? 'our demo' : 'Aashmika Designs'} to save favourites, checkout
+                smoothly, and manage orders in one place.
+              </p>
+              <ul className="auth-page__perks">
+                {AUTH_PERKS.map((perk) => (
+                  <li key={perk.text} className="auth-page__perk">
+                    <span className="auth-page__perk-icon" aria-hidden>
+                      <i className={perk.icon} />
+                    </span>
+                    {perk.text}
+                  </li>
+                ))}
+              </ul>
             </div>
+            <p className="auth-page__visual-foot">
+              Handcrafted pieces for weddings, festivals, and everyday elegance.
+            </p>
+          </aside>
+
+          <div className="auth-page__main">
+            <div className="auth-page__mobile-only lg:hidden">
+              <header className="auth-page__mobile-header">
+                <div className="auth-page__mobile-logo">
+                  <BrandLogo variant="default" />
+                </div>
+                {!USE_LOCAL_API ? (
+                  <div className="auth-page__mobile-tabs" role="tablist" aria-label="Sign in or register">
+                    {mobileModeTabs}
+                  </div>
+                ) : null}
+              </header>
+
+              <div className="auth-page__mobile-body">
+                <h1 className="auth-page__mobile-title">
+                  {USE_LOCAL_API
+                    ? 'Demo sign in'
+                    : isRegister
+                      ? 'Create your account'
+                      : 'Sign in'}
+                </h1>
+                <p className="auth-page__mobile-subtitle">
+                  {USE_LOCAL_API
+                    ? 'Local preview — no server required.'
+                    : isRegister
+                      ? 'Join to save favourites, checkout faster, and track orders.'
+                      : 'Welcome back — use the email linked to your orders.'}
+                </p>
+                {!USE_LOCAL_API ? (
+                  <ul className="auth-page__mobile-perks" aria-label="Member benefits">
+                    {MOBILE_PERKS.map((perk) => (
+                      <li key={perk.text} className="auth-page__mobile-perk">
+                        <i className={perk.icon} aria-hidden />
+                        {perk.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="auth-page__desktop-intro hidden lg:block">
+              <p className="auth-page__eyebrow">Member access</p>
+              <h1 className="auth-page__title">
+                {USE_LOCAL_API ? 'Demo sign in' : isRegister ? 'Create your account' : 'Welcome back'}
+              </h1>
+              <p className="auth-page__subtitle">
+                {USE_LOCAL_API
+                  ? 'Local preview mode — no server required.'
+                  : isRegister
+                    ? 'Register with your email to shop and track orders.'
+                    : 'Sign in with the email you used when ordering.'}
+              </p>
+            </div>
+
+            <div className="auth-page__content">
+              {redirect === '/checkout' ? (
+                <div className="auth-page__checkout-note" role="status">
+                  <i className="fa-solid fa-bag-shopping" aria-hidden />
+                  <span>
+                    Sign in to complete checkout. Your cart stays saved after you sign in.
+                  </span>
+                </div>
+              ) : null}
+
+              {!USE_LOCAL_API ? (
+                <div
+                  className="auth-page__tabs auth-page__tabs--desktop hidden lg:flex"
+                  role="tablist"
+                  aria-label="Sign in or register"
+                >
+                  {modeTabs}
+                </div>
+              ) : null}
 
             {message ? (
               <p
-                className={`mb-4 rounded-lg px-3 py-2 text-sm font-playfair ${
-                  messageTone === 'success' ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'
-                }`}
+                className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
                 role="status"
               >
                 {message}
               </p>
             ) : null}
 
+<<<<<<< HEAD
             {mode === 'login' ? (
               <form className="space-y-4" onSubmit={handleLogin}>
                 <div>
@@ -318,85 +452,126 @@ function Auth() {
                   {loading ? 'Please wait…' : 'Login'}
                 </button>
               </form>
+=======
+            <form className="auth-page__form" onSubmit={handleSubmit}>
+              {(isRegister || USE_LOCAL_API) && (
+                <>
+                  <div className="auth-page__row">
+                    <div>
+                      <label className="form-label" htmlFor="auth-first">
+                        First name
+                      </label>
+                      <input
+                        id="auth-first"
+                        type="text"
+                        autoComplete="given-name"
+                        className="royal-input"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required={isRegister && !USE_LOCAL_API}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" htmlFor="auth-last">
+                        Last name
+                      </label>
+                      <input
+                        id="auth-last"
+                        type="text"
+                        autoComplete="family-name"
+                        className="royal-input"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="form-label" htmlFor="auth-phone">
+                      Mobile (optional)
+                    </label>
+                    <input
+                      id="auth-phone"
+                      type="tel"
+                      autoComplete="tel"
+                      className="royal-input"
+                      placeholder="10-digit mobile"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="form-label" htmlFor="auth-email">
+                  Email
+                </label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="royal-input"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" htmlFor="auth-password">
+                  Password
+                </label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
+                  required
+                  minLength={8}
+                  className="royal-input"
+                  placeholder={isRegister ? 'At least 8 characters' : 'Your password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <button type="submit" className="lux-button w-full disabled:opacity-60" disabled={loading}>
+                {loading
+                  ? 'Please wait…'
+                  : USE_LOCAL_API
+                    ? 'Continue (demo)'
+                    : isRegister
+                      ? 'Create account'
+                      : 'Sign in'}
+              </button>
+            </form>
+
+            {!USE_LOCAL_API ? (
+              <p className="auth-page__mobile-switch lg:hidden">
+                {isRegister ? (
+                  <>
+                    Already have an account?{' '}
+                    <button type="button" onClick={() => switchMode('login')}>
+                      Sign in
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    New here?{' '}
+                    <button type="button" onClick={() => switchMode('register')}>
+                      Create an account
+                    </button>
+                  </>
+                )}
+              </p>
+>>>>>>> origin/feature
             ) : (
-              <form className="space-y-4" onSubmit={handleRegister}>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="form-label" htmlFor="auth-reg-first">
-                      First name
-                    </label>
-                    <input
-                      id="auth-reg-first"
-                      type="text"
-                      name="firstName"
-                      autoComplete="given-name"
-                      required
-                      className="royal-input"
-                      placeholder="First name"
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="auth-reg-last">
-                      Last name
-                    </label>
-                    <input
-                      id="auth-reg-last"
-                      type="text"
-                      name="lastName"
-                      autoComplete="family-name"
-                      className="royal-input"
-                      placeholder="Last name"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="form-label" htmlFor="auth-reg-email">
-                    Email
-                  </label>
-                  <input
-                    id="auth-reg-email"
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    required
-                    className="royal-input"
-                    placeholder="Email"
-                  />
-                </div>
-                <div>
-                  <label className="form-label" htmlFor="auth-reg-phone">
-                    Phone
-                  </label>
-                  <input
-                    id="auth-reg-phone"
-                    type="tel"
-                    name="phone"
-                    autoComplete="tel"
-                    className="royal-input"
-                    placeholder="Phone number"
-                  />
-                </div>
-                <div>
-                  <label className="form-label" htmlFor="auth-reg-password">
-                    Password
-                  </label>
-                  <input
-                    id="auth-reg-password"
-                    type="password"
-                    name="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    className="royal-input"
-                    placeholder="At least 8 characters"
-                  />
-                </div>
-                <button type="submit" className="lux-button w-full" disabled={loading}>
-                  {loading ? 'Please wait…' : 'Create Account'}
-                </button>
-              </form>
+              <p className="auth-page__footer-hint lg:hidden">
+                <Link to="/collections">Continue shopping</Link> without signing in
+              </p>
             )}
 
+<<<<<<< HEAD
             {showForgotPassword ? (
               <div className="mt-6 rounded-xl border border-[#e5d2bf] bg-[#fff7f0] p-4 sm:p-5">
                 <div className="mb-3 flex items-center justify-between">
@@ -490,9 +665,34 @@ function Auth() {
                 ) : null}
               </div>
             ) : null}
+=======
+            <p className="auth-page__footer-hint auth-page__footer-hint--desktop">
+              {isRegister && !USE_LOCAL_API ? (
+                <>
+                  Already have an account?{' '}
+                  <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('login')}>
+                    Sign in
+                  </button>
+                </>
+              ) : !USE_LOCAL_API ? (
+                <>
+                  New here?{' '}
+                  <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('register')}>
+                    Create an account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/collections">Continue shopping</Link> without signing in
+                </>
+              )}
+            </p>
+            </div>
+>>>>>>> origin/feature
           </div>
         </div>
       </section>
+
       <Footer />
     </div>
   )

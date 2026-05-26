@@ -1,0 +1,55 @@
+/* Footer brand logo — centered, prominent */
+
+.site-footer__brand-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 0.25rem;
+}
+
+.site-footer__brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.site-footer__brand:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.site-footer__brand:focus-visible {
+  outline: 2px solid #c9a34a;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.site-footer__logo-img {
+  display: block;
+  width: auto;
+  height: 4.5rem;
+  max-width: min(20rem, 88vw);
+  margin-inline: auto;
+  object-fit: contain;
+  object-position: center center;
+  filter: brightness(1.12) contrast(1.04);
+}
+
+@media (min-width: 640px) {
+  .site-footer__logo-img {
+    height: 5.25rem;
+    max-width: 22rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-footer__logo-img {
+    height: 5.5rem;
+    max-width: 100%;
+    width: 100%;
+  }
+}

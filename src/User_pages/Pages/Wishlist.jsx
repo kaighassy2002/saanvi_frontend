@@ -8,7 +8,7 @@ function Wishlist() {
   const { items, remove } = useWishlist()
 
   return (
-    <div className="page-shell">
+    <div id="main-content" className="page-shell" tabIndex={-1}>
       <SiteHeader />
       <section className="section-container py-10 sm:py-14">
         <div className="mb-8 text-center">

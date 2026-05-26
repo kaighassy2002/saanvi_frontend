@@ -9,24 +9,30 @@ const useDevProxy = import.meta.env.DEV && import.meta.env.VITE_DEV_PROXY === 't
 
 export const API_BASE = useDevProxy ? '' : viteUrl
 
+/** Prefix for browser storage keys (multi-tenant sites on one origin). Set via VITE_STORE_SLUG. */
+export const STORE_SLUG = import.meta.env.VITE_STORE_SLUG || 'aashmika-designs'
+
 /** When empty and not using dev proxy, catalog/orders/users use localStorage. */
 export const USE_LOCAL_API = !useDevProxy && !API_BASE
 
+// Keys are prefixed with the tenant slug so multiple client sites on the same
+// browser never share localStorage — no session or cart collisions.
+const _p = STORE_SLUG
 export const STORAGE_KEYS = {
-  customerToken: 'jewellery_customer_token',
-  /** JSON snapshot from login/register `user` for header display */
-  customerProfile: 'jewellery_customer_profile',
-  /** Local-only address fields (not stored on Customer API) */
-  customerAddress: 'jewellery_customer_address',
-  adminToken: 'jewellery_admin_token',
-  products: 'jewellery_catalog_products',
-  categories: 'jewellery_catalog_categories',
-  newArrivalIds: 'jewellery_merch_new_arrival_ids',
-  orders: 'jewellery_admin_orders',
-  customers: 'jewellery_admin_customers',
-  shopCart: 'jewellery_shop_cart',
-  shopWishlist: 'jewellery_shop_wishlist',
+  customerToken: `${_p}_customer_token`,
+  customerProfile: `${_p}_customer_profile`,
+  customerAddress: `${_p}_customer_address`,
+  adminToken: `${_p}_admin_token`,
+  products: `${_p}_catalog_products`,
+  categories: `${_p}_catalog_categories`,
+  newArrivalIds: `${_p}_merch_new_arrival_ids`,
+  orders: `${_p}_orders`,
+  shopCart: `${_p}_shop_cart`,
+  shopWishlist: `${_p}_shop_wishlist`,
+  reviews: `${_p}_product_reviews`,
 }
+
+export const REVIEWS_UPDATED_EVENT = 'jewellery-reviews-updated'
 
 export const CATALOG_UPDATED_EVENT = 'jewellery-catalog-updated'
 export const ORDERS_UPDATED_EVENT = 'jewellery-orders-updated'

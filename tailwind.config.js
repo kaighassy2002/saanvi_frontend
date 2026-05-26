@@ -22,6 +22,7 @@ export default {
       fontFamily: {
         'bodoni': ['Bodoni Moda', 'serif'],
         'playfair': ['Playfair Display', 'serif'],
+        'sans': ['DM Sans', 'system-ui', 'sans-serif'],
       },
     },
   },

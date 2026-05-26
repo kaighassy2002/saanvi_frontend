@@ -2,155 +2,173 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import CheckoutSteps from '../Components/CheckoutSteps'
 import Footer from '../Components/Footer'
-import PageIntro from '../Components/PageIntro'
 import SiteHeader from '../Components/SiteHeader'
+import TrustStrip from '../Components/TrustStrip'
+import FreeShippingProgress from '../Components/FreeShippingProgress'
 import { useCart } from '../../hooks/useCart'
+import { whatsappUrl } from '../../services/storefrontConstants'
 import { isCustomerLoggedIn } from '../../services/customerStorageScope'
 
 function Cart() {
   const { items, setQuantity, removeItem, totals } = useCart()
-
-  if (!isCustomerLoggedIn()) {
-    return (
-      <div className="page-shell">
-        <SiteHeader />
-        <div className="section-container py-10 sm:py-14">
-          <PageIntro
-            eyebrow="Secure Cart"
-            title="Shopping Cart"
-            subtitle="Sign in to review your selected pieces and continue checkout."
-          />
-          <div className="lux-card mx-auto mt-10 max-w-lg py-14 text-center sm:py-16">
-            <i className="fas fa-user-lock mb-6 text-5xl text-[#c9b7a1]"></i>
-            <h2 className="card-heading mb-3">Sign in to use your cart</h2>
-            <p className="mb-8 px-4 text-sm text-muted sm:text-base">
-              Add to cart and checkout are available after you sign in to your account.
-            </p>
-            <Link to="/auth?redirect=/cart" className="lux-button">
-              Sign in
-            </Link>
-            <p className="mt-4 text-sm text-muted">
-              New customer?{' '}
-              <Link to="/auth?redirect=/cart" className="text-[#7a2c3a] underline">
-                Create an account
-              </Link>
-            </p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
+  const signedIn = isCustomerLoggedIn()
 
   return (
-    <div className="page-shell">
+    <div id="main-content" className="page-shell" tabIndex={-1}>
       <SiteHeader />
 
-      <div className="section-container py-10 sm:py-14">
-        <PageIntro
-          eyebrow="Refined Checkout"
-          title="Shopping Cart"
-          subtitle="Review your selected pieces before secure checkout."
-          stats={[
-            { label: 'Items', value: String(items.length) },
-            { label: 'Subtotal', value: `₹${totals.subtotal.toLocaleString()}` },
-          ]}
-        />
+      <div className="section-container py-8 sm:py-12">
+        <p className="text-overline">Your bag</p>
+        <h1 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Shopping cart</h1>
+        <p className="mt-2 text-helper">
+          {items.length > 0
+            ? `${items.length} ${items.length === 1 ? 'item' : 'items'} · Subtotal ₹${totals.subtotal.toLocaleString()}`
+            : 'Your selected pieces appear here.'}
+        </p>
+
         <CheckoutSteps current="cart" />
 
+        {!signedIn && items.length > 0 ? (
+          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-[#e3d1b4] bg-[#fff6eb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-playfair text-sm text-ink">
+              <i className="fa-regular fa-user mr-2 text-gold" aria-hidden />
+              Continue to checkout — you&apos;ll sign in on the next step. Your cart is saved on this device.
+            </p>
+            <Link to="/checkout" className="lux-button shrink-0 px-5 py-2.5 text-sm">
+              Continue to checkout
+            </Link>
+          </div>
+        ) : null}
+
         {items.length === 0 ? (
-          <div className="lux-card mt-10 py-16 text-center sm:py-20">
-            <div className="mb-6 sm:mb-8">
-              <i className="fas fa-shopping-cart text-6xl text-[#c9b7a1]"></i>
+          <div className="lux-card mt-8 py-14 text-center sm:py-20">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5ead7] text-2xl text-[#7a2c3a]">
+              <i className="fa-solid fa-cart-shopping" aria-hidden />
             </div>
-            <h2 className="card-heading mb-3 sm:mb-4">Your cart is empty</h2>
-            <p className="mb-6 px-4 text-helper sm:mb-8">Start adding beautiful jewellery to your cart</p>
-            <Link to="/collections" className="lux-button">
-              Continue Shopping
+            <h2 className="card-heading">Your cart is empty</h2>
+            <p className="mt-2 px-4 text-helper">Explore our collections and add pieces you love.</p>
+            <Link to="/collections" className="lux-button mt-6 inline-flex">
+              Start shopping
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            <div className="space-y-4 sm:space-y-6 lg:col-span-2">
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+            <div className="space-y-4 lg:col-span-2">
               {items.map((item) => (
                 <div
                   key={item.productId}
-                  className="lux-card flex flex-col gap-4 p-4 sm:flex-row sm:gap-6 sm:p-6"
+                  className="lux-card flex gap-4 p-4 sm:gap-5 sm:p-5"
                 >
-                  <img
-                    src={item.image}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="h-32 w-full rounded-lg object-cover sm:w-32"
-                  />
+                  <Link to={`/product/${item.productId}`} className="shrink-0">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      loading="lazy"
+                      className="h-24 w-24 rounded-xl object-cover sm:h-28 sm:w-28"
+                    />
+                  </Link>
                   <div className="min-w-0 flex-1">
-                    <h3 className="card-title mb-2">{item.name}</h3>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-price">
-                        ₹{item.price.toLocaleString()}
-                        <span className="ml-2 text-sm text-muted">each</span>
-                      </div>
-                      <div className="flex items-center gap-3 sm:gap-4">
+                    <Link
+                      to={`/product/${item.productId}`}
+                      className="card-title line-clamp-2 hover:text-[#7a2c3a]"
+                    >
+                      {item.name}
+                    </Link>
+                    <p className="mt-1 text-price text-lg">₹{item.price.toLocaleString()}</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center rounded-full border border-[#d6c0a2]">
                         <button
                           type="button"
                           onClick={() =>
                             setQuantity(item.productId, item.quantity - 1, item.maxStock)
                           }
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#d6c0a2] transition-colors hover:bg-[#f7ecee]"
+                          className="touch-target flex h-10 w-10 items-center justify-center rounded-l-full hover:bg-[#f7ecee]"
                           aria-label="Decrease quantity"
                         >
-                          -
+                          −
                         </button>
-                        <span className="min-w-[2rem] text-center font-playfair">{item.quantity}</span>
+                        <span className="min-w-[2.5rem] text-center font-playfair text-sm">
+                          {item.quantity}
+                        </span>
                         <button
                           type="button"
                           onClick={() =>
                             setQuantity(item.productId, item.quantity + 1, item.maxStock)
                           }
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#d6c0a2] transition-colors hover:bg-[#f7ecee]"
+                          className="touch-target flex h-10 w-10 items-center justify-center rounded-r-full hover:bg-[#f7ecee]"
                           aria-label="Increase quantity"
                         >
                           +
                         </button>
                       </div>
+                      <p className="font-playfair text-sm font-medium text-ink">
+                        ₹{(item.price * item.quantity).toLocaleString()}
+                      </p>
                     </div>
-                    <p className="mt-2 font-playfair text-sm text-muted">
-                      Line: ₹{(item.price * item.quantity).toLocaleString()}
-                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => removeItem(item.productId)}
-                    className="self-start p-2 text-[#7a2c3a] transition-colors hover:text-[#5a1f2b] sm:self-center"
-                    aria-label={`Remove ${item.name} from cart`}
+                    className="touch-target shrink-0 self-start p-2 text-[#7a2c3a]"
+                    aria-label={`Remove ${item.name}`}
                   >
-                    <i className="fas fa-trash text-lg"></i>
+                    <i className="fa-solid fa-trash text-sm" aria-hidden />
                   </button>
                 </div>
               ))}
             </div>
 
             <div className="lg:col-span-1">
-              <div className="lux-card sticky top-24 p-5 sm:p-6">
-                <h2 className="card-heading mb-5 sm:mb-6">Order Summary</h2>
-                <div className="mb-5 space-y-3 sm:mb-6 sm:space-y-4">
+              <div className="lux-card sticky top-24 space-y-5 p-5 sm:p-6">
+                <FreeShippingProgress subtotal={totals.subtotal} />
+                <h2 className="card-heading">Order summary</h2>
+                <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted">Subtotal</span>
-                    <span className="font-playfair">₹{totals.subtotal.toLocaleString()}</span>
+                    <span className="font-playfair text-ink">₹{totals.subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted">Shipping</span>
-                    <span className="font-playfair">Free</span>
+                    <span className="font-playfair text-success">Free</span>
                   </div>
-                  <div className="flex justify-between border-t pt-4">
-                    <span className="font-playfair text-lg">Total</span>
+                  <div className="flex justify-between border-t border-[#eadfc9] pt-3">
+                    <span className="font-playfair text-lg text-ink">Total</span>
                     <span className="text-price">₹{totals.total.toLocaleString()}</span>
                   </div>
                 </div>
-                <Link to="/checkout" className="lux-button block w-full text-center">
-                  Proceed to Checkout
+                {signedIn ? (
+                  <Link to="/checkout" className="lux-button block w-full text-center">
+                    Proceed to checkout
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/checkout" className="lux-button block w-full text-center">
+                      Continue to checkout
+                    </Link>
+                    <p className="text-center font-playfair text-xs text-muted">
+                      Sign in on the next step to complete your order.
+                    </p>
+                  </>
+                )}
+                <Link to="/collections" className="block text-center font-playfair text-sm text-muted hover:text-[#7a2c3a]">
+                  Continue shopping
                 </Link>
+                <a
+                  href={whatsappUrl('Hi, I have a question about my cart order.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center font-playfair text-sm text-[#7a2c3a] hover:underline"
+                >
+                  <i className="fa-brands fa-whatsapp mr-1" aria-hidden />
+                  Questions? Chat on WhatsApp
+                </a>
+                <TrustStrip
+                  items={[
+                    { icon: 'fa-shield-halved', label: 'Secure' },
+                    { icon: 'fa-truck-fast', label: 'Fast ship' },
+                  ]}
+                  className="!grid-cols-2 !gap-2"
+                />
               </div>
             </div>
           </div>

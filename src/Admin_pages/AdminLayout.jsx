@@ -1,71 +1,65 @@
 import React from 'react'
-import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAdminAuth } from '../hooks/useAdminAuth'
+import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom'
+import { useAdminAuth } from '../context/AdminAuthProvider'
+function AdminLayout() {
+  const { isAdmin, logout, profile } = useAdminAuth()
+  const navigate = useNavigate()
 
-const navItems = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/products', label: 'Products' },
-  { to: '/admin/categories', label: 'Categories' },
-  { to: '/admin/orders', label: 'Orders' },
-  { to: '/admin/customers', label: 'Customers' },
-  { to: '/admin/merchandising', label: 'New arrivals' },
-]
+  if (!isAdmin) return <Navigate to="/admin/login" replace />
 
-export default function AdminLayout() {
-  const { isAuthenticated, logout } = useAdminAuth()
-  const location = useLocation()
-
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace state={{ from: location }} />
+  const handleLogout = () => {
+    logout()
+    navigate('/admin/login')
   }
 
   return (
-    <div className="min-h-screen bg-[#f5ebe0] md:flex">
-      <aside className="shrink-0 border-b border-[#3a151d]/15 bg-[#2a1116] text-[#f8f1e6] md:w-56 md:border-b-0 md:border-r">
-        <div className="flex items-center justify-between gap-3 px-4 py-5 md:block">
-          <div>
-            <p className="text-kicker text-gold-light">
-              Console
-            </p>
-            <p className="font-bodoni text-xl text-white">Admin</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="rounded-full border border-[#5a1f2b] px-3 py-1.5 font-playfair text-xs text-[#e8dcc8] hover:bg-[#3a151d]"
-          >
-            Log out
-          </button>
+    <div className="min-h-screen flex bg-[#faf7f2]">
+      {/* Sidebar */}
+      <aside className="w-56 bg-white border-r border-[#e8d5c0] flex flex-col py-6 px-4 shrink-0">
+        <div className="mb-8">
+          <span className="font-playfair text-lg text-ink">Aashmika Designs</span>
+          <span className="block text-xs text-muted mt-0.5">Store Admin</span>
         </div>
-        <nav className="flex flex-wrap gap-1 px-2 pb-4 md:flex-col md:px-3">
-          {navItems.map(({ to, label, end }) => (
+
+        <nav className="flex-1 space-y-1">
+          {[
+            { to: '/admin', end: true, label: 'Dashboard' },
+            { to: '/admin/products', label: 'Products' },
+            { to: '/admin/orders', label: 'Orders' },
+            { to: '/admin/categories', label: 'Categories' },
+            { to: '/admin/merchandising', label: 'Merchandising' },
+            { to: '/admin/reviews', label: 'Reviews' },
+          ].map(({ to, end, label }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `rounded-xl px-3 py-2.5 font-playfair text-sm transition md:py-2 ${
-                  isActive
-                    ? 'bg-gold text-ink'
-                    : 'text-[#d4c4b8] hover:bg-[#3a151d]/80 hover:text-white'
-                }`
+                `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-[#f4e8db] text-ink font-medium' : 'text-muted hover:text-ink hover:bg-[#faf7f2]'}`
               }
             >
               {label}
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-auto pt-4 border-t border-[#e8d5c0]">
+          <p className="text-xs text-muted mb-2 capitalize">{profile?.role || 'staff'}</p>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-muted hover:text-red-600 transition"
+          >
+            Sign out
+          </button>
+        </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
-        <header className="border-b border-[#dcc6a6] bg-white/80 px-4 py-4 backdrop-blur sm:px-8">
-          <h1 className="font-bodoni text-2xl text-ink">Jewellery store</h1>
-          <p className="font-playfair text-sm text-muted">Manage catalogue, orders, and merchandising</p>
-        </header>
-        <main className="p-4 sm:p-8">
-          <Outlet />
-        </main>
-      </div>
+      {/* Main content */}
+      <main className="flex-1 p-8 overflow-auto">
+        <Outlet />
+      </main>
     </div>
   )
 }
+
+export default AdminLayout
