@@ -3,20 +3,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import BrandLogo from '../Components/BrandLogo'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
-<<<<<<< HEAD
-import {
-  loginAPI,
-  registerAPI,
-  requestPasswordResetOtpAPI,
-  verifyPasswordResetOtpAPI,
-  resetPasswordWithOtpAPI,
-} from '../../server/allApi'
-import { STORAGE_KEYS } from '../../services/config'
-=======
 import { STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
->>>>>>> origin/feature
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
-import { customerLogin, customerRegister } from '../../services/jewelleryApi'
+import {
+  customerLogin,
+  customerRegister,
+  customerForgotPasswordRequest,
+  customerForgotPasswordVerifyOtp,
+  customerForgotPasswordReset,
+} from '../../services/jewelleryApi'
 import '../Styles/auth-page.css'
 import '../Styles/footer-brand.css'
 
@@ -76,6 +71,7 @@ function Auth() {
     setForgotResetToken('')
     setForgotNewPassword('')
     setForgotConfirmPassword('')
+    if (email.trim()) setForgotEmail(email.trim().toLowerCase())
   }
 
   function closeForgotPassword() {
@@ -97,6 +93,7 @@ function Auth() {
   const switchMode = (next) => {
     setMode(next)
     setMessage('')
+    closeForgotPassword()
   }
 
   const showMessage = (text, tone = 'error') => {
@@ -221,8 +218,7 @@ function Auth() {
     setMessageTone('error')
     setForgotLoading(true)
     try {
-      const raw = await requestPasswordResetOtpAPI({ email: forgotEmail.trim().toLowerCase() })
-      const data = dataFromCommonAPI(raw)
+      const data = await customerForgotPasswordRequest(forgotEmail.trim().toLowerCase())
       setMessageTone('success')
       setMessage(data?.message || 'If an account exists for this email, an OTP has been sent.')
       setForgotStep('verify')
@@ -240,11 +236,10 @@ function Auth() {
     setMessageTone('error')
     setForgotLoading(true)
     try {
-      const raw = await verifyPasswordResetOtpAPI({
-        email: forgotEmail.trim().toLowerCase(),
-        otp: forgotOtp.trim(),
-      })
-      const data = dataFromCommonAPI(raw)
+      const data = await customerForgotPasswordVerifyOtp(
+        forgotEmail.trim().toLowerCase(),
+        forgotOtp.trim(),
+      )
       const token = String(data?.resetToken || '')
       if (!token) throw new Error('Invalid OTP verification response')
       setForgotResetToken(token)
@@ -273,11 +268,7 @@ function Auth() {
     }
     setForgotLoading(true)
     try {
-      const raw = await resetPasswordWithOtpAPI({
-        resetToken: forgotResetToken,
-        newPassword: forgotNewPassword,
-      })
-      const data = dataFromCommonAPI(raw)
+      const data = await customerForgotPasswordReset(forgotResetToken, forgotNewPassword)
       setMessageTone('success')
       setMessage(data?.message || 'Password reset successful. Please login.')
       closeForgotPassword()
@@ -399,296 +390,258 @@ function Auth() {
                 </div>
               ) : null}
 
-            {message ? (
-              <p
-                className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
-                role="status"
-              >
-                {message}
-              </p>
-            ) : null}
+              {message ? (
+                <p
+                  className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
+                  role="status"
+                >
+                  {message}
+                </p>
+              ) : null}
 
-<<<<<<< HEAD
-            {mode === 'login' ? (
-              <form className="space-y-4" onSubmit={handleLogin}>
-                <div>
-                  <label className="form-label" htmlFor="auth-login-email">
-                    Email
-                  </label>
-                  <input
-                    id="auth-login-email"
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    required
-                    className="royal-input"
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="form-label" htmlFor="auth-login-password">
-                    Password
-                  </label>
-                  <input
-                    id="auth-login-password"
-                    type="password"
-                    name="password"
-                    autoComplete="current-password"
-                    required
-                    className="royal-input"
-                    placeholder="Enter password"
-                  />
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted">
-                  <label className="inline-flex items-center gap-2" htmlFor="auth-login-remember">
-                    <input id="auth-login-remember" type="checkbox" name="remember" />
-                    Remember me
-                  </label>
-                  <button type="button" className="hover:text-gold" onClick={openForgotPassword}>
-                    Forgot password?
-                  </button>
-                </div>
-                <button type="submit" className="lux-button w-full" disabled={loading}>
-                  {loading ? 'Please wait…' : 'Login'}
-                </button>
-              </form>
-=======
-            <form className="auth-page__form" onSubmit={handleSubmit}>
-              {(isRegister || USE_LOCAL_API) && (
-                <>
-                  <div className="auth-page__row">
-                    <div>
-                      <label className="form-label" htmlFor="auth-first">
-                        First name
-                      </label>
-                      <input
-                        id="auth-first"
-                        type="text"
-                        autoComplete="given-name"
-                        className="royal-input"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required={isRegister && !USE_LOCAL_API}
-                      />
-                    </div>
-                    <div>
-                      <label className="form-label" htmlFor="auth-last">
-                        Last name
-                      </label>
-                      <input
-                        id="auth-last"
-                        type="text"
-                        autoComplete="family-name"
-                        className="royal-input"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
+              {!showForgotPassword ? (
+                <form className="auth-page__form" onSubmit={handleSubmit}>
+                  {(isRegister || USE_LOCAL_API) && (
+                    <>
+                      <div className="auth-page__row">
+                        <div>
+                          <label className="form-label" htmlFor="auth-first">
+                            First name
+                          </label>
+                          <input
+                            id="auth-first"
+                            type="text"
+                            autoComplete="given-name"
+                            className="royal-input"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            required={isRegister && !USE_LOCAL_API}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label" htmlFor="auth-last">
+                            Last name
+                          </label>
+                          <input
+                            id="auth-last"
+                            type="text"
+                            autoComplete="family-name"
+                            className="royal-input"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="form-label" htmlFor="auth-phone">
+                          Mobile (optional)
+                        </label>
+                        <input
+                          id="auth-phone"
+                          type="tel"
+                          autoComplete="tel"
+                          className="royal-input"
+                          placeholder="10-digit mobile"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div>
-                    <label className="form-label" htmlFor="auth-phone">
-                      Mobile (optional)
+                    <label className="form-label" htmlFor="auth-email">
+                      Email
                     </label>
                     <input
-                      id="auth-phone"
-                      type="tel"
-                      autoComplete="tel"
+                      id="auth-email"
+                      type="email"
+                      autoComplete="email"
+                      required
                       className="royal-input"
-                      placeholder="10-digit mobile"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                </>
+
+                  <div>
+                    <label className="form-label" htmlFor="auth-password">
+                      Password
+                    </label>
+                    <input
+                      id="auth-password"
+                      type="password"
+                      autoComplete={isRegister ? 'new-password' : 'current-password'}
+                      required
+                      minLength={8}
+                      className="royal-input"
+                      placeholder={isRegister ? 'At least 8 characters' : 'Your password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+
+                  {!USE_LOCAL_API && mode === 'login' ? (
+                    <div className="flex justify-end text-sm">
+                      <button type="button" className="text-muted hover:text-gold" onClick={openForgotPassword}>
+                        Forgot password?
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <button type="submit" className="lux-button w-full disabled:opacity-60" disabled={loading}>
+                    {loading
+                      ? 'Please wait…'
+                      : USE_LOCAL_API
+                        ? 'Continue (demo)'
+                        : isRegister
+                          ? 'Create account'
+                          : 'Sign in'}
+                  </button>
+                </form>
+              ) : null}
+
+              {!USE_LOCAL_API && showForgotPassword ? (
+                <div className="mt-6 rounded-xl border border-[#e5d2bf] bg-[#fff7f0] p-4 sm:p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="font-playfair text-base text-ink">Reset password with OTP</h3>
+                    <button type="button" className="text-sm text-muted hover:text-ink" onClick={closeForgotPassword}>
+                      Close
+                    </button>
+                  </div>
+
+                  {forgotStep === 'request' ? (
+                    <form className="auth-page__form" onSubmit={handleForgotRequest}>
+                      <label className="form-label" htmlFor="forgot-email">
+                        Account email
+                      </label>
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        required
+                        className="royal-input"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="you@example.com"
+                      />
+                      <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                        {forgotLoading ? 'Sending OTP…' : 'Send OTP'}
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {forgotStep === 'verify' ? (
+                    <form className="auth-page__form" onSubmit={handleForgotVerify}>
+                      <p className="text-sm text-muted">
+                        Enter the 6-digit OTP sent to <span className="font-semibold text-ink">{forgotEmail}</span>.
+                      </p>
+                      <label className="form-label" htmlFor="forgot-otp">
+                        OTP
+                      </label>
+                      <input
+                        id="forgot-otp"
+                        type="text"
+                        required
+                        maxLength={6}
+                        className="royal-input tracking-[0.35em]"
+                        value={forgotOtp}
+                        onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                        placeholder="123456"
+                      />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button type="button" className="lux-button-outline w-full" onClick={() => setForgotStep('request')}>
+                          Resend OTP
+                        </button>
+                        <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                          {forgotLoading ? 'Verifying…' : 'Verify OTP'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  {forgotStep === 'reset' ? (
+                    <form className="auth-page__form" onSubmit={handleForgotReset}>
+                      <label className="form-label" htmlFor="forgot-new-password">
+                        New password
+                      </label>
+                      <input
+                        id="forgot-new-password"
+                        type="password"
+                        required
+                        minLength={8}
+                        className="royal-input"
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                      />
+                      <label className="form-label" htmlFor="forgot-confirm-password">
+                        Confirm new password
+                      </label>
+                      <input
+                        id="forgot-confirm-password"
+                        type="password"
+                        required
+                        minLength={8}
+                        className="royal-input"
+                        value={forgotConfirmPassword}
+                        onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                      />
+                      <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
+                        {forgotLoading ? 'Updating password…' : 'Update password'}
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!USE_LOCAL_API ? (
+                <p className="auth-page__mobile-switch lg:hidden">
+                  {isRegister ? (
+                    <>
+                      Already have an account?{' '}
+                      <button type="button" onClick={() => switchMode('login')}>
+                        Sign in
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      New here?{' '}
+                      <button type="button" onClick={() => switchMode('register')}>
+                        Create an account
+                      </button>
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="auth-page__footer-hint lg:hidden">
+                  <Link to="/collections">Continue shopping</Link> without signing in
+                </p>
               )}
 
-              <div>
-                <label className="form-label" htmlFor="auth-email">
-                  Email
-                </label>
-                <input
-                  id="auth-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="royal-input"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="form-label" htmlFor="auth-password">
-                  Password
-                </label>
-                <input
-                  id="auth-password"
-                  type="password"
-                  autoComplete={isRegister ? 'new-password' : 'current-password'}
-                  required
-                  minLength={8}
-                  className="royal-input"
-                  placeholder={isRegister ? 'At least 8 characters' : 'Your password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
-              <button type="submit" className="lux-button w-full disabled:opacity-60" disabled={loading}>
-                {loading
-                  ? 'Please wait…'
-                  : USE_LOCAL_API
-                    ? 'Continue (demo)'
-                    : isRegister
-                      ? 'Create account'
-                      : 'Sign in'}
-              </button>
-            </form>
-
-            {!USE_LOCAL_API ? (
-              <p className="auth-page__mobile-switch lg:hidden">
-                {isRegister ? (
+              <p className="auth-page__footer-hint auth-page__footer-hint--desktop">
+                {isRegister && !USE_LOCAL_API ? (
                   <>
                     Already have an account?{' '}
-                    <button type="button" onClick={() => switchMode('login')}>
+                    <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('login')}>
                       Sign in
+                    </button>
+                  </>
+                ) : !USE_LOCAL_API ? (
+                  <>
+                    New here?{' '}
+                    <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('register')}>
+                      Create an account
                     </button>
                   </>
                 ) : (
                   <>
-                    New here?{' '}
-                    <button type="button" onClick={() => switchMode('register')}>
-                      Create an account
-                    </button>
+                    <Link to="/collections">Continue shopping</Link> without signing in
                   </>
                 )}
               </p>
->>>>>>> origin/feature
-            ) : (
-              <p className="auth-page__footer-hint lg:hidden">
-                <Link to="/collections">Continue shopping</Link> without signing in
-              </p>
-            )}
-
-<<<<<<< HEAD
-            {showForgotPassword ? (
-              <div className="mt-6 rounded-xl border border-[#e5d2bf] bg-[#fff7f0] p-4 sm:p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="font-playfair text-base text-ink">Reset password with OTP</h3>
-                  <button type="button" className="text-sm text-muted hover:text-ink" onClick={closeForgotPassword}>
-                    Close
-                  </button>
-                </div>
-
-                {forgotStep === 'request' ? (
-                  <form className="space-y-3" onSubmit={handleForgotRequest}>
-                    <label className="form-label" htmlFor="forgot-email">
-                      Account email
-                    </label>
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      required
-                      className="royal-input"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="you@example.com"
-                    />
-                    <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
-                      {forgotLoading ? 'Sending OTP…' : 'Send OTP'}
-                    </button>
-                  </form>
-                ) : null}
-
-                {forgotStep === 'verify' ? (
-                  <form className="space-y-3" onSubmit={handleForgotVerify}>
-                    <p className="text-sm text-muted">
-                      Enter the 6-digit OTP sent to <span className="font-semibold text-ink">{forgotEmail}</span>.
-                    </p>
-                    <label className="form-label" htmlFor="forgot-otp">
-                      OTP
-                    </label>
-                    <input
-                      id="forgot-otp"
-                      type="text"
-                      required
-                      maxLength={6}
-                      className="royal-input tracking-[0.35em]"
-                      value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="123456"
-                    />
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <button type="button" className="lux-button-outline w-full" onClick={() => setForgotStep('request')}>
-                        Resend OTP
-                      </button>
-                      <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
-                        {forgotLoading ? 'Verifying…' : 'Verify OTP'}
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
-
-                {forgotStep === 'reset' ? (
-                  <form className="space-y-3" onSubmit={handleForgotReset}>
-                    <label className="form-label" htmlFor="forgot-new-password">
-                      New password
-                    </label>
-                    <input
-                      id="forgot-new-password"
-                      type="password"
-                      required
-                      minLength={8}
-                      className="royal-input"
-                      value={forgotNewPassword}
-                      onChange={(e) => setForgotNewPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                    />
-                    <label className="form-label" htmlFor="forgot-confirm-password">
-                      Confirm new password
-                    </label>
-                    <input
-                      id="forgot-confirm-password"
-                      type="password"
-                      required
-                      minLength={8}
-                      className="royal-input"
-                      value={forgotConfirmPassword}
-                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                      placeholder="Re-enter new password"
-                    />
-                    <button type="submit" className="lux-button w-full" disabled={forgotLoading}>
-                      {forgotLoading ? 'Updating password…' : 'Update password'}
-                    </button>
-                  </form>
-                ) : null}
-              </div>
-            ) : null}
-=======
-            <p className="auth-page__footer-hint auth-page__footer-hint--desktop">
-              {isRegister && !USE_LOCAL_API ? (
-                <>
-                  Already have an account?{' '}
-                  <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('login')}>
-                    Sign in
-                  </button>
-                </>
-              ) : !USE_LOCAL_API ? (
-                <>
-                  New here?{' '}
-                  <button type="button" className="border-0 bg-transparent p-0 font-inherit" onClick={() => switchMode('register')}>
-                    Create an account
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link to="/collections">Continue shopping</Link> without signing in
-                </>
-              )}
-            </p>
             </div>
->>>>>>> origin/feature
           </div>
         </div>
       </section>
