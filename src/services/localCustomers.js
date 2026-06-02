@@ -1,42 +1,23 @@
 import { STORAGE_KEYS } from './config'
 
-const seedCustomers = [
-  {
-    id: 'usr_1',
-    email: 'riya@example.com',
-    name: 'Riya Sharma',
-    phone: '9876543210',
-    createdAt: '2024-01-02',
-    disabled: false,
-  },
-  {
-    id: 'usr_2',
-    email: 'arjun@example.com',
-    name: 'Arjun Mehta',
-    phone: '9123456780',
-    createdAt: '2023-12-18',
-    disabled: false,
-  },
-  {
-    id: 'usr_3',
-    email: 'priya@example.com',
-    name: 'Priya Nair',
-    phone: '9988776655',
-    createdAt: '2023-11-05',
-    disabled: false,
-  },
-]
+const CUSTOMERS_STORAGE_VERSION = '2'
+
+function ensureCustomersMigrated() {
+  const versionKey = `${STORAGE_KEYS.customers}_version`
+  if (localStorage.getItem(versionKey) === CUSTOMERS_STORAGE_VERSION) return
+  localStorage.removeItem(STORAGE_KEYS.customers)
+  localStorage.setItem(versionKey, CUSTOMERS_STORAGE_VERSION)
+}
 
 function readCustomers() {
+  ensureCustomersMigrated()
   try {
     const s = localStorage.getItem(STORAGE_KEYS.customers)
-    if (!s) {
-      localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify(seedCustomers))
-      return [...seedCustomers]
-    }
-    return JSON.parse(s)
+    if (!s) return []
+    const parsed = JSON.parse(s)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return [...seedCustomers]
+    return []
   }
 }
 

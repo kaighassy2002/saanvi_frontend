@@ -1,7 +1,7 @@
 import { CATALOG_UPDATED_EVENT, STORAGE_KEYS, STORE_SLUG } from './config'
 
 /** Bump when removing static seed catalog so browsers drop old localStorage products once. */
-const CATALOG_SEED_VERSION = '2'
+const CATALOG_SEED_VERSION = '3'
 
 function emitCatalogUpdated() {
   window.dispatchEvent(new Event(CATALOG_UPDATED_EVENT))

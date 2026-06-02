@@ -5,98 +5,14 @@ import {
 } from './config'
 import { getCustomerStorageScope, scopedStorefrontOrdersKey } from './customerStorageScope'
 
-const seedOrders = [
-  {
-    id: 'ORD-001',
-    date: '2024-01-15',
-    status: 'Delivered',
-    total: 49999,
-    customerEmail: 'riya@example.com',
-    customerName: 'Riya Sharma',
-    shipping: {
-      firstName: 'Riya',
-      lastName: 'Sharma',
-      email: 'riya@example.com',
-      phone: '9876543210',
-      address: '12 MG Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560001',
-    },
-    paymentMethod: 'card',
-    trackingNumber: '',
-    internalNotes: '',
-    items: [
-      {
-        productId: 1,
-        name: 'Elegant Gold Necklace',
-        quantity: 1,
-        price: 49999,
-        image: 'https://via.placeholder.com/100x100',
-      },
-    ],
-  },
-  {
-    id: 'ORD-002',
-    date: '2024-01-10',
-    status: 'In Transit',
-    total: 29998,
-    customerEmail: 'arjun@example.com',
-    customerName: 'Arjun Mehta',
-    shipping: {
-      firstName: 'Arjun',
-      lastName: 'Mehta',
-      email: 'arjun@example.com',
-      phone: '9123456780',
-      address: '45 Park Street',
-      city: 'Kolkata',
-      state: 'West Bengal',
-      pincode: '700016',
-    },
-    paymentMethod: 'upi',
-    trackingNumber: 'TRACK-77821',
-    internalNotes: '',
-    items: [
-      {
-        productId: 2,
-        name: 'Silver Earrings',
-        quantity: 2,
-        price: 14999,
-        image: 'https://via.placeholder.com/100x100',
-      },
-    ],
-  },
-  {
-    id: 'ORD-003',
-    date: '2024-01-05',
-    status: 'Processing',
-    total: 89999,
-    customerEmail: 'priya@example.com',
-    customerName: 'Priya Nair',
-    shipping: {
-      firstName: 'Priya',
-      lastName: 'Nair',
-      email: 'priya@example.com',
-      phone: '9988776655',
-      address: '8 Marine Drive',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400002',
-    },
-    paymentMethod: 'card',
-    trackingNumber: '',
-    internalNotes: 'Verify hallmarked certificate before dispatch',
-    items: [
-      {
-        productId: 3,
-        name: 'Diamond Ring',
-        quantity: 1,
-        price: 89999,
-        image: 'https://via.placeholder.com/100x100',
-      },
-    ],
-  },
-]
+const ORDERS_STORAGE_VERSION = '2'
+
+function ensureOrdersMigrated() {
+  const versionKey = `${STORAGE_KEYS.orders}_version`
+  if (localStorage.getItem(versionKey) === ORDERS_STORAGE_VERSION) return
+  localStorage.removeItem(STORAGE_KEYS.orders)
+  localStorage.setItem(versionKey, ORDERS_STORAGE_VERSION)
+}
 
 function emitOrdersUpdated() {
   window.dispatchEvent(new Event(ORDERS_UPDATED_EVENT))
@@ -136,15 +52,14 @@ export function localCustomerPurchasedProduct(productId) {
 }
 
 function readOrders() {
+  ensureOrdersMigrated()
   try {
     const s = localStorage.getItem(STORAGE_KEYS.orders)
-    if (!s) {
-      localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(seedOrders))
-      return [...seedOrders]
-    }
-    return JSON.parse(s)
+    if (!s) return []
+    const parsed = JSON.parse(s)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return [...seedOrders]
+    return []
   }
 }
 
