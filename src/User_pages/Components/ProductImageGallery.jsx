@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Thumbs, Keyboard, A11y } from 'swiper/modules'
 import { getProductImages } from '../utils/productImages'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -13,11 +14,17 @@ const FALLBACK_IMAGE =
   'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"><rect width="100%25" height="100%25" fill="%23f8f2e7"/><g fill="%237a6a58" font-family="Arial,sans-serif" text-anchor="middle"><text x="50%25" y="47%25" font-size="38">Image unavailable</text><text x="50%25" y="53%25" font-size="24">This product has no image yet</text></g></svg>'
 
 /**
- * @param {{ product: { id?: string, name?: string, image?: string, images?: string[] }, discountPct?: number }} props
+ * @param {{ product: { id?: string, name?: string, image?: string, images?: string[] }, discountPct?: number, imageUrls?: string[] }} props
  */
-export default function ProductImageGallery({ product, discountPct = 0 }) {
-  const rawImages = getProductImages(product)
-  const images = rawImages.length > 0 ? rawImages : [FALLBACK_IMAGE]
+export default function ProductImageGallery({ product, discountPct = 0, imageUrls }) {
+  const rawImages =
+    Array.isArray(imageUrls) && imageUrls.length > 0
+      ? imageUrls.map((u) => String(u || '').trim()).filter(Boolean)
+      : getProductImages(product)
+  const hasRealImages = rawImages.length > 0
+  const images = hasRealImages
+    ? rawImages.map((url) => productImageUrl(url, 'gallery'))
+    : [FALLBACK_IMAGE]
   const [thumbsSwiper, setThumbsSwiper] = useState(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -49,8 +56,6 @@ export default function ProductImageGallery({ product, discountPct = 0 }) {
 
   const name = product?.name || 'Product'
   const hasMultiple = rawImages.length > 1
-  const hasRealImages = rawImages.length > 0
-
   const bindNav = (swiper, prevEl, nextEl) => {
     if (!swiper?.params?.navigation) return
     swiper.params.navigation.prevEl = prevEl
@@ -129,7 +134,7 @@ export default function ProductImageGallery({ product, discountPct = 0 }) {
                         y: Math.max(0, Math.min(100, y)),
                       })
                     }}
-                    className={`aspect-square w-full object-contain p-4 sm:p-6 ${
+                    className={`aspect-[4/5] w-full object-contain p-4 sm:p-6 ${
                       hasRealImages ? 'transition-transform duration-200' : ''
                     }`}
                     style={
@@ -182,21 +187,26 @@ export default function ProductImageGallery({ product, discountPct = 0 }) {
               }}
               className="product-gallery__thumbs mt-3"
             >
-              {images.map((src, index) => (
-                <SwiperSlide key={`thumb-${src}-${index}`} className="!h-auto">
+              {rawImages.map((rawSrc, index) => (
+                <SwiperSlide key={`thumb-${rawSrc}-${index}`} className="!h-auto">
                   <div
-                    className={`h-16 w-full overflow-hidden rounded-lg border-2 sm:h-20 ${
+                    className={`aspect-[4/5] w-full overflow-hidden rounded-lg border-2 bg-[#f8f2e7] ${
                       activeIndex === index
                         ? 'border-gold ring-1 ring-gold/40'
                         : 'border-transparent opacity-80'
                     }`}
                   >
                     <img
-                      src={getImageSrc(src)}
+                      src={getImageSrc(productImageUrl(rawSrc, 'thumb'))}
                       alt=""
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       loading="lazy"
-                      onError={() => setBrokenImages((prev) => ({ ...prev, [src]: true }))}
+                      onError={() =>
+                        setBrokenImages((prev) => ({
+                          ...prev,
+                          [productImageUrl(rawSrc, 'thumb')]: true,
+                        }))
+                      }
                     />
                   </div>
                 </SwiperSlide>
@@ -246,19 +256,22 @@ export default function ProductImageGallery({ product, discountPct = 0 }) {
               onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
               className="product-gallery__lightbox h-full"
             >
-              {images.map((src, index) => (
-                <SwiperSlide
-                  key={`lb-${src}-${index}`}
-                  className="flex items-center justify-center"
-                >
-                  <img
-                    src={getImageSrc(src)}
-                    alt={`${name} — image ${index + 1}`}
-                    className="max-h-[min(78vh,720px)] w-full object-contain"
-                    onError={() => setBrokenImages((prev) => ({ ...prev, [src]: true }))}
-                  />
-                </SwiperSlide>
-              ))}
+              {rawImages.map((rawSrc, index) => {
+                const lbSrc = productImageUrl(rawSrc, 'lightbox')
+                return (
+                  <SwiperSlide
+                    key={`lb-${rawSrc}-${index}`}
+                    className="flex items-center justify-center"
+                  >
+                    <img
+                      src={getImageSrc(lbSrc)}
+                      alt={`${name} — image ${index + 1}`}
+                      className="max-h-[min(78vh,720px)] w-full object-contain"
+                      onError={() => setBrokenImages((prev) => ({ ...prev, [lbSrc]: true }))}
+                    />
+                  </SwiperSlide>
+                )
+              })}
             </Swiper>
 
             {hasMultiple ? (

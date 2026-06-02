@@ -3,8 +3,9 @@ import {
   getCloudinaryUploadParams,
   uploadImageToCloudinary,
 } from '../services/cloudinaryUpload'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
-const MAX_IMAGES = 10
+const DEFAULT_MAX_IMAGES = 10
 const MAX_BYTES = 5 * 1024 * 1024
 const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
@@ -19,16 +20,35 @@ function isAllowedFile(file) {
 }
 
 /**
- * @param {{ images: string[], onChange: (urls: string[]) => void, authFetch: Function, error?: string }} props
+ * @param {{
+ *   imagesMeta: {url:string,alt:string}[],
+ *   onChange: (meta: {url:string,alt:string}[] | fn) => void,
+ *   authFetch: Function,
+ *   error?: string,
+ *   maxImages?: number,
+ *   label?: string,
+ *   hint?: string,
+ *   compact?: boolean,
+ * }} props
  */
-export default function ProductImageUpload({ images, onChange, authFetch, error: externalError }) {
+export default function ProductImageUpload({
+  imagesMeta = [],
+  onChange,
+  authFetch,
+  error: externalError,
+  maxImages = DEFAULT_MAX_IMAGES,
+  label = 'Product images *',
+  hint,
+  compact = false,
+}) {
+  const images = imagesMeta
   const inputRef = useRef(null)
   const [dragOver, setDragOver] = useState(false)
   const [configError, setConfigError] = useState('')
   const [pending, setPending] = useState([])
 
   const totalCount = images.length + pending.length
-  const canAddMore = totalCount < MAX_IMAGES
+  const canAddMore = totalCount < maxImages
 
   const updatePending = useCallback((tempId, patch) => {
     setPending((prev) =>
@@ -55,10 +75,11 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
           signature: params.signature,
           timestamp: params.timestamp,
           folder: params.folder,
+          transformation: params.transformation,
         }, (percent) => {
           updatePending(tempId, { progress: percent })
         })
-        onChange((prev) => [...prev, result.secureUrl])
+        onChange((prev) => [...prev, { url: result.secureUrl, alt: '' }])
         removePending(tempId)
       } catch (err) {
         const message = err?.message || 'Upload failed'
@@ -76,9 +97,9 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
       const files = Array.from(fileList || [])
       if (!files.length) return
 
-      let slotsLeft = MAX_IMAGES - images.length - pending.length
+      let slotsLeft = maxImages - images.length - pending.length
       if (slotsLeft <= 0) {
-        setConfigError(`Maximum ${MAX_IMAGES} images per product`)
+        setConfigError(`Maximum ${maxImages} images`)
         return
       }
 
@@ -106,7 +127,7 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
       setPending((prev) => [...prev, ...toQueue])
       toQueue.forEach(({ tempId, file }) => uploadOne(tempId, file))
     },
-    [images.length, pending.length, uploadOne]
+    [images.length, pending.length, maxImages, uploadOne]
   )
 
   const handleDrop = (e) => {
@@ -117,7 +138,21 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
   }
 
   const handleRemoveUrl = (url) => {
-    onChange((prev) => prev.filter((u) => u !== url))
+    onChange((prev) => prev.filter((m) => m.url !== url))
+  }
+
+  const moveImage = (index, dir) => {
+    onChange((prev) => {
+      const next = [...prev]
+      const j = index + dir
+      if (j < 0 || j >= next.length) return prev
+      ;[next[index], next[j]] = [next[j], next[index]]
+      return next
+    })
+  }
+
+  const updateAlt = (url, alt) => {
+    onChange((prev) => prev.map((m) => (m.url === url ? { ...m, alt } : m)))
   }
 
   const retryUpload = (item) => {
@@ -131,37 +166,74 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <label className="block text-xs font-medium text-muted">Product images *</label>
+        <label className="block text-xs font-medium text-muted">{label}</label>
         <span className="text-xs text-muted">
           {images.length} saved
-          {pending.length ? ` · ${pending.length} uploading` : ''} · max {MAX_IMAGES}
+          {pending.length ? ` · ${pending.length} uploading` : ''} · max {maxImages}
         </span>
       </div>
 
       {(images.length > 0 || pending.length > 0) && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {images.map((url) => (
-            <li
-              key={url}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-[#e8d5c0] bg-[#f8f2e7]"
-            >
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => handleRemoveUrl(url)}
-                className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
-                aria-label="Remove image"
-              >
-                Remove
-              </button>
+        <ul className={`grid gap-3 ${compact ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
+          {images.map((item, index) => (
+            <li key={item.url} className="space-y-1">
+              <div className="group relative aspect-[4/5] overflow-hidden rounded-lg border border-[#e8d5c0] bg-[#f8f2e7]">
+                <img
+                  src={productImageUrl(item.url, 'adminPreview')}
+                  alt={item.alt || ''}
+                  className="h-full w-full object-contain"
+                />
+                {index === 0 ? (
+                  <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                    Main
+                  </span>
+                ) : null}
+                <div className="absolute right-1.5 top-1.5 flex gap-1">
+                  {index > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => moveImage(index, -1)}
+                      className="rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] text-white"
+                      aria-label="Move earlier"
+                    >
+                      ←
+                    </button>
+                  ) : null}
+                  {index < images.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => moveImage(index, 1)}
+                      className="rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] text-white"
+                      aria-label="Move later"
+                    >
+                      →
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveUrl(item.url)}
+                    className="rounded-full bg-black/60 px-2 py-0.5 text-xs text-white"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <input
+                type="text"
+                className="w-full rounded border border-[#e8d5c0] px-2 py-1 text-[10px]"
+                placeholder="Alt text (SEO)"
+                value={item.alt || ''}
+                onChange={(e) => updateAlt(item.url, e.target.value)}
+              />
             </li>
           ))}
           {pending.map((item) => (
             <li
               key={item.tempId}
-              className="relative aspect-square overflow-hidden rounded-lg border border-[#e8d5c0] bg-[#f8f2e7]"
+              className="relative aspect-[4/5] overflow-hidden rounded-lg border border-[#e8d5c0] bg-[#f8f2e7]"
             >
-              <img src={item.preview} alt="" className="h-full w-full object-cover opacity-80" />
+              <img src={item.preview} alt="" className="h-full w-full object-contain opacity-80" />
               {item.status === 'uploading' ? (
                 <div className="absolute inset-x-0 bottom-0 bg-black/50 px-2 py-2">
                   <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-white/30">
@@ -232,7 +304,9 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
         }}
         onDrop={handleDrop}
         onClick={() => canAddMore && inputRef.current?.click()}
-        className={`rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+        className={`rounded-xl border-2 border-dashed text-center transition-colors ${
+          compact ? 'px-3 py-5' : 'px-4 py-8'
+        } ${
           !canAddMore
             ? 'cursor-not-allowed border-[#e8d5c0]/60 bg-[#faf6ef] opacity-60'
             : dragOver
@@ -257,15 +331,20 @@ export default function ProductImageUpload({ images, onChange, authFetch, error:
         </p>
         <p className="mt-1 text-xs text-muted">
           {canAddMore
-            ? 'or click to browse · JPEG, PNG, WebP, GIF · up to 5 MB each'
-            : `Remove an image to add more (max ${MAX_IMAGES})`}
+            ? 'or click to browse · JPEG, PNG, WebP, GIF · up to 5 MB each · 4:5 frame on save'
+            : `Remove an image to add more (max ${maxImages})`}
         </p>
       </div>
 
       {displayError ? <p className="text-xs text-red-700">{displayError}</p> : null}
-      <p className="text-xs text-muted">
-        First image is used as the main thumbnail in listings. Upload at least one image before saving.
-      </p>
+      {hint ? (
+        <p className="text-xs text-muted">{hint}</p>
+      ) : !compact ? (
+        <p className="text-xs text-muted">
+          First image is the listing thumbnail. Images are normalized to a 4:5 frame (same as the shop grid).
+          Upload at least one image before saving.
+        </p>
+      ) : null}
     </div>
   )
 }

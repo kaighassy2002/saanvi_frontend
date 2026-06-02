@@ -26,7 +26,7 @@ function StoreProductCard({
   const isCompact = variant === 'compact'
 
   const imageWrapClass = isCompact
-    ? 'store-product-card__media-wrap aspect-[10/11]'
+    ? 'store-product-card__media-wrap'
     : isHome
       ? 'store-product-card__media-wrap store-product-card__media-wrap--square'
       : 'store-product-card__media-wrap store-product-card__media-wrap--tall collection-card__image'
@@ -68,12 +68,12 @@ function StoreProductCard({
           <i className={`fa-heart text-sm ${saved ? 'fa-solid text-gold' : 'fa-regular'}`} aria-hidden />
         </button>
 
-        <Link to={`/product/${product.id}`} className="block h-full w-full">
+        <Link to={`/product/${product.id}`} className="store-product-card__media-link">
           <ProductCardMedia
             product={product}
             alt={product.name}
             compact={isCompact}
-            className={`h-full w-full object-contain transition duration-300 ${
+            imageClassName={`store-product-card__media-img transition duration-300 ${
               isCompact ? 'p-2 group-hover:scale-[1.02]' : 'p-3 sm:p-4 group-hover:scale-[1.03]'
             }`}
           />

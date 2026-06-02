@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
 import { getOrder, patchOrder } from './services/adminApi'
+import { useAdminToast } from './shared/AdminToastProvider'
 import AdminStatusBadge, { ORDER_STATUS_OPTIONS } from './components/AdminStatusBadge'
 import AdminErrorBanner from './components/AdminErrorBanner'
 
@@ -12,12 +13,14 @@ function formatPrice(n) {
 function AdminOrderDetail() {
   const { publicId } = useParams()
   const { authFetch } = useAdminAuth()
+  const { toast } = useAdminToast()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
   const [status, setStatus] = useState('')
+  const [paymentStatus, setPaymentStatus] = useState('pending')
   const [trackingNumber, setTrackingNumber] = useState('')
   const [internalNotes, setInternalNotes] = useState('')
 
@@ -28,6 +31,7 @@ function AdminOrderDetail() {
       const data = await getOrder(authFetch, publicId)
       setOrder(data)
       setStatus(data.status || 'Processing')
+      setPaymentStatus(data.paymentStatus || 'pending')
       setTrackingNumber(data.trackingNumber || '')
       setInternalNotes(data.internalNotes || '')
     } catch (e) {
@@ -50,11 +54,13 @@ function AdminOrderDetail() {
     try {
       const updated = await patchOrder(authFetch, publicId, {
         status,
+        paymentStatus,
         trackingNumber: trackingNumber.trim(),
         internalNotes: internalNotes.trim(),
       })
       setOrder(updated)
       setSuccess('Order updated.')
+      toast('Order updated.')
     } catch (err) {
       setError(err?.message || 'Update failed')
     } finally {
@@ -76,6 +82,11 @@ function AdminOrderDetail() {
 
   const shipping = order.shipping || {}
   const items = Array.isArray(order.items) ? order.items : []
+  const statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : []
+
+  const handlePrint = () => {
+    window.print()
+  }
   const inputClass =
     'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
 
@@ -90,7 +101,41 @@ function AdminOrderDetail() {
           <h1 className="font-bodoni text-2xl text-ink">Order {order.id}</h1>
           <p className="text-sm text-muted mt-1">{order.date}</p>
         </div>
-        <AdminStatusBadge status={order.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminStatusBadge status={order.status} />
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="rounded-lg border border-[#e8d5c0] px-3 py-1.5 text-xs text-ink hover:bg-[#faf7f2] print:hidden"
+          >
+            Print packing slip
+          </button>
+        </div>
+      </div>
+
+      <div id="order-print-slip" className="hidden print:block print:p-8">
+        <h1 className="text-xl font-bold">Packing slip — {order.id}</h1>
+        <p className="text-sm">{order.customerName} · {order.customerEmail}</p>
+        <p className="text-sm mt-2">
+          {[shipping.address, shipping.city, shipping.state, shipping.pincode].filter(Boolean).join(', ')}
+        </p>
+        <table className="mt-4 w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-1">Item</th>
+              <th className="text-right py-1">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr key={i} className="border-b border-gray-200">
+                <td className="py-1">{item.name || item.title}</td>
+                <td className="text-right py-1">{item.quantity || 1}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-4 font-medium">Total: {formatPrice(order.total)}</p>
       </div>
 
       <AdminErrorBanner message={error} onRetry={load} />
@@ -103,7 +148,16 @@ function AdminOrderDetail() {
           <h2 className="font-playfair text-sm text-ink">Customer</h2>
           <p className="text-sm">{order.customerName || '—'}</p>
           <p className="text-sm text-muted">{order.customerEmail || '—'}</p>
-          <p className="text-sm text-muted">Payment: {order.paymentMethod || '—'}</p>
+          <p className="text-sm text-muted">
+            Payment:{' '}
+            {order.paymentMethod === 'razorpay'
+              ? 'Online (Razorpay — UPI/card)'
+              : order.paymentMethod || '—'}
+          </p>
+          <p className="text-sm text-muted">Payment status: {order.paymentStatus || 'pending'}</p>
+          {order.razorpayPaymentId ? (
+            <p className="text-xs text-muted break-all">Razorpay payment: {order.razorpayPaymentId}</p>
+          ) : null}
           <p className="text-lg font-medium text-ink">Total: {formatPrice(order.total)}</p>
         </section>
 
@@ -140,7 +194,24 @@ function AdminOrderDetail() {
         )}
       </section>
 
-      <form onSubmit={handleSave} className="lux-card p-5 mt-6 space-y-4">
+      {statusHistory.length > 0 ? (
+        <section className="lux-card p-5 mt-6">
+          <h2 className="font-playfair text-sm text-ink mb-3">Status timeline</h2>
+          <ol className="space-y-2 border-l-2 border-[#e8d5c0] pl-4">
+            {[...statusHistory].reverse().map((entry, i) => (
+              <li key={i} className="text-sm">
+                <span className="font-medium text-ink">{entry.status}</span>
+                <span className="text-muted text-xs ml-2">
+                  {entry.at ? new Date(entry.at).toLocaleString('en-IN') : ''}
+                </span>
+                {entry.note ? <p className="text-xs text-muted mt-0.5">{entry.note}</p> : null}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
+      <form onSubmit={handleSave} className="lux-card p-5 mt-6 space-y-4 print:hidden">
         <h2 className="font-playfair text-sm text-ink">Fulfillment</h2>
         <div>
           <label className="block text-xs font-medium text-muted mb-1">Status</label>
@@ -157,6 +228,20 @@ function AdminOrderDetail() {
             {status && !ORDER_STATUS_OPTIONS.includes(status) ? (
               <option value={status}>{status}</option>
             ) : null}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted mb-1">Payment status</label>
+          <select
+            className={inputClass}
+            value={paymentStatus}
+            onChange={(e) => setPaymentStatus(e.target.value)}
+          >
+            {['pending', 'paid', 'failed', 'refunded'].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
         </div>
         <div>

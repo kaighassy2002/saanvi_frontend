@@ -94,6 +94,18 @@ export async function adminPatchReview(id, status) {
   })
 }
 
+export async function adminBulkReviews(ids, status) {
+  if (USE_LOCAL_API) {
+    ids.forEach((id) => localAdminPatchReview(id, status))
+    return { modified: ids.length }
+  }
+  return jewelleryFetch('/api/admin/reviews/bulk', {
+    method: 'PATCH',
+    body: { ids, status },
+    auth: 'admin',
+  })
+}
+
 export async function adminDeleteReview(id) {
   if (USE_LOCAL_API) {
     localAdminDeleteReview(id)

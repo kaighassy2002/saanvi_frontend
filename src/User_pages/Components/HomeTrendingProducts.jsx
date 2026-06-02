@@ -5,6 +5,7 @@ import { useNewArrivals } from '../../hooks/useNewArrivals'
 import { useWishlist } from '../../hooks/useWishlist'
 import { getProductPrimaryImage } from '../utils/productImages'
 import HomeProductCard from './HomeProductCard'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 const TABS = [
   { id: 'featured', label: 'Featured' },
@@ -25,6 +26,7 @@ function ProductSkeleton() {
 }
 
 function HomeTrendingProducts() {
+  const ref = useScrollReveal()
   const [activeTab, setActiveTab] = useState('featured')
   const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
@@ -62,8 +64,11 @@ function HomeTrendingProducts() {
     (activeTab === 'new' ? newLoading : catalogLoading) && displayProducts.length === 0
 
   return (
-    <section className="section-container py-10 sm:py-16">
-      <h2 className="text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">Trending Products</h2>
+    <section ref={ref} className="section-container section-reveal py-10 sm:py-16">
+      <p className="text-overline text-center">Most loved picks</p>
+      <h2 className="mt-2 text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">
+        Trending Products
+      </h2>
 
       <div
         className="mt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10"
@@ -129,7 +134,7 @@ function HomeTrendingProducts() {
             activeTab === 'new'
               ? '/collections?sort=latest'
               : activeTab === 'bestseller'
-                ? '/collections?sort=price-high'
+                ? '/collections?sort=discount'
                 : '/collections'
           }
           className="inline-flex border-b border-[#1f1514] pb-1 font-playfair text-sm uppercase tracking-[0.1em] text-[#1f1514] transition hover:text-[#7a2c3a] hover:border-[#7a2c3a]"

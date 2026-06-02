@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
 function SearchSuggestions({ products, categories, onSelect, className = '' }) {
   if (!products.length && !categories.length) return null
@@ -42,7 +43,11 @@ function SearchSuggestions({ products, categories, onSelect, className = '' }) {
                 className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f7ecee]"
               >
                 {p.image ? (
-                  <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-contain bg-[#f8f2e7]" />
+                  <img
+                    src={productImageUrl(p.image, 'thumb')}
+                    alt=""
+                    className="h-12 w-10 rounded-lg bg-[#f8f2e7] object-contain"
+                  />
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="line-clamp-1 font-playfair text-sm text-ink">{p.name}</span>

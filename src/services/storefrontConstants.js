@@ -1,6 +1,13 @@
 /** Shared storefront copy and contact — single source for Phase 1+ */
 
-export const FREE_SHIPPING_THRESHOLD = 2999
+/** Fallback when store settings API is unavailable (local-only mode). */
+export const DEFAULT_FREE_SHIPPING_THRESHOLD = 2999
+export const DEFAULT_SHIPPING_FEE = 99
+
+/** @deprecated Use useStoreSettings() — kept for static copy fallbacks */
+export const FREE_SHIPPING_THRESHOLD = DEFAULT_FREE_SHIPPING_THRESHOLD
+/** @deprecated Use useStoreSettings() */
+export const SHIPPING_FEE = DEFAULT_SHIPPING_FEE
 
 export const SUPPORT_EMAIL = 'info@aashmikadesigns.com'
 export const SUPPORT_PHONE = '+91 98765 43210'

@@ -14,11 +14,22 @@ import { useCartDrawer } from '../../hooks/useCartDrawer'
 import { useWishlist } from '../../hooks/useWishlist'
 import { pushRecentlyViewed } from '../../services/recentlyViewed'
 import ProductImageGallery from '../Components/ProductImageGallery'
+import ColorVariantPicker from '../Components/ColorVariantPicker'
+import SizeVariantPicker from '../Components/SizeVariantPicker'
+import {
+  formatCartItemName,
+  getColorVariantOptions,
+  getProductSizeList,
+  getSizeOptionsForColor,
+  productHasVariants,
+  resolveProductLine,
+} from '../../services/productVariants'
 import { getProductImages } from '../utils/productImages'
 import '../Styles/product-detail.css'
 
 function formatSpecLabel(key) {
   if (key === 'color') return 'Colour'
+  if (key === 'sizeOptions') return 'Available Sizes'
   return key.charAt(0).toUpperCase() + key.slice(1)
 }
 
@@ -107,8 +118,62 @@ function ProductDetailView({ product }) {
   const [addedFeedback, setAddedFeedback] = useState(false)
   const { toggle, isInWishlist } = useWishlist()
   const [quantity, setQuantity] = useState(1)
+  const [selectedColor, setSelectedColor] = useState('')
+  const [selectedSize, setSelectedSize] = useState('')
 
-  const stock = Math.max(0, Number(product.stock) || 0)
+  const hasVariants = productHasVariants(product)
+  const colorOptions = useMemo(() => getColorVariantOptions(product), [product])
+  const hasColors = colorOptions.length > 0
+
+  const sizeOptions = useMemo(() => {
+    if (hasColors) {
+      return getSizeOptionsForColor(product, selectedColor).filter((row) => row.size !== '')
+    }
+    const sizes = getProductSizeList(product)
+    if (sizes.length === 0) return []
+    const stock = Math.max(0, Number(product.stock) || 0)
+    return sizes.map((size) => ({
+      size,
+      label: size,
+      stock,
+      inStock: stock > 0,
+    }))
+  }, [product, hasColors, selectedColor])
+
+  const requiresSize = sizeOptions.length > 0
+
+  useEffect(() => {
+    if (!hasColors) {
+      setSelectedColor('')
+      return
+    }
+    const current = colorOptions.find((o) => o.color === selectedColor || o.variantName === selectedColor)
+    if (current?.inStock) return
+    const preferred = colorOptions.find((o) => o.inStock) || colorOptions[0]
+    setSelectedColor(preferred?.color || preferred?.variantName || '')
+  }, [product.id, hasColors, colorOptions, selectedColor])
+
+  useEffect(() => {
+    setSelectedSize('')
+  }, [product.id, selectedColor])
+
+  useEffect(() => {
+    if (!requiresSize) {
+      setSelectedSize('')
+      return
+    }
+    const current = sizeOptions.find((o) => o.size === selectedSize)
+    if (current?.inStock) return
+    const preferred = sizeOptions.find((o) => o.inStock) || sizeOptions[0]
+    setSelectedSize(preferred?.size || '')
+  }, [product.id, requiresSize, sizeOptions, selectedSize])
+
+  const line = useMemo(
+    () => resolveProductLine(product, hasColors ? selectedColor : '', selectedSize),
+    [product, hasColors, selectedColor, selectedSize]
+  )
+  const stock = line.stock
+  const displayPrice = line.price
   const inWishlist = isInWishlist(product.id)
   const reviewsState = useProductReviews(product.id)
 
@@ -116,32 +181,68 @@ function ProductDetailView({ product }) {
     pushRecentlyViewed(product.id)
   }, [product.id])
 
-  const productImages = getProductImages(product)
+  useEffect(() => {
+    setQuantity(1)
+  }, [selectedColor, selectedSize, product.id])
+
+  const galleryImages = useMemo(() => {
+    if (Array.isArray(line.images) && line.images.length > 0) return line.images
+    return getProductImages(product)
+  }, [product, line.images])
+
+  const galleryProduct = useMemo(
+    () => ({
+      ...product,
+      images: galleryImages,
+      image: galleryImages[0] || product.image,
+    }),
+    [product, galleryImages]
+  )
+
   const specs = product.specifications || {}
+  const customAttributes = useMemo(
+    () => (Array.isArray(product.customAttributes) ? product.customAttributes : []),
+    [product.customAttributes]
+  )
 
   const view = {
     id: product.id,
     name: product.name,
-    price: product.price,
+    price: displayPrice,
     originalPrice: product.originalPrice,
     category: product.category,
-    images: productImages,
+    images: galleryImages,
     description: product.description || 'Handcrafted piece from the Aashmika Designs collection.',
     specifications: {
       material: specs.material || '',
-      color: specs.color || '',
+      color: line.variantLabel || specs.color || '',
       weight: specs.weight || '',
       length: specs.length || '',
       certification: specs.certification || '',
+      sizeOptions: Array.isArray(product.sizeOptions) ? product.sizeOptions.join(', ') : '',
+      dimensions:
+        product.dimensions && (product.dimensions.length || product.dimensions.width || product.dimensions.height)
+          ? `${product.dimensions.length || '-'} × ${product.dimensions.width || '-'} × ${product.dimensions.height || '-'} ${product.dimensions.unit || 'mm'}`
+          : '',
     },
   }
 
   const specRows = useMemo(
     () =>
       Object.entries(view.specifications)
-        .filter(([, val]) => String(val || '').trim())
+        .filter(([key, val]) => {
+          if (key === 'sizeOptions' && sizeOptions.length > 0) return false
+          return String(val || '').trim()
+        })
         .map(([key, val]) => [formatSpecLabel(key), val]),
-    [view.specifications]
+    [view.specifications, sizeOptions.length]
+  )
+  const customRows = useMemo(
+    () =>
+      customAttributes
+        .map((item) => [formatSpecLabel(String(item?.key || '').trim()), String(item?.value || '').trim()])
+        .filter(([label, value]) => label && value),
+    [customAttributes]
   )
 
   const savings =
@@ -153,12 +254,17 @@ function ProductDetailView({ product }) {
 
   function addToCartWithQty() {
     if (stock <= 0) return false
+    if (hasColors && !selectedColor) return false
+    if (requiresSize && !selectedSize) return false
     const q = Math.min(Math.max(1, quantity), stock)
     addItem({
       productId: product.id,
-      name: product.name,
+      variantKey: line.variantKey,
+      variantName: line.variantKey,
+      variantLabel: line.variantLabel,
+      name: formatCartItemName(product.name, line.variantLabel),
       image: view.images[0],
-      price: product.price,
+      price: displayPrice,
       quantity: q,
       maxStock: stock,
     })
@@ -214,7 +320,7 @@ function ProductDetailView({ product }) {
         <Breadcrumbs items={breadcrumbItems} />
 
         <div className="product-detail__grid mt-6 sm:mt-8">
-          <ProductImageGallery product={product} discountPct={discountPct} />
+          <ProductImageGallery product={galleryProduct} discountPct={discountPct} />
 
           <div className="product-detail__info">
             {view.category ? (
@@ -268,17 +374,33 @@ function ProductDetailView({ product }) {
               </p>
             )}
 
+            {hasColors ? (
+              <ColorVariantPicker
+                options={colorOptions}
+                selectedName={selectedColor}
+                onSelect={setSelectedColor}
+              />
+            ) : null}
+
+            {requiresSize ? (
+              <SizeVariantPicker
+                sizes={sizeOptions}
+                selectedSize={selectedSize}
+                onSelect={setSelectedSize}
+              />
+            ) : null}
+
             <PurchaseBlock {...purchaseProps} className="product-detail__purchase--desktop" />
 
             <TrustStrip className="product-detail__trust" />
 
             <p className="product-detail__description">{view.description}</p>
 
-            {specRows.length > 0 ? (
+            {specRows.length > 0 || customRows.length > 0 ? (
               <details className="product-detail__specs" open>
                 <summary>Product details</summary>
                 <dl>
-                  {specRows.map(([label, val]) => (
+                  {[...specRows, ...customRows].map(([label, val]) => (
                     <div key={label} className="product-detail__specs-row">
                       <dt>{label}</dt>
                       <dd>{val}</dd>

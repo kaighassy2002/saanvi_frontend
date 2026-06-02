@@ -2,9 +2,11 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../../hooks/useShopCategories'
 import { categoryCollectionHref } from '../../data/shopNav'
-import { FREE_SHIPPING_THRESHOLD, formatInr } from '../../../services/storefrontConstants'
+import { useStoreSettings } from '../../../context/storeSettingsContext'
+import { formatInr } from '../../../services/storefrontConstants'
 
 function HomeMobileQuickShop() {
+  const { freeShippingThreshold } = useStoreSettings()
   const { categories, loading } = useShopCategories()
   const top = categories.slice(0, 8)
 
@@ -20,7 +22,7 @@ function HomeMobileQuickShop() {
           New arrivals
         </Link>
         <Link to="/collections" className="home-mobile-chip home-mobile-chip--gold">
-          Free ship {formatInr(FREE_SHIPPING_THRESHOLD)}+
+          Free ship {formatInr(freeShippingThreshold)}+
         </Link>
         {loading
           ? [1, 2, 3, 4].map((i) => (

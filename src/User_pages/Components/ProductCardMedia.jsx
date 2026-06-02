@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { getProductImages } from '../utils/productImages'
+import { getProductDisplayImages } from '../utils/productImages'
 
 /**
  * Listing card media — shows first image by default; auto-cycles on hover when multiple images exist.
@@ -7,11 +7,11 @@ import { getProductImages } from '../utils/productImages'
 export default function ProductCardMedia({
   product,
   alt,
-  className = 'h-full w-full object-contain p-3 sm:p-4 transition duration-500 group-hover:scale-[1.03]',
-  imageClassName,
+  className = '',
+  imageClassName = 'store-product-card__media-img p-3 sm:p-4 transition duration-500 group-hover:scale-[1.03]',
   compact = false,
 }) {
-  const images = getProductImages(product)
+  const images = getProductDisplayImages(product, 'card')
   const [index, setIndex] = useState(0)
   const [hovering, setHovering] = useState(false)
   const [touching, setTouching] = useState(false)
@@ -109,15 +109,20 @@ export default function ProductCardMedia({
 
   if (!src) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#f0e6d6] font-playfair text-xs text-muted">
+      <div className="absolute inset-0 flex items-center justify-center bg-[#f8f2e7] font-playfair text-xs text-muted">
         No image
       </div>
     )
   }
 
+  const imgClass =
+    imageClassName ||
+    className ||
+    'store-product-card__media-img h-full w-full object-contain object-center p-3 sm:p-4'
+
   return (
     <div
-      className="relative h-full w-full max-w-full overflow-hidden"
+      className="absolute inset-0 overflow-hidden"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
@@ -130,24 +135,26 @@ export default function ProductCardMedia({
         e.stopPropagation()
       }}
     >
-      <div className="h-full w-full max-w-full overflow-hidden">
-        <div
-          className="flex h-full w-full max-w-full"
-          style={{
-            transform: `translate3d(calc(${-index * 100}% + ${dragOffset}px), 0, 0)`,
-            transition: touching ? 'none' : 'transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)',
-          }}
-        >
-          {images.map((imageSrc, i) => (
+      <div
+        className="flex h-full w-full"
+        style={{
+          transform: `translate3d(calc(${-index * 100}% + ${dragOffset}px), 0, 0)`,
+          transition: touching ? 'none' : 'transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)',
+        }}
+      >
+        {images.map((imageSrc, i) => (
+          <div
+            key={`${imageSrc}-${i}`}
+            className="relative h-full w-full shrink-0 grow-0 basis-full bg-[#f8f2e7]"
+          >
             <img
-              key={`${imageSrc}-${i}`}
               src={imageSrc}
               alt={alt}
               loading="lazy"
-              className={`${imageClassName || className} h-full min-w-full flex-shrink-0`}
+              className={imgClass}
             />
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {hasMultiple ? (

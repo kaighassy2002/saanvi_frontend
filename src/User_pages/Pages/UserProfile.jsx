@@ -7,7 +7,9 @@ import { CUSTOMER_SESSION_CHANGED_EVENT, STORAGE_KEYS } from '../../services/con
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
 import {
   createAddressId,
+  fetchSavedAddressesFromServer,
   readSavedAddresses,
+  syncSavedAddressesToServer,
   writeSavedAddresses,
 } from '../../services/savedAddresses'
 import {
@@ -120,8 +122,9 @@ function UserProfile() {
     }
   }, [navigate, applyProfileToStorage])
 
-  const refreshSavedAddresses = useCallback(() => {
-    setSavedAddresses(readSavedAddresses())
+  const refreshSavedAddresses = useCallback(async () => {
+    const list = await fetchSavedAddressesFromServer()
+    setSavedAddresses(list)
   }, [])
 
   useEffect(() => {
@@ -173,7 +176,7 @@ function UserProfile() {
     setAddressForm(emptyAddressForm())
   }
 
-  const saveAddressEntry = (e) => {
+  const saveAddressEntry = async (e) => {
     e.preventDefault()
     const label = addressForm.label.trim()
     if (!label) {
@@ -209,14 +212,16 @@ function UserProfile() {
       ? list.map((a) => (a.id === addressEditingId ? entry : a))
       : [...list, entry]
     writeSavedAddresses(next)
+    await syncSavedAddressesToServer(next)
     setSavedAddresses(next)
     setAddressNotice({ tone: 'success', text: addressEditingId ? 'Address updated.' : 'Address saved.' })
     cancelAddressForm()
   }
 
-  const deleteAddress = (id) => {
+  const deleteAddress = async (id) => {
     const next = readSavedAddresses().filter((a) => a.id !== id)
     writeSavedAddresses(next)
+    await syncSavedAddressesToServer(next)
     setSavedAddresses(next)
     if (addressEditingId === id) cancelAddressForm()
     setAddressNotice({ tone: 'success', text: 'Address removed.' })

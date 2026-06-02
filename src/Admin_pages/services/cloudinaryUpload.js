@@ -23,6 +23,9 @@ export function uploadImageToCloudinary(file, params, onProgress) {
     formData.append('timestamp', String(timestamp))
     formData.append('signature', signature)
     formData.append('folder', folder)
+    if (params.transformation) {
+      formData.append('transformation', params.transformation)
+    }
 
     const xhr = new XMLHttpRequest()
     xhr.open('POST', url)

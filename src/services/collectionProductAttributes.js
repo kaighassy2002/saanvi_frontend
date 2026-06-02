@@ -1,3 +1,5 @@
+import { getVariantColor } from './productVariants'
+
 const COLOR_KEYWORDS = [
   ['rose gold', 'Rose Gold'],
   ['white gold', 'White Gold'],
@@ -72,10 +74,45 @@ export function buildBasicMaterialFacetOptions(products) {
   )
 }
 
-export function getProductColor(product) {
+/** All colour labels for a product (variants + single spec colour). */
+export function getProductColorLabels(product) {
+  const variants = Array.isArray(product?.variants) ? product.variants : []
+  const fromVariants = variants.map((v) => getVariantColor(v)).filter(Boolean)
+  if (fromVariants.length > 0) return [...new Set(fromVariants)]
+
   const stored = String(product?.specifications?.color || product?.color || '').trim()
-  if (stored) return stored
-  return inferFromKeywords(`${product?.name || ''} ${product?.description || ''}`, COLOR_KEYWORDS)
+  if (stored) return [stored]
+  const inferred = inferFromKeywords(
+    `${product?.name || ''} ${product?.description || ''}`,
+    COLOR_KEYWORDS
+  )
+  return inferred ? [inferred] : []
+}
+
+/** Primary colour label for display (first variant or spec colour). */
+export function getProductColor(product) {
+  const labels = getProductColorLabels(product)
+  return labels[0] || ''
+}
+
+export function productMatchesColorFacet(product, selectedColors) {
+  if (!selectedColors.length) return true
+  const labels = getProductColorLabels(product).map((v) => v.toLowerCase())
+  if (labels.length === 0) return false
+  return selectedColors.some((s) => labels.includes(String(s).toLowerCase()))
+}
+
+/** @returns {{ value: string, count: number }[]} — counts each colour variant separately */
+export function buildColorFacetOptions(products) {
+  const counts = {}
+  for (const product of products) {
+    for (const value of getProductColorLabels(product)) {
+      counts[value] = (counts[value] || 0) + 1
+    }
+  }
+  return Object.entries(counts)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
 }
 
 /** @returns {{ value: string, count: number }[]} */

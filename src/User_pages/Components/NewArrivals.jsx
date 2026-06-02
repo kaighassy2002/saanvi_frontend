@@ -69,11 +69,11 @@ function NewArrivals() {
               to={`/product/${product.id}`}
               className="group block h-full overflow-hidden rounded-[1.6rem] border border-[#e8d7bf] bg-[linear-gradient(180deg,#fffdfa_0%,#fff8ee_100%)] shadow-[0_18px_38px_-30px_rgba(58,21,29,0.52)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_45px_-30px_rgba(58,21,29,0.65)]"
             >
-              <div className="relative mx-3 mt-3 h-72 overflow-hidden rounded-2xl bg-[#f8f2e7]">
+              <div className="relative mx-3 mt-3 aspect-[4/5] w-[calc(100%-1.5rem)] overflow-hidden rounded-2xl bg-[#f8f2e7]">
                 <ProductCardMedia
                   product={product}
                   alt={product.name}
-                  className="h-full w-full object-contain p-4 transition duration-700 ease-out group-hover:scale-105"
+                  imageClassName="store-product-card__media-img p-4 transition duration-700 ease-out group-hover:scale-105"
                 />
 
                 {product.discount > 0 ? (

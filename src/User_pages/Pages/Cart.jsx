@@ -8,6 +8,7 @@ import FreeShippingProgress from '../Components/FreeShippingProgress'
 import { useCart } from '../../hooks/useCart'
 import { whatsappUrl } from '../../services/storefrontConstants'
 import { isCustomerLoggedIn } from '../../services/customerStorageScope'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
 function Cart() {
   const { items, setQuantity, removeItem, totals } = useCart()
@@ -56,15 +57,15 @@ function Cart() {
             <div className="space-y-4 lg:col-span-2">
               {items.map((item) => (
                 <div
-                  key={item.productId}
+                  key={item.lineKey}
                   className="lux-card flex gap-4 p-4 sm:gap-5 sm:p-5"
                 >
                   <Link to={`/product/${item.productId}`} className="shrink-0">
                     <img
-                      src={item.image}
+                      src={productImageUrl(item.image, 'thumb')}
                       alt={item.name}
                       loading="lazy"
-                      className="h-24 w-24 rounded-xl object-cover sm:h-28 sm:w-28"
+                      className="h-24 w-[4.8rem] rounded-xl bg-[#f8f2e7] object-contain sm:h-28 sm:w-[5.6rem]"
                     />
                   </Link>
                   <div className="min-w-0 flex-1">
@@ -80,7 +81,7 @@ function Cart() {
                         <button
                           type="button"
                           onClick={() =>
-                            setQuantity(item.productId, item.quantity - 1, item.maxStock)
+                            setQuantity(item.lineKey, item.quantity - 1, item.maxStock)
                           }
                           className="touch-target flex h-10 w-10 items-center justify-center rounded-l-full hover:bg-[#f7ecee]"
                           aria-label="Decrease quantity"
@@ -93,7 +94,7 @@ function Cart() {
                         <button
                           type="button"
                           onClick={() =>
-                            setQuantity(item.productId, item.quantity + 1, item.maxStock)
+                            setQuantity(item.lineKey, item.quantity + 1, item.maxStock)
                           }
                           className="touch-target flex h-10 w-10 items-center justify-center rounded-r-full hover:bg-[#f7ecee]"
                           aria-label="Increase quantity"
@@ -108,7 +109,7 @@ function Cart() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.lineKey)}
                     className="touch-target shrink-0 self-start p-2 text-[#7a2c3a]"
                     aria-label={`Remove ${item.name}`}
                   >

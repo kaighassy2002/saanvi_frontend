@@ -2,15 +2,18 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../hooks/useShopCategories'
 import { categoryCollectionHref } from '../data/shopNav'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 function HomePopularCategories() {
+  const ref = useScrollReveal()
   const { categories, loading } = useShopCategories()
   const display = categories.slice(0, 6)
 
   return (
-    <section className="border-t border-[#ebebeb] bg-[#fafafa] py-12 sm:py-16">
+    <section ref={ref} className="section-reveal border-t border-[#ebebeb] bg-[#fafafa] py-12 sm:py-16">
       <div className="section-container">
-        <h2 className="text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">
+        <p className="text-overline text-center">Shop by mood</p>
+        <h2 className="mt-2 text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">
           Popular Categories
         </h2>
 
@@ -34,7 +37,7 @@ function HomePopularCategories() {
                 <div className="jewelsium-category-circle">
                   <img
                     src={category.image}
-                    alt=""
+                    alt={category.name}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                     loading="lazy"
                   />

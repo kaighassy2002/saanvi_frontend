@@ -55,6 +55,10 @@ export async function jewelleryFetch(path, options = {}) {
 
 // --- Public catalog ---
 
+export async function fetchStoreSettings() {
+  return jewelleryFetch('/api/store-settings')
+}
+
 export async function fetchBackendCategories() {
   const data = await jewelleryFetch('/api/categories')
   return Array.isArray(data?.categories) ? data.categories : []
@@ -106,6 +110,30 @@ export async function customerPatchMe(body) {
   return jewelleryFetch('/api/auth/me', { method: 'PATCH', body, auth: 'customer' })
 }
 
+export async function customerGetCart() {
+  const data = await jewelleryFetch('/api/auth/cart', { auth: 'customer' })
+  return Array.isArray(data?.items) ? data.items : []
+}
+
+export async function customerPutCart(items) {
+  const data = await jewelleryFetch('/api/auth/cart', { method: 'PUT', body: { items }, auth: 'customer' })
+  return Array.isArray(data?.items) ? data.items : []
+}
+
+export async function customerGetWishlist() {
+  const data = await jewelleryFetch('/api/auth/wishlist', { auth: 'customer' })
+  return Array.isArray(data?.items) ? data.items : []
+}
+
+export async function customerPutWishlist(items) {
+  const data = await jewelleryFetch('/api/auth/wishlist', {
+    method: 'PUT',
+    body: { items },
+    auth: 'customer',
+  })
+  return Array.isArray(data?.items) ? data.items : []
+}
+
 export async function customerForgotPasswordRequest(email) {
   return jewelleryFetch('/api/auth/forgot-password/request', {
     method: 'POST',
@@ -134,6 +162,22 @@ export async function customerForgotPasswordReset(resetToken, newPassword) {
 
 export async function placeBackendOrder(payload) {
   return jewelleryFetch('/api/orders', { method: 'POST', body: payload, auth: 'customer' })
+}
+
+export async function fetchRazorpayConfig() {
+  try {
+    return await jewelleryFetch('/api/payments/razorpay-config')
+  } catch {
+    return { enabled: false, keyId: null, currency: 'INR' }
+  }
+}
+
+export async function createRazorpayOrder(payload) {
+  return jewelleryFetch('/api/orders/razorpay-order', { method: 'POST', body: payload, auth: 'customer' })
+}
+
+export async function verifyRazorpayPayment(payload) {
+  return jewelleryFetch('/api/orders/razorpay-verify', { method: 'POST', body: payload, auth: 'customer' })
 }
 
 export async function fetchBackendMyOrders() {

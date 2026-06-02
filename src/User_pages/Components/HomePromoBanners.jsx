@@ -1,10 +1,16 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { HOME_PROMO_BANNERS } from '../data/homeContent'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 function HomePromoBanners() {
+  const ref = useScrollReveal()
   return (
-    <section className="section-container py-10 sm:py-14">
+    <section ref={ref} className="section-container section-reveal py-10 sm:py-14">
+      <div className="mb-7 text-center sm:mb-9">
+        <p className="text-overline">Curated offers</p>
+        <h2 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Signature savings</h2>
+      </div>
       <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
         {HOME_PROMO_BANNERS.map((banner) => (
           <Link
@@ -14,7 +20,7 @@ function HomePromoBanners() {
           >
             <img
               src={banner.image}
-              alt=""
+              alt={banner.title}
               className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
               loading="lazy"
             />

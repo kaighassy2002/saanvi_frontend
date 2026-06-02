@@ -1,13 +1,16 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { formatInr, FREE_SHIPPING_THRESHOLD } from '../../services/storefrontConstants'
+import { useStoreSettings } from '../../context/storeSettingsContext'
+import { formatInr } from '../../services/storefrontConstants'
 
 function FreeShippingProgress({ subtotal }) {
+  const { freeShippingThreshold } = useStoreSettings()
+
   if (subtotal <= 0) return null
 
-  const qualified = subtotal >= FREE_SHIPPING_THRESHOLD
-  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal)
-  const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100))
+  const qualified = subtotal >= freeShippingThreshold
+  const remaining = Math.max(0, freeShippingThreshold - subtotal)
+  const progress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))
 
   return (
     <div className="rounded-xl border border-[#e3d1b4] bg-[#fff6eb] px-4 py-3">
@@ -20,7 +23,7 @@ function FreeShippingProgress({ subtotal }) {
         ) : (
           <>
             Add <strong>{formatInr(remaining)}</strong> more for free shipping on orders above{' '}
-            {formatInr(FREE_SHIPPING_THRESHOLD)}.
+            {formatInr(freeShippingThreshold)}.
           </>
         )}
       </p>

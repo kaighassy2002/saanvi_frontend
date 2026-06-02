@@ -1,11 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
-import { deleteProduct, listProducts } from './services/adminApi'
+import {
+  bulkProducts,
+  deleteProduct,
+  getCategories,
+  listProducts,
+} from './services/adminApi'
+import { useAdminToast } from './shared/AdminToastProvider'
 import AdminPageHeader from './components/AdminPageHeader'
 import AdminDataTable from './components/AdminDataTable'
+import AdminPagination from './components/AdminPagination'
 import AdminErrorBanner from './components/AdminErrorBanner'
 import AdminConfirmDialog from './components/AdminConfirmDialog'
+import { productImageUrl } from '../utils/cloudinaryImage'
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -14,39 +22,87 @@ function formatPrice(n) {
 function AdminProducts() {
   const { authFetch } = useAdminAuth()
   const navigate = useNavigate()
-  const [products, setProducts] = useState([])
+  const { toast } = useAdminToast()
+  const [items, setItems] = useState([])
+  const [categories, setCategories] = useState([])
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
+  const [published, setPublished] = useState('')
+  const [stock, setStock] = useState('')
+  const [selected, setSelected] = useState(new Set())
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const load = useCallback(async () => {
     setError('')
     setLoading(true)
     try {
-      setProducts(await listProducts(authFetch))
+      const [result, cats] = await Promise.all([
+        listProducts(authFetch, {
+          page,
+          limit: 20,
+          q: search.trim() || undefined,
+          category: category || undefined,
+          published: published || undefined,
+          stock: stock || undefined,
+        }),
+        getCategories(authFetch),
+      ])
+      setItems(result.items)
+      setTotal(result.total)
+      setPages(result.pages)
+      setCategories(cats)
+      setSelected(new Set())
     } catch (e) {
       setError(e?.message || 'Failed to load products')
-      setProducts([])
+      setItems([])
     } finally {
       setLoading(false)
     }
-  }, [authFetch])
+  }, [authFetch, page, search, category, published, stock])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return products
-    return products.filter(
-      (p) =>
-        String(p.name || '').toLowerCase().includes(q) ||
-        String(p.category || '').toLowerCase().includes(q)
-    )
-  }, [products, search])
+  useEffect(() => {
+    setPage(1)
+  }, [search, category, published, stock])
+
+  const toggleSelect = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selected.size === items.length) setSelected(new Set())
+    else setSelected(new Set(items.map((p) => p.id)))
+  }
+
+  const runBulk = async (action) => {
+    const ids = [...selected]
+    if (!ids.length) return
+    setBulkBusy(true)
+    try {
+      await bulkProducts(authFetch, ids, action)
+      toast(`Bulk ${action} applied to ${ids.length} product(s).`)
+      await load()
+    } catch (e) {
+      toast(e?.message || 'Bulk action failed', 'error')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   const confirmDelete = async () => {
     if (!deleteTarget) return
@@ -54,23 +110,29 @@ function AdminProducts() {
     try {
       await deleteProduct(authFetch, deleteTarget.id)
       setDeleteTarget(null)
+      toast('Product deleted.')
       await load()
     } catch (e) {
-      setError(e?.message || 'Delete failed')
+      toast(e?.message || 'Delete failed', 'error')
     } finally {
       setDeleting(false)
     }
   }
 
   const columns = [
+    { key: 'select', label: '' },
     { key: 'image', label: '' },
     { key: 'name', label: 'Product' },
+    { key: 'sku', label: 'SKU' },
     { key: 'category', label: 'Category' },
     { key: 'price', label: 'Price' },
     { key: 'stock', label: 'Stock' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ]
+
+  const inputClass =
+    'rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
 
   return (
     <div>
@@ -82,60 +144,148 @@ function AdminProducts() {
 
       <AdminErrorBanner message={error} onRetry={load} />
 
-      <input
-        type="search"
-        placeholder="Search by name or category…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-4 w-full max-w-md rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm"
-      />
+      <div className="mb-4 flex flex-wrap gap-3">
+        <input
+          type="search"
+          placeholder="Search name, SKU, category…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={`${inputClass} w-full max-w-xs`}
+        />
+        <select className={inputClass} value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select className={inputClass} value={published} onChange={(e) => setPublished(e.target.value)}>
+          <option value="">All statuses</option>
+          <option value="true">Published</option>
+          <option value="false">Draft</option>
+        </select>
+        <select className={inputClass} value={stock} onChange={(e) => setStock(e.target.value)}>
+          <option value="">All stock</option>
+          <option value="low">Low stock</option>
+          <option value="out">Out of stock</option>
+        </select>
+      </div>
 
-      <AdminDataTable
-        columns={columns}
-        loading={loading}
-        emptyMessage={search ? 'No products match your search.' : 'No products yet. Add your first product.'}
-      >
-        {filtered.map((p) => (
-          <tr key={p.id} className="border-b border-[#f0e6d6] last:border-0">
-            <td className="px-4 py-3">
-              {p.image ? (
-                <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" />
-              ) : (
-                <div className="h-10 w-10 rounded bg-[#f4e8db]" />
-              )}
-            </td>
-            <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
-            <td className="px-4 py-3 text-muted">{p.category}</td>
-            <td className="px-4 py-3">{formatPrice(p.price)}</td>
-            <td className="px-4 py-3">{p.stock ?? '—'}</td>
-            <td className="px-4 py-3">
-              <span
-                className={`text-xs ${p.published !== false ? 'text-emerald-700' : 'text-muted'}`}
+      {selected.size > 0 ? (
+        <div className="mb-4 flex flex-wrap gap-2 rounded-lg border border-[#e8d5c0] bg-white px-4 py-3">
+          <span className="text-xs text-muted self-center">{selected.size} selected</span>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            onClick={() => runBulk('publish')}
+            className="rounded border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
+          >
+            Publish
+          </button>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            onClick={() => runBulk('unpublish')}
+            className="rounded border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
+          >
+            Unpublish
+          </button>
+          <button
+            type="button"
+            disabled={bulkBusy}
+            onClick={() => runBulk('feature')}
+            className="rounded border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
+          >
+            Feature
+          </button>
+        </div>
+      ) : null}
+
+      <div className="rounded-xl border border-[#e8d5c0] bg-white overflow-hidden">
+        <AdminDataTable
+          columns={columns}
+          loading={loading}
+          emptyMessage="No products match your filters."
+        >
+          {items.map((p) => {
+            const threshold = p.lowStockThreshold != null ? Number(p.lowStockThreshold) : 5
+            const isLow = Number(p.stock) <= threshold
+            return (
+              <tr
+                key={p.id}
+                className={`border-b border-[#f0e6d6] last:border-0 ${isLow ? 'bg-amber-50/50' : ''}`}
               >
-                {p.published !== false ? 'Published' : 'Draft'}
-              </span>
-            </td>
-            <td className="px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/admin/products/${p.id}/edit`)}
-                  className="rounded-lg border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(p)}
-                  className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </AdminDataTable>
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(p.id)}
+                    onChange={() => toggleSelect(p.id)}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  {p.image ? (
+                    <img
+                      src={productImageUrl(p.image, 'thumb')}
+                      alt=""
+                      className="h-12 w-10 rounded bg-[#f8f2e7] object-contain"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded bg-[#f4e8db]" />
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-medium text-ink">{p.name}</p>
+                  {p.featured ? (
+                    <span className="text-[10px] text-gold-dark">Featured</span>
+                  ) : null}
+                </td>
+                <td className="px-4 py-3 text-xs font-mono text-muted">{p.sku || '—'}</td>
+                <td className="px-4 py-3 text-muted">{p.category}</td>
+                <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                <td className="px-4 py-3">
+                  <span className={isLow ? 'text-amber-800 font-medium' : ''}>{p.stock ?? '—'}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`text-xs ${p.published !== false ? 'text-emerald-700' : 'text-muted'}`}
+                  >
+                    {p.published !== false ? 'Published' : 'Draft'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/products/${p.id}/edit`)}
+                      className="rounded-lg border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(p)}
+                      className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </AdminDataTable>
+        <div className="px-4 py-2 border-t border-[#f0e6d6] flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={items.length > 0 && selected.size === items.length}
+            onChange={toggleAll}
+            className="mr-2"
+          />
+          <span className="text-xs text-muted">Select all on page</span>
+        </div>
+        <AdminPagination page={page} pages={pages} total={total} onPageChange={setPage} />
+      </div>
 
       <AdminConfirmDialog
         open={!!deleteTarget}

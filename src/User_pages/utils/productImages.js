@@ -1,3 +1,5 @@
+import { productImageUrl } from '../../utils/cloudinaryImage'
+
 /**
  * Normalize product image fields from API/local catalog into a deduped URL list.
  * @param {{ image?: string, images?: string[] } | null | undefined} product
@@ -16,4 +18,23 @@ export function getProductImages(product) {
 export function getProductPrimaryImage(product) {
   const images = getProductImages(product)
   return images[0] || ''
+}
+
+/**
+ * @param {{ image?: string, images?: string[] } | null | undefined} product
+ * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview'} [preset]
+ * @returns {string[]}
+ */
+export function getProductDisplayImages(product, preset = 'card') {
+  return getProductImages(product).map((url) => productImageUrl(url, preset))
+}
+
+/**
+ * @param {{ image?: string, images?: string[] } | null | undefined} product
+ * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview'} [preset]
+ * @returns {string}
+ */
+export function getProductDisplayPrimaryImage(product, preset = 'card') {
+  const raw = getProductPrimaryImage(product)
+  return raw ? productImageUrl(raw, preset) : ''
 }

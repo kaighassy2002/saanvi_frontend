@@ -1,8 +1,9 @@
 import { fetchPublicProductById } from './catalogService'
+import { parseVariantKey, resolveProductLine } from './productVariants'
 
 /**
  * Re-fetch stock before placing an order.
- * @param {{ productId: string, name: string, quantity: number }[]} cartItems
+ * @param {{ productId: string, name: string, quantity: number, variantName?: string, variantKey?: string }[]} cartItems
  * @returns {Promise<string|null>} Error message or null if OK
  */
 export async function validateCartStockForCheckout(cartItems) {
@@ -20,7 +21,10 @@ export async function validateCartStockForCheckout(cartItems) {
         problems.push(`${label} is no longer available.`)
         return
       }
-      const stock = Math.max(0, Number(product.stock) || 0)
+      const key = String(item.variantKey || item.variantName || '').trim()
+      const { color, size } = parseVariantKey(key)
+      const line = resolveProductLine(product, color, size)
+      const stock = line.stock
       if (stock <= 0) {
         problems.push(`${label} is out of stock.`)
         return

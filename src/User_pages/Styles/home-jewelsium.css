@@ -63,11 +63,72 @@
 .jewelsium-services {
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(180deg, #fffdf9 0%, #fbf5ea 100%);
+}
+
+.jewelsium-services__strip {
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-family: var(--font-playfair);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-royal-700);
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(247, 236, 238, 0.5);
+}
+
+.jewelsium-service-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.95rem 0.7rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jewelsium-service-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -16px rgba(58, 21, 29, 0.45);
+}
+
+.jewelsium-service-card__icon {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
+  color: var(--color-royal-700);
+  font-size: 1rem;
+}
+
+.jewelsium-service-card__title {
+  margin: 0;
+  font-family: var(--font-playfair);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.jewelsium-service-card__text {
+  margin: 0;
+  font-family: var(--font-playfair);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--color-muted);
 }
 
 .jewelsium-promo {
   border-radius: 0.75rem;
+  border: 1px solid rgba(234, 223, 201, 0.75);
   transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
@@ -94,6 +155,17 @@
 .jewelsium-tabs__btn.is-active {
   color: var(--color-ink);
   border-bottom-color: var(--color-royal-700);
+}
+
+.section-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.section-reveal.is-visible {
+  opacity: 1;
+  transform: none;
 }
 
 .jewelsium-category-circle {
@@ -149,5 +221,15 @@
 
   .jewelsium-skeleton {
     animation: none;
+  }
+
+  .jewelsium-service-card:hover {
+    transform: none;
+  }
+
+  .section-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

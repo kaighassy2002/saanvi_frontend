@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
 import { isCustomerLoggedIn } from '../../services/customerStorageScope'
 import FreeShippingProgress from './FreeShippingProgress'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
 function CartDrawer({ open, onClose }) {
   const { items, setQuantity, removeItem, totals } = useCart()
@@ -72,12 +73,12 @@ function CartDrawer({ open, onClose }) {
           ) : (
             <ul className="space-y-4">
               {items.map((item) => (
-                <li key={item.productId} className="flex gap-3 border-b border-[#eadfc9]/80 pb-4">
+                <li key={item.lineKey} className="flex gap-3 border-b border-[#eadfc9]/80 pb-4">
                   <Link to={`/product/${item.productId}`} onClick={onClose} className="shrink-0">
                     <img
-                      src={item.image}
+                      src={productImageUrl(item.image, 'thumb')}
                       alt={item.name}
-                      className="h-20 w-20 rounded-xl object-cover"
+                      className="h-20 w-16 rounded-xl bg-[#f8f2e7] object-contain"
                       loading="lazy"
                     />
                   </Link>
@@ -94,7 +95,7 @@ function CartDrawer({ open, onClose }) {
                       <div className="flex items-center rounded-full border border-[#d6c0a2]">
                         <button
                           type="button"
-                          onClick={() => setQuantity(item.productId, item.quantity - 1, item.maxStock)}
+                          onClick={() => setQuantity(item.lineKey, item.quantity - 1, item.maxStock)}
                           className="flex h-8 w-8 items-center justify-center"
                           aria-label="Decrease quantity"
                         >
@@ -103,7 +104,7 @@ function CartDrawer({ open, onClose }) {
                         <span className="min-w-[2rem] text-center text-sm">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => setQuantity(item.productId, item.quantity + 1, item.maxStock)}
+                          onClick={() => setQuantity(item.lineKey, item.quantity + 1, item.maxStock)}
                           className="flex h-8 w-8 items-center justify-center"
                           aria-label="Increase quantity"
                         >
@@ -112,7 +113,7 @@ function CartDrawer({ open, onClose }) {
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(item.lineKey)}
                         className="text-xs text-[#7a2c3a] hover:underline"
                       >
                         Remove
@@ -131,6 +132,12 @@ function CartDrawer({ open, onClose }) {
             <div className="mt-4 flex items-center justify-between">
               <span className="font-playfair text-sm text-muted">Subtotal</span>
               <span className="font-bodoni text-lg text-ink">₹{totals.subtotal.toLocaleString()}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="font-playfair text-sm text-muted">Shipping</span>
+              <span className="font-playfair text-sm text-ink">
+                {totals.shipping > 0 ? `₹${totals.shipping.toLocaleString()}` : 'Free'}
+              </span>
             </div>
             <Link to={checkoutTo} onClick={onClose} className="lux-button mt-4 block w-full text-center">
               {signedIn ? 'Checkout' : 'Continue to checkout'}

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
+import { useStoreSettings } from '../../context/storeSettingsContext'
 import {
   formatInr,
-  FREE_SHIPPING_THRESHOLD,
   STORE_NAME,
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
@@ -17,6 +17,8 @@ import {
 const LAST_UPDATED = '25 May 2026'
 
 function ShippingPolicy() {
+  const { freeShippingThreshold, shippingFee } = useStoreSettings()
+
   return (
     <div className="page-shell">
       <SiteHeader showSearch={false} />
@@ -64,8 +66,9 @@ function ShippingPolicy() {
             <h2 className="legal-heading">Shipping charges</h2>
             <p>
               Standard delivery is <strong>free</strong> on orders above{' '}
-              {formatInr(FREE_SHIPPING_THRESHOLD)}. Below that threshold, shipping fees (if any) are shown
-              at checkout before you confirm payment.
+              {formatInr(freeShippingThreshold)}. Below that threshold, a flat shipping fee of{' '}
+              {shippingFee > 0 ? formatInr(shippingFee) : 'no extra charge'} applies and is shown at
+              checkout before you confirm payment.
             </p>
           </section>
 

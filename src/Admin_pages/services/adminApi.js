@@ -2,9 +2,47 @@
  * Admin API wrappers — pass authFetch from useAdminAuth().
  */
 
-export async function listProducts(authFetch) {
-  const data = await authFetch('/api/admin/products')
-  return Array.isArray(data?.products) ? data.products : []
+function buildQuery(params) {
+  const q = new URLSearchParams()
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') q.set(k, String(v))
+  })
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+
+function normalizeList(data) {
+  const items = data?.items ?? data?.products ?? data?.orders ?? data?.users ?? []
+  return {
+    items: Array.isArray(items) ? items : [],
+    total: Number(data?.total) || items.length,
+    page: Number(data?.page) || 1,
+    limit: Number(data?.limit) || items.length,
+    pages: Number(data?.pages) || 1,
+  }
+}
+
+// --- Dashboard ---
+
+export async function getDashboardSummary(authFetch) {
+  return authFetch('/api/admin/dashboard/summary')
+}
+
+// --- Products ---
+
+export async function listProducts(authFetch, params = {}) {
+  const data = await authFetch(`/api/admin/products${buildQuery(params)}`)
+  return normalizeList(data)
+}
+
+export async function listProductsAll(authFetch) {
+  const data = await authFetch('/api/admin/products?limit=500')
+  const list = normalizeList(data)
+  return list.items
+}
+
+export async function getProduct(authFetch, id) {
+  return authFetch(`/api/admin/products/${encodeURIComponent(id)}`)
 }
 
 export async function createProduct(authFetch, body) {
@@ -22,9 +60,44 @@ export async function deleteProduct(authFetch, id) {
   return authFetch(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
-export async function listOrders(authFetch) {
-  const data = await authFetch('/api/admin/orders')
-  return Array.isArray(data?.orders) ? data.orders : []
+export async function bulkProducts(authFetch, ids, action) {
+  return authFetch('/api/admin/products/bulk', {
+    method: 'PATCH',
+    body: { ids, action },
+  })
+}
+
+// --- Inventory ---
+
+export async function getLowStock(authFetch) {
+  const data = await authFetch('/api/admin/inventory/low-stock')
+  return Array.isArray(data?.items) ? data.items : []
+}
+
+export async function adjustStock(authFetch, body) {
+  return authFetch('/api/admin/inventory/adjust', { method: 'POST', body })
+}
+
+// --- Orders ---
+
+export async function listOrders(authFetch, params = {}) {
+  const data = await authFetch(`/api/admin/orders${buildQuery(params)}`)
+  return normalizeList(data)
+}
+
+export async function listOrdersAll(authFetch) {
+  const data = await authFetch('/api/admin/orders?limit=500')
+  return normalizeList(data).items
+}
+
+export async function downloadOrdersExport() {
+  const { API_BASE, STORAGE_KEYS } = await import('../../services/config')
+  const token = localStorage.getItem(STORAGE_KEYS.adminToken)
+  const res = await fetch(`${API_BASE}/api/admin/orders/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error('Export failed')
+  return res.blob()
 }
 
 export async function getOrder(authFetch, publicId) {
@@ -37,6 +110,8 @@ export async function patchOrder(authFetch, publicId, body) {
     body,
   })
 }
+
+// --- Categories (legacy strings) ---
 
 export async function getCategories(authFetch) {
   const data = await authFetch('/api/admin/categories')
@@ -51,6 +126,56 @@ export async function putCategories(authFetch, categories) {
   return Array.isArray(data?.categories) ? data.categories : categories
 }
 
+// --- Rich catalog categories ---
+
+export async function listCatalogCategories(authFetch) {
+  const data = await authFetch('/api/admin/catalog/categories')
+  return Array.isArray(data?.categories) ? data.categories : []
+}
+
+export async function createCatalogCategory(authFetch, body) {
+  return authFetch('/api/admin/catalog/categories', { method: 'POST', body })
+}
+
+export async function updateCatalogCategory(authFetch, id, body) {
+  return authFetch(`/api/admin/catalog/categories/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function deleteCatalogCategory(authFetch, id) {
+  return authFetch(`/api/admin/catalog/categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
+// --- Collections ---
+
+export async function listCollections(authFetch) {
+  const data = await authFetch('/api/admin/catalog/collections')
+  return Array.isArray(data?.collections) ? data.collections : []
+}
+
+export async function createCollection(authFetch, body) {
+  return authFetch('/api/admin/catalog/collections', { method: 'POST', body })
+}
+
+export async function updateCollection(authFetch, id, body) {
+  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function deleteCollection(authFetch, id) {
+  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
+// --- Merchandising ---
+
 export async function getNewArrivals(authFetch) {
   const data = await authFetch('/api/admin/merchandising/new-arrivals')
   return Array.isArray(data?.ids) ? data.ids.map(String) : []
@@ -62,4 +187,117 @@ export async function putNewArrivals(authFetch, ids) {
     body: { ids },
   })
   return Array.isArray(data?.ids) ? data.ids.map(String) : ids
+}
+
+// --- Settings ---
+
+export async function getAdminSettings(authFetch) {
+  const data = await authFetch('/api/admin/settings')
+  return data?.settings ?? data ?? {}
+}
+
+export async function putAdminSettings(authFetch, settings) {
+  const data = await authFetch('/api/admin/settings', {
+    method: 'PUT',
+    body: { settings },
+  })
+  return data?.settings ?? settings
+}
+
+export async function getShippingSettings(authFetch) {
+  const data = await authFetch('/api/admin/shipping')
+  const shipping = data?.shipping ?? data ?? {}
+  return {
+    shippingFee: Number(shipping.shippingFee) || 0,
+    freeShippingThreshold: Number(shipping.freeShippingThreshold) || 0,
+  }
+}
+
+export async function putShippingSettings(authFetch, shipping) {
+  const data = await authFetch('/api/admin/shipping', {
+    method: 'PUT',
+    body: { shipping },
+  })
+  const saved = data?.shipping ?? data ?? shipping
+  return {
+    shippingFee: Number(saved.shippingFee) || 0,
+    freeShippingThreshold: Number(saved.freeShippingThreshold) || 0,
+  }
+}
+
+// --- Customers ---
+
+export async function listUsers(authFetch, params = {}) {
+  const data = await authFetch(`/api/admin/users${buildQuery(params)}`)
+  return normalizeList(data)
+}
+
+export async function getUser(authFetch, id) {
+  return authFetch(`/api/admin/users/${encodeURIComponent(id)}`)
+}
+
+export async function patchUser(authFetch, id, body) {
+  return authFetch(`/api/admin/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function patchUserDisabled(authFetch, id, disabled) {
+  return authFetch(`/api/admin/users/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: { disabled: Boolean(disabled) },
+  })
+}
+
+// --- Analytics ---
+
+export async function getSalesAnalytics(authFetch, params = {}) {
+  return authFetch(`/api/admin/analytics/sales${buildQuery(params)}`)
+}
+
+export async function getProductAnalytics(authFetch) {
+  return authFetch('/api/admin/analytics/products')
+}
+
+// --- Size charts & coupons (P2 admin UI) ---
+
+export async function listSizeCharts(authFetch) {
+  const data = await authFetch('/api/admin/size-charts')
+  return Array.isArray(data?.sizeCharts) ? data.sizeCharts : []
+}
+
+export async function listCoupons(authFetch) {
+  const data = await authFetch('/api/admin/coupons')
+  return Array.isArray(data?.coupons) ? data.coupons : []
+}
+
+export async function createCoupon(authFetch, body) {
+  return authFetch('/api/admin/coupons', { method: 'POST', body })
+}
+
+export async function updateCoupon(authFetch, id, body) {
+  return authFetch(`/api/admin/coupons/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function deleteCoupon(authFetch, id) {
+  return authFetch(`/api/admin/coupons/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function createSizeChart(authFetch, body) {
+  return authFetch('/api/admin/size-charts', { method: 'POST', body })
+}
+
+export async function updateSizeChart(authFetch, id, body) {
+  return authFetch(`/api/admin/size-charts/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function deleteSizeChart(authFetch, id) {
+  return authFetch(`/api/admin/size-charts/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }

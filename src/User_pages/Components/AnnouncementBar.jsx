@@ -1,8 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { formatInr, FREE_SHIPPING_THRESHOLD } from '../../services/storefrontConstants'
+import { useStoreSettings } from '../../context/storeSettingsContext'
+import { formatInr } from '../../services/storefrontConstants'
 
 function AnnouncementBar({ variant = 'default' }) {
+  const { freeShippingThreshold } = useStoreSettings()
   const isHero = variant === 'hero'
   return (
     <div
@@ -18,7 +20,7 @@ function AnnouncementBar({ variant = 'default' }) {
         }`}
       >
         <i className="fa-solid fa-truck-fast mr-1.5 text-gold" aria-hidden />
-        Free shipping on orders above {formatInr(FREE_SHIPPING_THRESHOLD)}
+        Free shipping on orders above {formatInr(freeShippingThreshold)}
         <span className="mx-2 opacity-40" aria-hidden>
           |
         </span>

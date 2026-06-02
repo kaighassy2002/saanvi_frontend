@@ -10,6 +10,7 @@ import {
   USE_LOCAL_API,
 } from '../../services/config'
 import { whatsappUrl, STORE_NAME } from '../../services/storefrontConstants'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 import { fetchMyOrders } from '../../services/storefrontOrderService'
 import '../Styles/user-profile.css'
 import '../Styles/orders-list.css'
@@ -54,6 +55,14 @@ function formatPaymentLabel(method) {
   if (key === 'card') return 'Card'
   if (!key) return ''
   return key.charAt(0).toUpperCase() + key.slice(1)
+}
+
+function formatPaymentStatus(status) {
+  const key = String(status || 'pending').toLowerCase()
+  if (key === 'paid') return 'Paid'
+  if (key === 'failed') return 'Failed'
+  if (key === 'refunded') return 'Refunded'
+  return 'Pending'
 }
 
 function statusTone(status) {
@@ -290,7 +299,7 @@ function Order() {
                       const productRow = (
                         <>
                           <img
-                            src={item.image}
+                            src={productImageUrl(item.image, 'thumb')}
                             alt={item.name || 'Ordered item'}
                             className="order-card__thumb"
                             loading="lazy"
@@ -350,6 +359,7 @@ function Order() {
                     <span className="order-card__total">
                       Order total: ₹{Number(order.total).toLocaleString('en-IN')}
                       {payment ? ` · ${payment}` : ''}
+                      {` · Payment ${formatPaymentStatus(order.paymentStatus)}`}
                     </span>
                     <div className="order-card__foot-actions">
                       {order.status === 'Delivered' ? (

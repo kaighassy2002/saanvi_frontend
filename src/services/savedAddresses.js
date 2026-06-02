@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from './config'
 import { getCustomerStorageScope } from './customerStorageScope'
+import { customerGetMe, customerPatchMe } from './jewelleryApi'
 
 export function savedAddressesStorageKey(scope) {
   return `jewellery_saved_addresses::__scope_${scope}`
@@ -64,4 +65,24 @@ function migrateLegacySingleAddress() {
 
 export function writeSavedAddresses(list) {
   writeForScope(getCustomerStorageScope(), Array.isArray(list) ? list : [])
+}
+
+export async function syncSavedAddressesToServer(list) {
+  try {
+    await customerPatchMe({ addresses: Array.isArray(list) ? list : [] })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function fetchSavedAddressesFromServer() {
+  try {
+    const me = await customerGetMe()
+    const list = Array.isArray(me?.addresses) ? me.addresses : []
+    writeForScope(getCustomerStorageScope(), list)
+    return list
+  } catch {
+    return readSavedAddresses()
+  }
 }

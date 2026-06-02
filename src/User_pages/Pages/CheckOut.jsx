@@ -2,14 +2,25 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import CheckoutSteps from '../Components/CheckoutSteps'
 import Footer from '../Components/Footer'
-import PageIntro from '../Components/PageIntro'
+import FreeShippingProgress from '../Components/FreeShippingProgress'
 import SiteHeader from '../Components/SiteHeader'
+import TrustStrip from '../Components/TrustStrip'
 import { useCart } from '../../hooks/useCart'
 import { isCustomerLoggedIn } from '../../services/customerStorageScope'
-import { STORAGE_KEYS } from '../../services/config'
+import { STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
 import { validateCartStockForCheckout } from '../../services/checkoutStock'
 import { placeStorefrontOrder } from '../../services/storefrontOrderService'
-import { readSavedAddresses } from '../../services/savedAddresses'
+import { fetchSavedAddressesFromServer, readSavedAddresses } from '../../services/savedAddresses'
+import { fetchRazorpayConfig } from '../../services/jewelleryApi'
+import { payWithRazorpay } from '../../services/razorpayCheckout'
+import {
+  isRazorpayCheckoutMethod,
+  PAYMENT_COD,
+  PAYMENT_RAZORPAY,
+} from '../../services/paymentMethods'
+import { whatsappUrl } from '../../services/storefrontConstants'
+import { productImageUrl } from '../../utils/cloudinaryImage'
+import '../Styles/checkout-page.css'
 
 function readCustomerProfile() {
   try {
@@ -53,6 +64,46 @@ function validateCheckout(data) {
   return err
 }
 
+function CheckoutField({
+  id,
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  type = 'text',
+  as: Tag = 'input',
+  className = '',
+  ...rest
+}) {
+  const inputClass = [
+    'royal-input',
+    error ? 'checkout-page__input--error' : '',
+    Tag === 'textarea' ? 'resize-none' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  return (
+    <div>
+      <label className="form-label" htmlFor={id}>
+        {label}
+      </label>
+      <Tag
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        type={Tag === 'input' ? type : undefined}
+        className={inputClass}
+        aria-invalid={!!error}
+        {...rest}
+      />
+      {error ? <p className="mt-1 font-playfair text-xs text-red-700">{error}</p> : null}
+    </div>
+  )
+}
+
 function CheckOut() {
   const navigate = useNavigate()
   const { items, totals, clearCart } = useCart()
@@ -65,13 +116,32 @@ function CheckOut() {
     city: '',
     state: '',
     pincode: '',
-    paymentMethod: 'cod',
+    paymentMethod: PAYMENT_COD,
   })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [savedAddressList, setSavedAddressList] = useState([])
   const [selectedSavedId, setSelectedSavedId] = useState('new')
+  const [razorpayEnabled, setRazorpayEnabled] = useState(false)
+
+  useEffect(() => {
+    if (USE_LOCAL_API) return
+    let active = true
+    fetchRazorpayConfig().then((cfg) => {
+      if (!active) return
+      const enabled = Boolean(cfg?.enabled)
+      setRazorpayEnabled(enabled)
+      if (enabled) {
+        setFormData((prev) =>
+          prev.paymentMethod === PAYMENT_COD ? { ...prev, paymentMethod: PAYMENT_RAZORPAY } : prev
+        )
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!isCustomerLoggedIn()) {
@@ -87,31 +157,39 @@ function CheckOut() {
   }, [items.length, navigate])
 
   useEffect(() => {
-    const list = readSavedAddresses()
-    setSavedAddressList(list)
-    const profile = readCustomerProfile()
-    setFormData((prev) => {
-      const withProfile = {
-        ...prev,
-        email: profile?.email?.trim() || prev.email,
-        firstName: String(profile?.firstName || '').trim() || prev.firstName,
-        lastName: String(profile?.lastName || '').trim() || prev.lastName,
-        phone: String(profile?.phone || '')
-          .replace(/\D/g, '')
-          .slice(0, 10) || prev.phone,
-      }
-      if (list.length === 0) {
-        return withProfile
-      }
-      const addr = list[0]
-      const merged = mergeShippingFromSaved(addr, profile)
-      return {
-        ...withProfile,
-        ...merged,
-        paymentMethod: prev.paymentMethod,
-      }
-    })
-    setSelectedSavedId(list.length > 0 ? list[0].id : 'new')
+    let active = true
+    async function initSavedAddresses() {
+      const list = USE_LOCAL_API ? readSavedAddresses() : await fetchSavedAddressesFromServer()
+      if (!active) return
+      setSavedAddressList(list)
+      const profile = readCustomerProfile()
+      setFormData((prev) => {
+        const withProfile = {
+          ...prev,
+          email: profile?.email?.trim() || prev.email,
+          firstName: String(profile?.firstName || '').trim() || prev.firstName,
+          lastName: String(profile?.lastName || '').trim() || prev.lastName,
+          phone: String(profile?.phone || '')
+            .replace(/\D/g, '')
+            .slice(0, 10) || prev.phone,
+        }
+        if (list.length === 0) {
+          return withProfile
+        }
+        const addr = list[0]
+        const merged = mergeShippingFromSaved(addr, profile)
+        return {
+          ...withProfile,
+          ...merged,
+          paymentMethod: prev.paymentMethod,
+        }
+      })
+      setSelectedSavedId(list.length > 0 ? list[0].id : 'new')
+    }
+    initSavedAddresses()
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleChange = (e) => {
@@ -165,6 +243,9 @@ function CheckOut() {
     [items]
   )
 
+  const itemCount = summaryLines.reduce((n, i) => n + i.quantity, 0)
+  const onlineSelected = isRazorpayCheckoutMethod(formData.paymentMethod)
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!isCustomerLoggedIn()) {
@@ -195,18 +276,41 @@ function CheckOut() {
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
       }
-      const order = await placeStorefrontOrder({
+      const orderPayload = {
         shipping,
         paymentMethod: formData.paymentMethod,
         items: items.map((i) => ({
           productId: i.productId,
+          variantName: i.variantKey || i.variantName || undefined,
+          variantKey: i.variantKey || i.variantName || undefined,
           name: i.name,
           image: i.image,
           quantity: i.quantity,
           price: i.price,
         })),
         total: totals.total,
-      })
+      }
+      const isOnlinePayment = isRazorpayCheckoutMethod(formData.paymentMethod)
+      if (isOnlinePayment && !USE_LOCAL_API && !razorpayEnabled) {
+        throw new Error(
+          'Online payment is not set up yet. Choose Cash on Delivery or contact the store.'
+        )
+      }
+
+      let order
+      if (!USE_LOCAL_API && isOnlinePayment && razorpayEnabled) {
+        order = await payWithRazorpay({
+          items: orderPayload.items,
+          total: orderPayload.total,
+          shipping,
+          paymentMethod: formData.paymentMethod,
+        })
+      } else {
+        if (isOnlinePayment && USE_LOCAL_API) {
+          throw new Error('Online payment requires the live API. Use Cash on Delivery in local demo mode.')
+        }
+        order = await placeStorefrontOrder(orderPayload)
+      }
       const oid = order?.id || order?.publicId
       if (!oid) throw new Error('Order placed but no id returned')
       clearCart()
@@ -223,8 +327,11 @@ function CheckOut() {
       <div className="page-shell page-shell--no-mobile-nav">
         <SiteHeader />
         <div className="section-container py-20 text-center">
-          <p className="font-playfair text-muted">Taking you to sign in…</p>
-          <p className="mt-2 text-sm text-muted">Your bag is saved. Sign in to finish checkout.</p>
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5ead7] text-2xl text-[#7a2c3a]">
+            <i className="fa-regular fa-user" aria-hidden />
+          </div>
+          <h2 className="card-heading">Sign in to checkout</h2>
+          <p className="mt-2 text-helper">Your bag is saved. Sign in to finish your order.</p>
           <Link
             to={`/auth?redirect=${encodeURIComponent('/checkout')}`}
             className="lux-button mt-6 inline-flex"
@@ -242,10 +349,16 @@ function CheckOut() {
       <div className="page-shell page-shell--no-mobile-nav">
         <SiteHeader />
         <div className="section-container py-16 text-center">
-          <h2 className="card-heading">Your cart is empty</h2>
-          <Link to="/collections" className="lux-button mt-6 inline-flex">
-            Continue shopping
-          </Link>
+          <div className="lux-card mx-auto max-w-md py-14">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5ead7] text-2xl text-[#7a2c3a]">
+              <i className="fa-solid fa-cart-shopping" aria-hidden />
+            </div>
+            <h2 className="card-heading">Your cart is empty</h2>
+            <p className="mt-2 text-helper">Add pieces from our collections before checkout.</p>
+            <Link to="/collections" className="lux-button mt-6 inline-flex">
+              Continue shopping
+            </Link>
+          </div>
         </div>
         <Footer />
       </div>
@@ -253,362 +366,367 @@ function CheckOut() {
   }
 
   return (
-    <div className="page-shell page-shell--no-mobile-nav">
+    <div id="main-content" className="page-shell page-shell--no-mobile-nav checkout-page" tabIndex={-1}>
       <SiteHeader />
 
-      <div className="section-container py-10 sm:py-14">
-        <PageIntro
-          eyebrow="Secure Checkout"
-          title="Complete Your Purchase"
-          subtitle="Fast, secure, and elegant checkout tailored for premium shopping."
-          stats={[
-            { label: 'Items', value: String(summaryLines.length) },
-            { label: 'Total', value: `₹${totals.total.toLocaleString()}` },
-          ]}
-        />
+      <div className="section-container py-8 sm:py-12">
+        <p className="text-overline">Secure checkout</p>
+        <h1 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Complete your order</h1>
+        <p className="mt-2 text-helper">
+          {itemCount} {itemCount === 1 ? 'piece' : 'pieces'} · Order total{' '}
+          <strong className="text-ink">₹{totals.total.toLocaleString()}</strong>
+        </p>
+
         <CheckoutSteps current="checkout" />
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-[#e3d1b4] bg-white/80 px-4 py-3 text-sm text-muted">
-            <i className="fa-solid fa-shield-halved mr-2 text-gold" aria-hidden />
-            SSL encrypted checkout
-          </div>
-          <div className="rounded-xl border border-[#e3d1b4] bg-white/80 px-4 py-3 text-sm text-muted">
-            <i className="fa-solid fa-truck-fast mr-2 text-gold" aria-hidden />
-            Fast insured delivery
-          </div>
-          <div className="rounded-xl border border-[#e3d1b4] bg-white/80 px-4 py-3 text-sm text-muted">
-            <i className="fa-solid fa-rotate-left mr-2 text-gold" aria-hidden />
-            Easy support & returns
-          </div>
-        </div>
+        <TrustStrip className="mb-8" />
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            <div className="space-y-6 sm:space-y-8 lg:col-span-2">
-              <div className="lux-card p-5 sm:p-6">
-                <h2 className="card-heading mb-5 sm:mb-6">Shipping Information</h2>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_min(380px,34%)] lg:gap-8 xl:grid-cols-[1fr_400px]">
+            <div className="space-y-6">
+              <section className="checkout-page__section" aria-labelledby="checkout-delivery-heading">
+                <div className="checkout-page__section-head">
+                  <span className="checkout-page__step-badge" aria-hidden>
+                    1
+                  </span>
+                  <div>
+                    <h2 id="checkout-delivery-heading" className="card-heading">
+                      Delivery details
+                    </h2>
+                    <p className="mt-1 text-helper">Where should we send your order?</p>
+                  </div>
+                </div>
 
-                {savedAddressList.length > 0 ? (
-                  <div className="mb-6 rounded-xl border border-[#dcc6a6] bg-[#fffaf2] p-4 sm:p-5">
-                    <p className="form-label mb-3">Deliver to</p>
-                    <div className="space-y-3">
-                      {savedAddressList.map((a) => (
+                <div className="checkout-page__section-body">
+                  {savedAddressList.length > 0 ? (
+                    <div className="mb-6">
+                      <p className="form-label">Saved addresses</p>
+                      <div className="checkout-page__address-grid">
+                        {savedAddressList.map((a) => (
+                          <label
+                            key={a.id}
+                            className={`checkout-page__address-card${
+                              selectedSavedId === a.id ? ' checkout-page__address-card--selected' : ''
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="savedShipping"
+                              checked={selectedSavedId === a.id}
+                              onChange={() => pickSavedAddress(a.id)}
+                            />
+                            <span className="checkout-page__address-check" aria-hidden>
+                              <i className="fa-solid fa-check text-[10px]" />
+                            </span>
+                            <span className="font-playfair text-sm font-semibold text-ink">{a.label}</span>
+                            <span className="mt-1 block text-xs text-muted">
+                              {[a.firstName, a.lastName].filter(Boolean).join(' ')}
+                              {a.phone ? ` · ${a.phone}` : ''}
+                            </span>
+                            <span className="mt-2 block font-playfair text-sm leading-snug text-ink">
+                              {a.address}, {a.city}, {a.state} {a.pincode}
+                            </span>
+                          </label>
+                        ))}
                         <label
-                          key={a.id}
-                          className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
-                            selectedSavedId === a.id
-                              ? 'border-gold bg-[#fff6eb]'
-                              : 'border-transparent hover:border-[#dcc6a6]/80'
+                          className={`checkout-page__address-card${
+                            selectedSavedId === 'new' ? ' checkout-page__address-card--selected' : ''
                           }`}
                         >
                           <input
                             type="radio"
                             name="savedShipping"
-                            checked={selectedSavedId === a.id}
-                            onChange={() => pickSavedAddress(a.id)}
-                            className="mt-1"
+                            checked={selectedSavedId === 'new'}
+                            onChange={() => pickSavedAddress('new')}
                           />
-                          <span className="min-w-0 text-sm">
-                            <span className="font-playfair font-semibold text-ink">{a.label}</span>
-                            <span className="mt-1 block text-muted">
-                              {[a.firstName, a.lastName].filter(Boolean).join(' ')}
-                              {a.phone ? ` · ${a.phone}` : ''}
-                            </span>
-                            <span className="mt-1 block font-playfair text-ink">
-                              {a.address}, {a.city}, {a.state} {a.pincode}
-                            </span>
+                          <span className="checkout-page__address-check" aria-hidden>
+                            <i className="fa-solid fa-check text-[10px]" />
                           </span>
+                          <span className="font-playfair text-sm font-semibold text-ink">
+                            <i className="fa-solid fa-plus mr-2 text-gold" aria-hidden />
+                            New address
+                          </span>
+                          <span className="mt-1 block text-xs text-muted">Enter delivery details below</span>
                         </label>
-                      ))}
-                      <label
-                        className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
-                          selectedSavedId === 'new'
-                            ? 'border-gold bg-[#fff6eb]'
-                            : 'border-transparent hover:border-[#dcc6a6]/80'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="savedShipping"
-                          checked={selectedSavedId === 'new'}
-                          onChange={() => pickSavedAddress('new')}
-                          className="mt-1"
-                        />
-                        <span className="font-playfair text-sm text-ink">Enter a different address</span>
-                      </label>
+                      </div>
+                      <p className="text-xs text-muted">
+                        Manage addresses in{' '}
+                        <Link to="/profile" className="text-[#7a2c3a] underline hover:text-ink">
+                          your profile
+                        </Link>
+                        .
+                      </p>
                     </div>
-                    <p className="mt-3 text-xs text-muted">
-                      Manage saved addresses in{' '}
-                      <Link to="/profile" className="text-gold underline hover:text-ink">
-                        Profile → Addresses
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="form-label" htmlFor="co-firstName">
-                      First Name
-                    </label>
-                    <input
+                  <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
+                    <CheckoutField
                       id="co-firstName"
-                      type="text"
+                      label="First name"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.firstName}
                       autoComplete="given-name"
-                      aria-invalid={!!errors.firstName}
                     />
-                    {errors.firstName ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.firstName}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-lastName">
-                      Last Name
-                    </label>
-                    <input
+                    <CheckoutField
                       id="co-lastName"
-                      type="text"
+                      label="Last name"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.lastName}
                       autoComplete="family-name"
-                      aria-invalid={!!errors.lastName}
                     />
-                    {errors.lastName ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.lastName}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-email">
-                      Email
-                    </label>
-                    <input
+                    <CheckoutField
                       id="co-email"
-                      type="email"
+                      label="Email"
                       name="email"
+                      type="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.email}
                       autoComplete="email"
-                      aria-invalid={!!errors.email}
                     />
-                    {errors.email ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.email}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-phone">
-                      Phone
-                    </label>
-                    <input
+                    <CheckoutField
                       id="co-phone"
-                      type="tel"
+                      label="Phone"
                       name="phone"
+                      type="tel"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.phone}
                       autoComplete="tel"
-                      aria-invalid={!!errors.phone}
                     />
-                    {errors.phone ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.phone}</p>
-                    ) : null}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="form-label" htmlFor="co-address">
-                      Address
-                    </label>
-                    <textarea
-                      id="co-address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      rows={3}
-                      className="royal-input resize-none"
-                      autoComplete="street-address"
-                      aria-invalid={!!errors.address}
-                    />
-                    {errors.address ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.address}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-city">
-                      City
-                    </label>
-                    <input
+                    <div className="md:col-span-2">
+                      <CheckoutField
+                        id="co-address"
+                        label="Street address"
+                        name="address"
+                        as="textarea"
+                        value={formData.address}
+                        onChange={handleChange}
+                        error={errors.address}
+                        rows={3}
+                        autoComplete="street-address"
+                      />
+                    </div>
+                    <CheckoutField
                       id="co-city"
-                      type="text"
+                      label="City"
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.city}
                       autoComplete="address-level2"
-                      aria-invalid={!!errors.city}
                     />
-                    {errors.city ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.city}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-state">
-                      State
-                    </label>
-                    <input
+                    <CheckoutField
                       id="co-state"
-                      type="text"
+                      label="State"
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.state}
                       autoComplete="address-level1"
-                      aria-invalid={!!errors.state}
                     />
-                    {errors.state ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.state}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <label className="form-label" htmlFor="co-pincode">
-                      Pincode
-                    </label>
-                    <input
+                    <CheckoutField
                       id="co-pincode"
-                      type="text"
+                      label="Pincode"
                       name="pincode"
-                      inputMode="numeric"
-                      maxLength={6}
                       value={formData.pincode}
                       onChange={handleChange}
-                      className="royal-input"
+                      error={errors.pincode}
+                      inputMode="numeric"
+                      maxLength={6}
                       autoComplete="postal-code"
-                      aria-invalid={!!errors.pincode}
                     />
-                    {errors.pincode ? (
-                      <p className="mt-1 font-playfair text-xs text-red-700">{errors.pincode}</p>
-                    ) : null}
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="lux-card p-5 sm:p-6">
-                <h2 className="card-heading mb-3 sm:mb-4">Payment Method</h2>
-                <p className="mb-5 rounded-lg bg-[#fff6eb] px-3 py-2 font-playfair text-sm text-[#5a3d1a] sm:mb-6">
-                  We do not charge online at checkout. After you place your order, our team confirms
-                  availability and shares UPI or bank details if needed. Pay on delivery where COD is
-                  available.
-                </p>
-                <div className="space-y-3 sm:space-y-4">
-                  <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={formData.paymentMethod === 'cod'}
-                      onChange={handleChange}
-                      className="mr-4"
-                    />
-                    <i className="fa-solid fa-money-bill-wave mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">
-                      Cash on Delivery
-                      <span className="mt-0.5 block text-xs text-muted">Pay when your order arrives</span>
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="upi"
-                      checked={formData.paymentMethod === 'upi'}
-                      onChange={handleChange}
-                      className="mr-4"
-                    />
-                    <i className="fa-solid fa-mobile-screen mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">
-                      UPI
-                      <span className="mt-0.5 block text-xs text-muted">Pay after order confirmation via UPI</span>
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-center rounded-xl border-2 border-[#dcc6a6] p-4 transition-colors hover:border-[#7a2c3a]">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={formData.paymentMethod === 'card'}
-                      onChange={handleChange}
-                      className="mr-4"
-                    />
-                    <i className="fa-solid fa-credit-card mr-4 text-2xl text-gold"></i>
-                    <span className="font-playfair">
-                      Card / bank transfer
-                      <span className="mt-0.5 block text-xs text-muted">Details shared after confirmation — not charged now</span>
-                    </span>
-                  </label>
+              <section className="checkout-page__section" aria-labelledby="checkout-payment-heading">
+                <div className="checkout-page__section-head">
+                  <span className="checkout-page__step-badge" aria-hidden>
+                    2
+                  </span>
+                  <div>
+                    <h2 id="checkout-payment-heading" className="card-heading">
+                      Payment
+                    </h2>
+                    <p className="mt-1 text-helper">Choose how you would like to pay</p>
+                  </div>
                 </div>
-              </div>
+
+                <div className="checkout-page__section-body">
+                  <div className="checkout-page__notice" role="note">
+                    <i className="fa-solid fa-circle-info" aria-hidden />
+                    <p className="font-playfair leading-relaxed">
+                      {razorpayEnabled ? (
+                        <>
+                          <strong>Pay online</strong> opens Razorpay — UPI (GPay, PhonePe, Paytm) or
+                          debit/credit card. Or choose cash on delivery.
+                        </>
+                      ) : (
+                        <>
+                          Cash on delivery is available now. Add Razorpay keys on the server to enable
+                          UPI and card payments online.
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="checkout-page__payment-grid">
+                    <label
+                      className={`checkout-page__payment-option${
+                        onlineSelected ? ' checkout-page__payment-option--selected' : ''
+                      }${!razorpayEnabled && !USE_LOCAL_API ? ' checkout-page__payment-option--disabled' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={PAYMENT_RAZORPAY}
+                        checked={onlineSelected}
+                        onChange={handleChange}
+                        disabled={!razorpayEnabled && !USE_LOCAL_API}
+                      />
+                      <span className="checkout-page__payment-icon" aria-hidden>
+                        <i className="fa-solid fa-mobile-screen" />
+                      </span>
+                      <span className="font-playfair font-semibold text-ink">Pay online</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted">
+                        {razorpayEnabled
+                          ? 'UPI & card via Razorpay'
+                          : 'Enable Razorpay on the server'}
+                      </span>
+                    </label>
+
+                    <label
+                      className={`checkout-page__payment-option${
+                        formData.paymentMethod === PAYMENT_COD
+                          ? ' checkout-page__payment-option--selected'
+                          : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={PAYMENT_COD}
+                        checked={formData.paymentMethod === PAYMENT_COD}
+                        onChange={handleChange}
+                      />
+                      <span className="checkout-page__payment-icon" aria-hidden>
+                        <i className="fa-solid fa-money-bill-wave" />
+                      </span>
+                      <span className="font-playfair font-semibold text-ink">Cash on delivery</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted">
+                        Pay when your order arrives
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            <div className="lg:col-span-1">
-              <div className="lux-card sticky top-24 p-5 sm:p-6">
-                <h2 className="card-heading mb-5 sm:mb-6">Order Summary</h2>
-                <ul className="mb-4 space-y-3 border-b border-[#eadfc9] pb-4 font-playfair text-sm">
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <div className="lux-card p-5 sm:p-6">
+                <h2 className="card-heading">Order summary</h2>
+
+                <ul className="checkout-page__summary-items mt-4">
                   {summaryLines.map((i) => (
-                    <li key={i.productId} className="flex justify-between gap-2 text-muted">
-                      <span className="min-w-0 truncate text-ink">
-                        {i.name} × {i.quantity}
-                      </span>
-                      <span>₹{i.lineTotal.toLocaleString()}</span>
+                    <li key={i.lineKey} className="checkout-page__summary-item">
+                      <img
+                        src={productImageUrl(i.image, 'thumb')}
+                        alt=""
+                        loading="lazy"
+                        className="checkout-page__summary-thumb"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 font-playfair text-sm text-ink">{i.name}</p>
+                        {i.variantLabel || i.variantName ? (
+                          <p className="mt-0.5 text-xs text-muted">{i.variantLabel || i.variantName}</p>
+                        ) : null}
+                        <p className="mt-1 text-xs text-muted">
+                          Qty {i.quantity} · ₹{i.price.toLocaleString()} each
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-playfair text-sm font-medium text-ink">
+                        ₹{i.lineTotal.toLocaleString()}
+                      </p>
                     </li>
                   ))}
                 </ul>
-                <div className="mb-5 space-y-3 sm:mb-6 sm:space-y-4">
+
+                <div className="mt-4">
+                  <FreeShippingProgress subtotal={totals.subtotal} />
+                </div>
+
+                <div className="mt-5 space-y-2.5 border-t border-[#eadfc9] pt-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted">Subtotal</span>
-                    <span className="font-playfair">₹{totals.subtotal.toLocaleString()}</span>
+                    <span className="font-playfair text-ink">₹{totals.subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted">Shipping</span>
-                    <span className="font-playfair">Free</span>
+                    <span className="font-playfair text-ink">
+                      {totals.shipping > 0 ? `₹${totals.shipping.toLocaleString()}` : 'Free'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Tax</span>
-                    <span className="font-playfair">₹0</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-4">
-                    <span className="font-playfair text-lg">Total</span>
+                  <div className="flex justify-between border-t border-[#eadfc9] pt-3">
+                    <span className="font-playfair text-lg text-ink">Total</span>
                     <span className="text-price">₹{totals.total.toLocaleString()}</span>
                   </div>
                 </div>
+
                 {submitError ? (
-                  <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 font-playfair text-sm text-red-800">
+                  <p
+                    className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 font-playfair text-sm text-red-800"
+                    role="alert"
+                  >
                     {submitError}
                   </p>
                 ) : null}
+
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="lux-button block w-full text-center disabled:opacity-60"
+                  className="lux-button mt-5 block w-full text-center disabled:opacity-60"
                 >
-                  {submitting ? 'Placing order…' : 'Place Order'}
+                  {submitting
+                    ? formData.paymentMethod === PAYMENT_COD
+                      ? 'Placing order…'
+                      : 'Opening Razorpay…'
+                    : onlineSelected && razorpayEnabled
+                      ? 'Pay ₹' + totals.total.toLocaleString()
+                      : 'Place order · ₹' + totals.total.toLocaleString()}
                 </button>
+
+                <p className="mt-3 text-center font-playfair text-xs text-muted">
+                  <i className="fa-solid fa-lock mr-1 text-gold" aria-hidden />
+                  Your details are used only to fulfil this order.
+                </p>
+
                 <Link
                   to="/cart"
-                  className="text-helper mt-3 block w-full text-center transition-colors hover:text-[#7a2c3a] sm:mt-4"
+                  className="mt-4 block text-center font-playfair text-sm text-muted transition-colors hover:text-[#7a2c3a]"
                 >
-                  ← Back to Cart
+                  ← Back to cart
                 </Link>
+
+                <a
+                  href={whatsappUrl('Hi, I need help with checkout.')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 block text-center font-playfair text-sm text-[#7a2c3a] hover:underline"
+                >
+                  <i className="fa-brands fa-whatsapp mr-1" aria-hidden />
+                  Need help? Chat on WhatsApp
+                </a>
               </div>
-            </div>
+            </aside>
           </div>
         </form>
       </div>
+
       <Footer />
     </div>
   )

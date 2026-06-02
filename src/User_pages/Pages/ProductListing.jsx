@@ -22,11 +22,12 @@ import { useReviewSummaries } from '../../hooks/useReviewSummaries'
 import { fetchPublicCategoryTabs } from '../../services/catalogService'
 import {
   buildBasicMaterialFacetOptions,
-  buildFacetOptions,
-  getProductColor,
+  buildColorFacetOptions,
   getProductMaterial,
+  productMatchesColorFacet,
   productMatchesFacet,
 } from '../../services/collectionProductAttributes'
+import { productIsInStock } from '../../services/productVariants'
 import '../Styles/collection.css'
 
 const SKELETON_COUNT = 8
@@ -135,15 +136,12 @@ function ProductListing() {
   )
 
   const inStockCount = useMemo(
-    () => products.filter((product) => Number(product.stock ?? 0) > 0).length,
+    () => products.filter((product) => productIsInStock(product)).length,
     [products]
   )
   const outOfStockCount = products.length - inStockCount
 
-  const colorOptions = useMemo(
-    () => buildFacetOptions(products, getProductColor),
-    [products]
-  )
+  const colorOptions = useMemo(() => buildColorFacetOptions(products), [products])
 
   const materialOptions = useMemo(() => buildBasicMaterialFacetOptions(products), [products])
 
@@ -152,11 +150,11 @@ function ProductListing() {
       products.filter((product) => {
         const categoryMatch = selectedCategory === 'All' || product.category === selectedCategory
         const searchMatch = productMatchesSearch(product, searchTerm)
-        const stock = Number(product.stock ?? 0)
+        const inStock = productIsInStock(product)
         const availabilityMatch =
-          availability === 'all' || (availability === 'in-stock' ? stock > 0 : stock <= 0)
+          availability === 'all' || (availability === 'in-stock' ? inStock : !inStock)
         const price = Number(product.price) || 0
-        const colorMatch = productMatchesFacet(selectedColors, getProductColor(product))
+        const colorMatch = productMatchesColorFacet(product, selectedColors)
         const materialMatch = productMatchesFacet(selectedMaterials, getProductMaterial(product))
         return (
           categoryMatch &&

@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AdminAuthProvider } from './context/AdminAuthProvider'
 import { CartProvider } from './context/CartProvider'
+import StoreSettingsProvider from './context/StoreSettingsProvider'
 import { CartDrawerProvider } from './context/CartDrawerProvider'
 import { WishlistProvider } from './context/WishlistProvider'
 import Home from './User_pages/Pages/Home'
@@ -27,12 +28,21 @@ import AdminOrderDetail from './Admin_pages/AdminOrderDetail'
 import AdminCategories from './Admin_pages/AdminCategories'
 import AdminMerchandising from './Admin_pages/AdminMerchandising'
 import AdminReviews from './Admin_pages/AdminReviews'
+import AdminCustomers from './Admin_pages/AdminCustomers'
+import AdminCustomerDetail from './Admin_pages/AdminCustomerDetail'
+import AdminInventory from './Admin_pages/AdminInventory'
+import AdminSettings from './Admin_pages/AdminSettings'
+import AdminCollections from './Admin_pages/AdminCollections'
+import AdminAnalytics from './Admin_pages/AdminAnalytics'
+import AdminCoupons from './Admin_pages/AdminCoupons'
+import AdminSizeCharts from './Admin_pages/AdminSizeCharts'
 import MobileBottomNav from './User_pages/Components/MobileBottomNav'
 import SkipLink from './User_pages/Components/SkipLink'
 
 function App() {
   return (
     <AdminAuthProvider>
+      <StoreSettingsProvider>
       <CartProvider>
         <WishlistProvider>
           <Router>
@@ -67,12 +77,22 @@ function App() {
                 <Route path="categories" element={<AdminCategories />} />
                 <Route path="merchandising" element={<AdminMerchandising />} />
                 <Route path="reviews" element={<AdminReviews />} />
+                <Route path="customers" element={<AdminCustomers />} />
+                <Route path="customers/:id" element={<AdminCustomerDetail />} />
+                <Route path="inventory" element={<AdminInventory />} />
+                <Route path="collections" element={<AdminCollections />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="coupons" element={<AdminCoupons />} />
+                <Route path="size-charts" element={<AdminSizeCharts />} />
+                <Route path="shipping" element={<Navigate to="/admin/settings?tab=shipping" replace />} />
               </Route>
             </Routes>
             </CartDrawerProvider>
           </Router>
         </WishlistProvider>
       </CartProvider>
+      </StoreSettingsProvider>
     </AdminAuthProvider>
   )
 }

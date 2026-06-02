@@ -100,8 +100,8 @@ function PrivacyPolicy() {
               <h3 className="legal-subheading">Information you provide</h3>
               <ul className="legal-list">
                 <li>
-                  <strong>Account details:</strong> mobile phone number, one-time password (OTP) verification
-                  data, name, and optional email address when you register or update your profile.
+                  <strong>Account details:</strong> name, email address, password authentication data,
+                  and mobile phone number when you register or update your profile.
                 </li>
                 <li>
                   <strong>Order &amp; delivery details:</strong> shipping name, address, city, state, pincode,
@@ -134,7 +134,7 @@ function PrivacyPolicy() {
               <p>We use personal information for legitimate business purposes, including to:</p>
               <ul className="legal-list">
                 <li>Process and fulfil orders, including delivery and order status updates</li>
-                <li>Create and manage your customer account and authenticate sign-in via OTP</li>
+                <li>Create and manage your customer account and authenticate sign-in securely</li>
                 <li>Provide customer support and respond to enquiries or disputes</li>
                 <li>Improve our website, product catalogue, and shopping experience</li>
                 <li>Send service-related messages (e.g. order confirmations); marketing only where permitted and with your consent</li>
@@ -172,12 +172,12 @@ function PrivacyPolicy() {
                 information, including:
               </p>
               <ul className="legal-list">
-                <li>Phone-based OTP verification instead of shared passwords for customer sign-in</li>
+                <li>Password-based customer sign-in with secure hashing and account access controls</li>
                 <li>Secure transmission of data over HTTPS where supported by your browser and our hosting</li>
                 <li>Access controls limiting who within our organisation can view order and account data</li>
               </ul>
               <p>
-                You are responsible for keeping your device secure and not sharing OTP codes with anyone.
+                You are responsible for keeping your device secure and not sharing account credentials with anyone.
                 Contact us immediately at{' '}
                 <a href={`mailto:${CONTACT_EMAIL}`} className="legal-link">
                   {CONTACT_EMAIL}

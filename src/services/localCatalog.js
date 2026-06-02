@@ -1,5 +1,7 @@
-import { products as seedProducts, categories as seedCategories } from '../User_pages/data/products'
-import { CATALOG_UPDATED_EVENT, STORAGE_KEYS } from './config'
+import { CATALOG_UPDATED_EVENT, STORAGE_KEYS, STORE_SLUG } from './config'
+
+/** Bump when removing static seed catalog so browsers drop old localStorage products once. */
+const CATALOG_SEED_VERSION = '2'
 
 function emitCatalogUpdated() {
   window.dispatchEvent(new Event(CATALOG_UPDATED_EVENT))
@@ -25,6 +27,17 @@ export function normalizeProduct(raw) {
       length: '',
       certification: '',
     },
+    material: raw.material || raw.specifications?.material || '',
+    weight: raw.weight || raw.specifications?.weight || '',
+    sizeOptions: Array.isArray(raw.sizeOptions) ? raw.sizeOptions : [],
+    dimensions: {
+      length: raw.dimensions?.length || '',
+      width: raw.dimensions?.width || '',
+      height: raw.dimensions?.height || '',
+      unit: raw.dimensions?.unit || 'mm',
+    },
+    customAttributes: Array.isArray(raw.customAttributes) ? raw.customAttributes : [],
+    variants: Array.isArray(raw.variants) ? raw.variants : [],
     published: raw.published !== false,
     stock: raw.stock != null ? Number(raw.stock) : 10,
   }
@@ -45,20 +58,24 @@ function writeJson(key, value) {
   emitCatalogUpdated()
 }
 
+function ensureCatalogMigrated() {
+  const versionKey = `${STORE_SLUG}_catalog_seed_version`
+  if (localStorage.getItem(versionKey) === CATALOG_SEED_VERSION) return
+  localStorage.removeItem(STORAGE_KEYS.products)
+  localStorage.removeItem(STORAGE_KEYS.newArrivalIds)
+  localStorage.setItem(versionKey, CATALOG_SEED_VERSION)
+}
+
 export function seedCatalogIfEmpty() {
+  ensureCatalogMigrated()
   if (!localStorage.getItem(STORAGE_KEYS.products)) {
-    const normalized = seedProducts.map((p) => normalizeProduct(p))
-    writeJson(STORAGE_KEYS.products, normalized)
+    writeJson(STORAGE_KEYS.products, [])
   }
   if (!localStorage.getItem(STORAGE_KEYS.categories)) {
-    const cats = seedCategories.filter((c) => c !== 'All')
-    writeJson(STORAGE_KEYS.categories, cats)
+    writeJson(STORAGE_KEYS.categories, [])
   }
   if (!localStorage.getItem(STORAGE_KEYS.newArrivalIds)) {
-    writeJson(
-      STORAGE_KEYS.newArrivalIds,
-      seedProducts.slice(0, 6).map((p) => p.id)
-    )
+    writeJson(STORAGE_KEYS.newArrivalIds, [])
   }
 }
 

@@ -1,9 +1,116 @@
-import React from 'react'
-import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { NavLink, Outlet, Navigate, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
-function AdminLayout() {
-  const { isAdmin, logout, profile } = useAdminAuth()
+import { AdminToastProvider } from './shared/AdminToastProvider'
+import { getDashboardSummary } from './services/adminApi'
+import AdminBreadcrumbs from './components/AdminBreadcrumbs'
+
+const NAV_GROUPS = [
+  {
+    label: 'Home',
+    items: [{ to: '/admin', end: true, label: 'Dashboard', icon: '◆' }],
+  },
+  {
+    label: 'Sales',
+    items: [{ to: '/admin/orders', label: 'Orders', icon: '◎' }],
+  },
+  {
+    label: 'Catalog',
+    items: [
+      { to: '/admin/products', label: 'Products', icon: '✦' },
+      { to: '/admin/categories', label: 'Categories', icon: '◇' },
+      { to: '/admin/collections', label: 'Collections', icon: '▣' },
+      { to: '/admin/inventory', label: 'Inventory', icon: '⊞', badgeKey: 'lowStock' },
+    ],
+  },
+  {
+    label: 'Customers',
+    items: [{ to: '/admin/customers', label: 'Customers', icon: '○' }],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { to: '/admin/merchandising', label: 'Merchandising', icon: '★' },
+      { to: '/admin/reviews', label: 'Reviews', icon: '¶', badgeKey: 'pendingReviews' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [{ to: '/admin/analytics', label: 'Analytics', icon: '▤' }],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { to: '/admin/settings', label: 'Store settings', icon: '⚙' },
+      { to: '/admin/coupons', label: 'Coupons', icon: '%' },
+      { to: '/admin/size-charts', label: 'Size charts', icon: '↔' },
+    ],
+  },
+]
+
+function AdminLayoutInner() {
+  const { isAdmin, logout, profile, authFetch } = useAdminAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [badges, setBadges] = useState({ pendingReviews: 0, lowStock: 0 })
+
+  const breadcrumbs = useMemo(() => {
+    const path = location.pathname.replace(/\/$/, '') || '/admin'
+    const crumbs = [{ label: 'Admin', to: '/admin' }]
+    const map = {
+      '/admin/products': 'Products',
+      '/admin/products/new': 'New product',
+      '/admin/orders': 'Orders',
+      '/admin/categories': 'Categories',
+      '/admin/collections': 'Collections',
+      '/admin/inventory': 'Inventory',
+      '/admin/customers': 'Customers',
+      '/admin/merchandising': 'Merchandising',
+      '/admin/reviews': 'Reviews',
+      '/admin/analytics': 'Analytics',
+      '/admin/settings': 'Settings',
+      '/admin/coupons': 'Coupons',
+      '/admin/size-charts': 'Size charts',
+    }
+    if (path === '/admin') return crumbs
+    if (map[path]) {
+      crumbs.push({ label: map[path] })
+      return crumbs
+    }
+    if (path.includes('/products/') && path.endsWith('/edit')) {
+      crumbs.push({ label: 'Products', to: '/admin/products' })
+      crumbs.push({ label: 'Edit product' })
+      return crumbs
+    }
+    if (path.includes('/orders/')) {
+      crumbs.push({ label: 'Orders', to: '/admin/orders' })
+      crumbs.push({ label: 'Order detail' })
+      return crumbs
+    }
+    if (path.includes('/customers/')) {
+      crumbs.push({ label: 'Customers', to: '/admin/customers' })
+      crumbs.push({ label: 'Customer detail' })
+      return crumbs
+    }
+    return crumbs
+  }, [location.pathname])
+
+  const loadBadges = useCallback(async () => {
+    try {
+      const s = await getDashboardSummary(authFetch)
+      setBadges({
+        pendingReviews: Number(s.pendingReviews) || 0,
+        lowStock: Number(s.lowStockCount) || 0,
+      })
+    } catch {
+      setBadges({ pendingReviews: 0, lowStock: 0 })
+    }
+  }, [authFetch])
+
+  useEffect(() => {
+    if (isAdmin) loadBadges()
+  }, [isAdmin, loadBadges])
 
   if (!isAdmin) return <Navigate to="/admin/login" replace />
 
@@ -12,53 +119,121 @@ function AdminLayout() {
     navigate('/admin/login')
   }
 
-  return (
-    <div className="min-h-screen flex bg-[#faf7f2]">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-[#e8d5c0] flex flex-col py-6 px-4 shrink-0">
-        <div className="mb-8">
-          <span className="font-playfair text-lg text-ink">Aashmika Designs</span>
-          <span className="block text-xs text-muted mt-0.5">Store Admin</span>
-        </div>
+  const sidebar = (
+    <>
+      <div className="mb-6 px-1">
+        <span className="font-playfair text-lg text-ink">Aashmika Designs</span>
+        <span className="block text-xs text-muted mt-0.5">Store Admin</span>
+      </div>
 
-        <nav className="flex-1 space-y-1">
-          {[
-            { to: '/admin', end: true, label: 'Dashboard' },
-            { to: '/admin/products', label: 'Products' },
-            { to: '/admin/orders', label: 'Orders' },
-            { to: '/admin/categories', label: 'Categories' },
-            { to: '/admin/merchandising', label: 'Merchandising' },
-            { to: '/admin/reviews', label: 'Reviews' },
-          ].map(({ to, end, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-[#f4e8db] text-ink font-medium' : 'text-muted hover:text-ink hover:bg-[#faf7f2]'}`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+      <nav className="flex-1 space-y-5 overflow-y-auto">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map(({ to, end, label, icon, badgeKey }) => {
+                const badge = badgeKey ? badges[badgeKey] : 0
+                return (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition ${
+                        isActive
+                          ? 'bg-[#f4e8db] text-ink font-medium'
+                          : 'text-muted hover:text-ink hover:bg-[#faf7f2]'
+                      }`
+                    }
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-[10px] opacity-70">{icon}</span>
+                      {label}
+                    </span>
+                    {badge > 0 ? (
+                      <span className="rounded-full bg-[#7a2c3a] px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    ) : null}
+                  </NavLink>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-        <div className="mt-auto pt-4 border-t border-[#e8d5c0]">
-          <p className="text-xs text-muted mb-2 capitalize">{profile?.role || 'staff'}</p>
+      <div className="mt-auto pt-4 border-t border-[#e8d5c0]">
+        <p className="text-xs text-muted mb-1 truncate">{profile?.email}</p>
+        <p className="text-[10px] text-muted mb-2 capitalize">{profile?.role || 'admin'}</p>
+        <div className="flex flex-col gap-2">
+          <Link to="/" className="text-xs text-muted hover:text-ink" target="_blank" rel="noreferrer">
+            View storefront →
+          </Link>
           <button
+            type="button"
             onClick={handleLogout}
-            className="text-sm text-muted hover:text-red-600 transition"
+            className="text-left text-sm text-muted hover:text-red-600 transition"
           >
             Sign out
           </button>
         </div>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="min-h-screen flex bg-[#faf7f2]">
+      <aside className="hidden lg:flex w-60 bg-white border-r border-[#e8d5c0] flex-col py-6 px-4 shrink-0 sticky top-0 h-screen">
+        {sidebar}
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 p-8 overflow-auto">
-        <Outlet />
-      </main>
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close menu"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="relative w-64 max-w-[85vw] h-full bg-white border-r border-[#e8d5c0] flex flex-col py-6 px-4 shadow-xl">
+            {sidebar}
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-[#e8d5c0] bg-white px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="rounded-lg border border-[#d8c4a7] px-3 py-1.5 text-sm"
+          >
+            Menu
+          </button>
+          <span className="font-playfair text-sm text-ink">Admin</span>
+          <Link to="/admin/products/new" className="text-xs text-[#7a2c3a] font-medium">
+            + Add
+          </Link>
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          <AdminBreadcrumbs items={breadcrumbs} />
+          <Outlet context={{ refreshBadges: loadBadges }} />
+        </main>
+      </div>
     </div>
+  )
+}
+
+function AdminLayout() {
+  return (
+    <AdminToastProvider>
+      <AdminLayoutInner />
+    </AdminToastProvider>
   )
 }
 
