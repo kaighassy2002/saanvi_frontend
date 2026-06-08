@@ -24,8 +24,8 @@ function normalizeList(data) {
 
 // --- Dashboard ---
 
-export async function getDashboardSummary(authFetch) {
-  return authFetch('/api/admin/dashboard/summary')
+export async function getDashboardSummary(authFetch, params = {}) {
+  return authFetch(`/api/admin/dashboard/summary${buildQuery(params)}`)
 }
 
 // --- Products ---

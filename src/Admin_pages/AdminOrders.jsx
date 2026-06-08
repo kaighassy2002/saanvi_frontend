@@ -5,11 +5,22 @@ import { downloadOrdersExport, listOrders } from './services/adminApi'
 import AdminPageHeader from './components/AdminPageHeader'
 import AdminDataTable from './components/AdminDataTable'
 import AdminPagination from './components/AdminPagination'
-import AdminStatusBadge from './components/AdminStatusBadge'
+import AdminStatusBadge, { PAYMENT_STATUS_OPTIONS } from './components/AdminStatusBadge'
 import AdminErrorBanner from './components/AdminErrorBanner'
 import { useAdminToast } from './shared/AdminToastProvider'
 
-const FILTER_OPTIONS = ['All', 'Processing', 'Paid', 'Shipped', 'Delivered', 'Cancelled']
+const FILTER_OPTIONS = [
+  'All',
+  'Placed',
+  'Confirmed',
+  'Packed',
+  'Shipped',
+  'Out For Delivery',
+  'Delivered',
+  'Cancelled',
+  'Return Requested',
+  'Returned',
+]
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -29,6 +40,7 @@ function AdminOrders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statusFilter, setStatusFilter] = useState(initialStatus)
+  const [paymentFilter, setPaymentFilter] = useState('All')
   const [search, setSearch] = useState('')
 
   const load = useCallback(async () => {
@@ -40,6 +52,7 @@ function AdminOrders() {
         limit: 20,
         q: search.trim() || undefined,
         status: statusFilter !== 'All' ? statusFilter : undefined,
+        paymentStatus: paymentFilter !== 'All' ? paymentFilter : undefined,
       })
       setItems(result.items)
       setTotal(result.total)
@@ -50,7 +63,7 @@ function AdminOrders() {
     } finally {
       setLoading(false)
     }
-  }, [authFetch, page, search, statusFilter])
+  }, [authFetch, page, search, statusFilter, paymentFilter])
 
   useEffect(() => {
     load()
@@ -58,7 +71,7 @@ function AdminOrders() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, statusFilter])
+  }, [search, statusFilter, paymentFilter])
 
   const handleExport = async () => {
     try {
@@ -80,6 +93,7 @@ function AdminOrders() {
     { key: 'customer', label: 'Customer' },
     { key: 'total', label: 'Total' },
     { key: 'status', label: 'Status' },
+    { key: 'payment', label: 'Payment' },
     { key: 'date', label: 'Date' },
   ]
 
@@ -103,7 +117,8 @@ function AdminOrders() {
         />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-2 flex flex-wrap gap-2">
+        <span className="text-xs text-muted self-center mr-1">Order:</span>
         {FILTER_OPTIONS.map((s) => (
           <button
             key={s}
@@ -116,6 +131,34 @@ function AdminOrders() {
             }`}
           >
             {s}
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <span className="text-xs text-muted self-center mr-1">Payment:</span>
+        <button
+          type="button"
+          onClick={() => setPaymentFilter('All')}
+          className={`rounded-full px-3 py-1 text-xs transition ${
+            paymentFilter === 'All'
+              ? 'bg-[#f4e8db] text-ink font-medium'
+              : 'border border-[#e8d5c0] text-muted hover:text-ink'
+          }`}
+        >
+          All
+        </button>
+        {PAYMENT_STATUS_OPTIONS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setPaymentFilter(s)}
+            className={`rounded-full px-3 py-1 text-xs transition capitalize ${
+              paymentFilter === s
+                ? 'bg-[#f4e8db] text-ink font-medium'
+                : 'border border-[#e8d5c0] text-muted hover:text-ink'
+            }`}
+          >
+            {s.replace('_', ' ')}
           </button>
         ))}
       </div>
@@ -140,6 +183,9 @@ function AdminOrders() {
               <td className="px-4 py-3">{formatPrice(o.total)}</td>
               <td className="px-4 py-3">
                 <AdminStatusBadge status={o.status} />
+              </td>
+              <td className="px-4 py-3">
+                <AdminStatusBadge status={o.paymentStatus} />
               </td>
               <td className="px-4 py-3 text-muted">{o.date || '—'}</td>
             </tr>

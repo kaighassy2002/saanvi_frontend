@@ -25,6 +25,8 @@ import {
   resolveProductLine,
 } from '../../services/productVariants'
 import { getProductImages } from '../utils/productImages'
+import { usePageMeta } from '../../hooks/usePageMeta'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 import '../Styles/product-detail.css'
 
 function formatSpecLabel(key) {
@@ -112,6 +114,16 @@ function PurchaseBlock({
 }
 
 function ProductDetailView({ product }) {
+  const metaTitle = product.seoTitle || product.name || 'Product'
+  const metaDescription =
+    product.seoDescription ||
+    product.shortDescription ||
+    product.description?.slice(0, 160) ||
+    `Shop ${product.name || 'this piece'} at Aashmika Designs.`
+  const metaImage = product.image ? productImageUrl(product.image, { width: 800 }) : undefined
+
+  usePageMeta({ title: metaTitle, description: metaDescription, image: metaImage })
+
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { openDrawer } = useCartDrawer()

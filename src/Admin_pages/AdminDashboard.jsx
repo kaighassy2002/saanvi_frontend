@@ -1,46 +1,116 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
 import { getDashboardSummary } from './services/adminApi'
-import AdminPageHeader from './components/AdminPageHeader'
 import AdminDataTable from './components/AdminDataTable'
 import AdminStatusBadge from './components/AdminStatusBadge'
 import AdminErrorBanner from './components/AdminErrorBanner'
+import { RevenueLineChart, OrderStatusDonut } from './components/AdminDashboardCharts'
+import { AdminKpiIcon } from './components/AdminKpiIcons'
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
 }
 
-function formatCompact(n) {
-  return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(
-    Number(n || 0)
+function formatOrderDateTime(raw) {
+  if (!raw) return { date: '—', time: '' }
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return { date: String(raw), time: '' }
+  return {
+    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
+function PaymentBadge({ status }) {
+  const key = String(status || 'pending').toLowerCase()
+  const styles = {
+    paid: 'bg-[#f0f4ee] text-[#5a6b52]',
+    pending: 'bg-[#fff6eb] text-[#9f7a2c]',
+    failed: 'bg-[#f7ecee] text-[#7a2c3a]',
+    refunded: 'bg-[#f8f1e6] text-[#6f5d5b]',
+  }
+  return (
+    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-medium capitalize ${styles[key] || styles.pending}`}>
+      {status || 'pending'}
+    </span>
   )
 }
 
-function MetricStrip({ items }) {
+const ORDER_LANES = [
+  'Placed',
+  'Confirmed',
+  'Packed',
+  'Shipped',
+  'Out For Delivery',
+  'Delivered',
+  'Cancelled',
+  'Return Requested',
+  'Returned',
+]
+
+const KPI_CONFIG = [
+  { key: 'revenue', icon: 'revenue', label: 'Total Revenue', field: 'revenue7d', format: formatPrice, to: '/admin/analytics', trendKey: 'revenue' },
+  { key: 'orders', icon: 'orders', label: 'Total Orders', field: 'orders7d', format: (v) => v, to: '/admin/orders', trendKey: 'orders' },
+  { key: 'customers', icon: 'customers', label: 'Total Customers', field: 'customerCount', format: (v) => v, to: '/admin/customers', trendKey: 'customers' },
+  { key: 'products', icon: 'products', label: 'Total Products', field: 'publishedCount', format: (v) => v, to: '/admin/products', trendKey: null },
+  { key: 'pending', icon: 'pending', label: 'Active Orders', field: 'processingOrders', format: (v) => v, to: '/admin/orders?status=Placed', trendKey: 'processing' },
+]
+
+const PERIOD_OPTIONS = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 30, label: 'This month' },
+  { value: 90, label: 'Last 90 days' },
+]
+
+function KpiTrend({ value, periodLabel }) {
+  if (value == null || Number.isNaN(value)) return null
+  const up = value >= 0
   return (
-    <section className="mb-5 overflow-hidden rounded-xl border border-[#e8d5c0] bg-white">
-      <div className="grid gap-px bg-[#efe2d1] md:grid-cols-5">
-        {items.map((item) => {
-          const block = (
-            <div className="bg-white px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted">{item.label}</p>
-              <p className="mt-1 font-playfair text-xl text-ink">{item.value}</p>
-              <p className="mt-0.5 text-xs text-muted">{item.sub}</p>
-            </div>
-          )
-          return item.to ? <Link key={item.label} to={item.to}>{block}</Link> : <div key={item.label}>{block}</div>
-        })}
+    <p className={`admin-kpi-tile__trend ${up ? 'admin-kpi-tile__trend--up' : 'admin-kpi-tile__trend--down'}`}>
+      {up ? '+' : ''}
+      {value}% <span className="text-muted font-normal">vs {periodLabel}</span>
+    </p>
+  )
+}
+
+function KpiTile({ icon, label, value, trend, periodLabel, to }) {
+  const inner = (
+    <div className="admin-kpi-tile">
+      <span className={`admin-kpi-tile__icon admin-kpi-tile__icon--${icon}`}>
+        <AdminKpiIcon name={icon} />
+      </span>
+      <div className="admin-kpi-tile__body">
+        <p className="admin-kpi-tile__label">{label}</p>
+        <p className="admin-kpi-tile__value">{value}</p>
+        {trend != null ? <KpiTrend value={trend} periodLabel={periodLabel} /> : null}
       </div>
-    </section>
+    </div>
+  )
+  return to ? (
+    <Link to={to} className="admin-kpi-tile-wrap">
+      {inner}
+    </Link>
+  ) : (
+    <div className="admin-kpi-tile-wrap">{inner}</div>
   )
 }
 
-function SectionCard({ title, action, className = '', children }) {
+function KpiRow({ items, periodLabel }) {
   return (
-    <section className={`rounded-xl border border-[#e8d5c0] bg-white p-4 ${className}`}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="font-playfair text-base text-ink">{title}</h2>
+    <div className="admin-kpi-row">
+      {items.map((item) => (
+        <KpiTile key={item.key} {...item} periodLabel={periodLabel} />
+      ))}
+    </div>
+  )
+}
+
+function PanelCard({ title, action, children, className = '' }) {
+  return (
+    <section className={`admin-panel ${className}`}>
+      <div className="admin-panel-header">
+        <h2 className="admin-panel-title">{title}</h2>
         {action || null}
       </div>
       {children}
@@ -48,27 +118,52 @@ function SectionCard({ title, action, className = '', children }) {
   )
 }
 
-function SignalBar({ label, value, max, to }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0
-  const width = Math.max(6, pct)
+function ViewAllButton({ to }) {
   return (
-    <Link to={to} className="block rounded-lg border border-[#efe2d1] bg-[#fffdfa] p-3 hover:bg-[#fcf7f1]">
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-ink">{label}</span>
-        <span className="text-muted">{value}</span>
-      </div>
-      <div className="h-1.5 w-full rounded-full bg-[#efe2d1]">
-        <div className="h-1.5 rounded-full bg-[#7a2c3a]" style={{ width: `${width}%` }} />
-      </div>
+    <Link to={to} className="admin-view-all">
+      View All
     </Link>
   )
 }
 
+function PeriodSelect({ value, onChange }) {
+  return (
+    <select className="admin-period-select" value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label="Period">
+      {PERIOD_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-[88px] rounded-xl bg-[#f4e8db]" />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-8" />
+        <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-4" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="h-96 rounded-xl bg-[#f4e8db] lg:col-span-8" />
+        <div className="h-96 rounded-xl bg-[#f4e8db] lg:col-span-4" />
+      </div>
+    </div>
+  )
+}
+
 function AdminDashboard() {
-  const { authFetch } = useAdminAuth()
+  const { authFetch, profile } = useAdminAuth()
   const navigate = useNavigate()
   const { refreshBadges } = useOutletContext() || {}
   const [summary, setSummary] = useState(null)
+  const [days, setDays] = useState(30)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -76,7 +171,7 @@ function AdminDashboard() {
     setError('')
     setLoading(true)
     try {
-      const data = await getDashboardSummary(authFetch)
+      const data = await getDashboardSummary(authFetch, { days })
       setSummary(data)
       refreshBadges?.()
     } catch (e) {
@@ -84,205 +179,162 @@ function AdminDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [authFetch, refreshBadges])
+  }, [authFetch, refreshBadges, days])
 
   useEffect(() => {
     load()
   }, [load])
 
+  const periodLabel = days === 7 ? 'last week' : days === 30 ? 'last month' : 'prior period'
+  const displayName = profile?.name || profile?.email?.split('@')[0] || 'Admin'
+
   const columns = [
     { key: 'id', label: 'Order ID' },
     { key: 'customer', label: 'Customer' },
-    { key: 'total', label: 'Total' },
+    { key: 'date', label: 'Date' },
+    { key: 'total', label: 'Amount' },
+    { key: 'payment', label: 'Payment' },
     { key: 'status', label: 'Status' },
+    { key: 'action', label: '' },
   ]
 
-  const statusCounts = summary?.statusCounts || {}
-  const lanes = ['Processing', 'Paid', 'Shipped', 'Delivered', 'Cancelled']
   const recentOrders = Array.isArray(summary?.recentOrders) ? summary.recentOrders : []
-  const maxLane = Math.max(1, ...lanes.map((name) => Number(statusCounts[name]) || 0))
-  const riskScore = Number(summary?.pendingReviews || 0) + Number(summary?.lowStockCount || 0)
-
-  const commandItems = useMemo(
-    () => [
-      {
-        label: 'Orders (7d)',
-        value: summary?.orders7d ?? 0,
-        sub: 'Throughput this week',
-      },
-      {
-        label: 'Revenue (7d)',
-        value: formatPrice(summary?.revenue7d),
-        sub: `~${formatCompact(summary?.revenue7d)} this week`,
-      },
-      {
-        label: 'Avg order value',
-        value: formatPrice(summary?.aov7d),
-        sub: `${summary?.orderCount ?? 0} lifetime orders`,
-      },
-      {
-        label: 'Pending reviews',
-        value: summary?.pendingReviews ?? 0,
-        sub: summary?.pendingReviews ? 'Action recommended' : 'No moderation backlog',
-        to: '/admin/reviews?status=pending',
-      },
-      {
-        label: 'Low stock',
-        value: summary?.lowStockCount ?? 0,
-        sub: summary?.lowStockCount ? 'Replenishment needed' : 'Inventory healthy',
-        to: '/admin/inventory',
-      },
-    ],
-    [summary]
-  )
+  const topProducts = Array.isArray(summary?.topSellingProducts) ? summary.topSellingProducts : []
+  const revenueSeries = Array.isArray(summary?.revenueSeries) ? summary.revenueSeries : []
+  const orderOverview = summary?.orderOverview || summary?.statusCounts || {}
+  const trends = summary?.trends || {}
 
   return (
-    <div>
-      <AdminPageHeader
-        title="Dashboard"
-        description="A command-center view for trade, fulfilment, and attention hotspots."
-      />
+    <div className="admin-dashboard">
+      <div className="admin-dashboard-header">
+        <div>
+          <h1 className="font-bodoni text-2xl text-ink">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            Welcome back, <span className="text-ink">{displayName}</span>!
+          </p>
+        </div>
+      </div>
 
       <AdminErrorBanner message={error} onRetry={load} />
 
       {loading ? (
-        <p className="text-muted text-sm">Loading…</p>
+        <DashboardSkeleton />
       ) : summary ? (
         <>
-          <MetricStrip items={commandItems} />
+          <KpiRow
+            periodLabel={periodLabel}
+            items={KPI_CONFIG.map((kpi) => ({
+              key: kpi.key,
+              icon: kpi.icon,
+              label: kpi.label,
+              value: kpi.format(summary[kpi.field] ?? 0),
+              trend: kpi.trendKey ? trends[kpi.trendKey] : null,
+              to: kpi.to,
+            }))}
+          />
 
-          <div className="mb-5 grid gap-4 xl:grid-cols-12">
-            <SectionCard
-              className="xl:col-span-7"
-              title="Flow lanes"
-              action={
-                <Link to="/admin/orders" className="text-xs text-[#7a2c3a] hover:underline">
-                  Open orders
-                </Link>
-              }
+          <div className="mb-4 grid gap-4 lg:grid-cols-12">
+            <PanelCard
+              className="lg:col-span-8"
+              title="Sales Overview"
+              action={<PeriodSelect value={days} onChange={setDays} />}
             >
-              <div className="space-y-2.5">
-                {lanes.map((lane) => (
-                  <SignalBar
-                    key={lane}
-                    label={lane}
-                    value={Number(statusCounts[lane]) || 0}
-                    max={maxLane}
-                    to={`/admin/orders?status=${encodeURIComponent(lane)}`}
-                  />
-                ))}
-              </div>
-            </SectionCard>
+              <RevenueLineChart series={revenueSeries} formatPrice={formatPrice} />
+            </PanelCard>
 
-            <SectionCard className="xl:col-span-5" title="Operations radar">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Link
-                  to="/admin/reviews?status=pending"
-                  className="rounded-lg border border-amber-200 bg-amber-50/60 p-3"
-                >
-                  <p className="text-xs uppercase tracking-wide text-muted">Moderation queue</p>
-                  <p className="mt-1 font-playfair text-2xl text-ink">{summary.pendingReviews ?? 0}</p>
-                  <p className="text-xs text-muted">Pending reviews</p>
-                </Link>
-                <Link
-                  to="/admin/inventory"
-                  className="rounded-lg border border-red-200 bg-red-50/60 p-3"
-                >
-                  <p className="text-xs uppercase tracking-wide text-muted">Stock risk</p>
-                  <p className="mt-1 font-playfair text-2xl text-ink">{summary.lowStockCount ?? 0}</p>
-                  <p className="text-xs text-muted">Items at threshold</p>
-                </Link>
-              </div>
-              <div className="mt-3 rounded-lg border border-[#efe2d1] bg-[#fffdfa] p-3">
-                <p className="text-xs uppercase tracking-wide text-muted">Attention index</p>
-                <p className="mt-1 font-playfair text-2xl text-ink">{riskScore}</p>
-                <p className="text-xs text-muted">
-                  Sum of unresolved inventory + moderation signals.
-                </p>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Link
-                  to="/admin/products/new"
-                  className="lux-button rounded-lg px-3 py-2 text-center text-sm"
-                >
-                  Add product
-                </Link>
-                <Link
-                  to="/admin/analytics"
-                  className="rounded-lg border border-[#d8c4a7] px-3 py-2 text-center text-sm hover:bg-[#f7ecee]"
-                >
-                  Analytics
-                </Link>
-              </div>
-            </SectionCard>
+            <PanelCard className="lg:col-span-4" title="Orders Overview">
+              <OrderStatusDonut statusCounts={orderOverview} lanes={ORDER_LANES} />
+            </PanelCard>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-12">
-            <SectionCard
-              className="xl:col-span-8"
-              title="Recent orders ledger"
-              action={
-                <Link to="/admin/orders" className="text-xs text-[#7a2c3a] hover:underline">
-                  View all
-                </Link>
-              }
+          <div className="grid gap-4 lg:grid-cols-12">
+            <PanelCard
+              className="lg:col-span-8"
+              title="Recent Orders"
+              action={<ViewAllButton to="/admin/orders" />}
             >
               <AdminDataTable columns={columns} loading={false} emptyMessage="No orders yet.">
-                {recentOrders.map((o) => (
-                  <tr
-                    key={o.id}
-                    className="border-b border-[#f0e6d6] last:border-0 cursor-pointer hover:bg-[#faf7f2]"
-                    onClick={() => navigate(`/admin/orders/${encodeURIComponent(o.id)}`)}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs">{o.id}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-ink">{o.customerName || '—'}</p>
-                      <p className="text-xs text-muted">{o.customerEmail || ''}</p>
-                    </td>
-                    <td className="px-4 py-3">{formatPrice(o.total)}</td>
-                    <td className="px-4 py-3">
-                      <AdminStatusBadge status={o.status} />
-                    </td>
-                  </tr>
-                ))}
+                {recentOrders.map((o) => {
+                  const dt = formatOrderDateTime(o.date || o.createdAt)
+                  return (
+                    <tr
+                      key={o.id}
+                      className="border-b border-[#f0e6d6] last:border-0 hover:bg-[#faf7f2] transition-colors"
+                    >
+                      <td className="px-3 py-3">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/orders/${encodeURIComponent(o.id)}`)}
+                          className="font-sans text-xs font-medium text-[#c9a34a] hover:underline"
+                        >
+                          {o.id}
+                        </button>
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="text-sm font-medium text-ink">{o.customerName || '—'}</p>
+                        <p className="text-xs text-muted truncate max-w-[150px]">{o.customerEmail || ''}</p>
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="text-xs text-ink whitespace-nowrap">{dt.date}</p>
+                        {dt.time ? <p className="text-[11px] text-muted">{dt.time}</p> : null}
+                      </td>
+                      <td className="px-3 py-3 text-sm font-semibold tabular-nums text-ink">{formatPrice(o.total)}</td>
+                      <td className="px-3 py-3">
+                        <PaymentBadge status={o.paymentStatus} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <AdminStatusBadge status={o.status} />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/orders/${encodeURIComponent(o.id)}`)}
+                          className="admin-row-action"
+                          aria-label="View order"
+                        >
+                          ⋯
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </AdminDataTable>
-            </SectionCard>
+            </PanelCard>
 
-            <SectionCard className="xl:col-span-4" title="Command shelf">
-              <div className="space-y-2">
-                <Link
-                  to="/admin/products?stock=low"
-                  className="block rounded-lg border border-[#d8c4a7] px-4 py-2 text-center text-sm hover:bg-[#f7ecee]"
-                >
-                  Low-stock products
-                </Link>
-                <Link
-                  to="/admin/reviews?status=pending"
-                  className="block rounded-lg border border-[#d8c4a7] px-4 py-2 text-center text-sm hover:bg-[#f7ecee]"
-                >
-                  Pending reviews
-                </Link>
-                <Link
-                  to="/admin/customers"
-                  className="block rounded-lg border border-[#d8c4a7] px-4 py-2 text-center text-sm hover:bg-[#f7ecee]"
-                >
-                  Customer desk
-                </Link>
-                <Link
-                  to="/admin/settings"
-                  className="block rounded-lg border border-[#d8c4a7] px-4 py-2 text-center text-sm hover:bg-[#f7ecee]"
-                >
-                  Store settings
-                </Link>
-              </div>
-              <div className="mt-4 rounded-lg border border-[#efe2d1] bg-[#fffdfa] p-3">
-                <p className="text-xs uppercase tracking-wide text-muted">Sales synopsis</p>
-                <p className="mt-1 text-sm text-ink">
-                  7-day revenue is <strong>{formatPrice(summary.revenue7d)}</strong> with average basket{' '}
-                  <strong>{formatPrice(summary.aov7d)}</strong>.
-                </p>
-              </div>
-            </SectionCard>
+            <PanelCard
+              className="lg:col-span-4"
+              title="Top Selling Products"
+              action={<ViewAllButton to="/admin/products" />}
+            >
+              {topProducts.length ? (
+                <div className="divide-y divide-[#f0e6d6]">
+                  {topProducts.map((p) => (
+                    <Link
+                      key={p.productId}
+                      to={`/admin/products/${encodeURIComponent(p.productId)}/edit`}
+                      className="admin-product-row py-3"
+                    >
+                      <span className="admin-product-row__thumb">
+                        {p.image ? (
+                          <img src={p.image} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-[10px] text-muted">—</span>
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink">{p.name}</p>
+                        <p className="text-xs text-muted">{p.qty} Sold</p>
+                      </div>
+                      <span className="text-sm font-semibold tabular-nums text-ink shrink-0">
+                        {formatPrice(p.revenue)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted py-12 text-center">No sales in this period.</p>
+              )}
+            </PanelCard>
           </div>
         </>
       ) : null}

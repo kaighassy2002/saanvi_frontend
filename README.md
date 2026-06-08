@@ -55,7 +55,7 @@ VITE_API_URL=https://your-api.example.com
 VITE_STORE_WHATSAPP=919876543210
 ```
 
-See `.env.production.example` for a template.
+See [`.env.production.example`](./.env.production.example) for a template. Full hosting steps: [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md).
 
 **Before launch:** follow the step-by-step checklist in [`docs/LAUNCH_CHECKLIST.md`](../docs/LAUNCH_CHECKLIST.md) (env vars, build, and 15 manual E2E tests).
 
@@ -141,7 +141,7 @@ jewellery_frontend/
 ## Troubleshooting
 
 - **API 404 in dev** — Ensure the backend is running and `VITE_DEV_PROXY=true`, or set `VITE_API_URL` to the correct origin. Restart Vite after changing `.env`.  
-- **CORS errors** (direct `VITE_API_URL` without proxy) — Backend must allow your frontend origin (`cors` is open by default in this project’s API).  
+- **CORS errors** (direct `VITE_API_URL` without proxy) — Set `CORS_ALLOWED_ORIGINS` on the API to your exact frontend origin (e.g. `https://your-app.vercel.app`).
 - **Empty catalog with API on** — Check network tab for `/api/products`; verify DB seed and published products in admin.
 
 ---

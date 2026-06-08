@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import {
   STORE_NAME,
   SUPPORT_EMAIL,
@@ -16,6 +17,11 @@ const LAST_UPDATED = '25 May 2026'
 const RETURN_WINDOW_DAYS = 7
 
 function ReturnsPolicy() {
+  usePageMeta({
+    title: 'Returns & Refunds',
+    description: `Returns and refund policy for ${STORE_NAME} — eligibility, timelines, and how to start a return.`,
+  })
+
   return (
     <div className="page-shell">
       <SiteHeader showSearch={false} />

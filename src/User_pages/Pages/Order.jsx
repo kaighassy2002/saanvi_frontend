@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
 import AccountSidebar from '../Components/AccountSidebar'
+import OrderInvoicePrint from '../Components/OrderInvoicePrint'
+import OrderDetailPanel from '../Components/OrderDetailPanel'
 import {
   CUSTOMER_SESSION_CHANGED_EVENT,
   STOREFRONT_ORDERS_UPDATED_EVENT,
@@ -11,29 +13,21 @@ import {
 } from '../../services/config'
 import { whatsappUrl, STORE_NAME } from '../../services/storefrontConstants'
 import { productImageUrl } from '../../utils/cloudinaryImage'
+import { printOrderInvoice } from '../../utils/printOrderInvoice'
 import { fetchMyOrders } from '../../services/storefrontOrderService'
+import {
+  formatOrderDateTime,
+  formatPaymentMethodLabel,
+  formatPaymentStatusLabel,
+  orderStatusIcon,
+  orderStatusNote,
+  orderStatusTone,
+} from '../../services/orderWorkflow'
 import '../Styles/user-profile.css'
 import '../Styles/orders-list.css'
 
-function formatStatusWhen(iso, status) {
-  if (!iso) return '—'
-  try {
-    const d = new Date(iso)
-    const prefix = status === 'Delivered' ? 'Delivered' : 'Placed'
-    const datePart = d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-    const timePart = d.toLocaleTimeString('en-IN', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-    return `${prefix} · ${datePart} · ${timePart}`
-  } catch {
-    return '—'
-  }
+function formatStatusWhen(order) {
+  return formatOrderDateTime(order.placedAt || order.date)
 }
 
 /** Short id for narrow screens; full id available via title attribute. */
@@ -48,77 +42,15 @@ function formatOrderId(id) {
   return `${s.slice(0, 10)}…${s.slice(-6)}`
 }
 
-function formatPaymentLabel(method) {
-  const key = String(method || '').toLowerCase()
-  if (key === 'cod' || key === 'cash') return 'Cash on delivery'
-  if (key === 'upi') return 'UPI'
-  if (key === 'card') return 'Card'
-  if (!key) return ''
-  return key.charAt(0).toUpperCase() + key.slice(1)
-}
-
-function formatPaymentStatus(status) {
-  const key = String(status || 'pending').toLowerCase()
-  if (key === 'paid') return 'Paid'
-  if (key === 'failed') return 'Failed'
-  if (key === 'refunded') return 'Refunded'
-  return 'Pending'
-}
-
-function statusTone(status) {
-  switch (status) {
-    case 'Delivered':
-      return 'delivered'
-    case 'Shipped':
-    case 'In Transit':
-      return 'transit'
-    case 'Processing':
-      return 'processing'
-    case 'Cancelled':
-      return 'cancelled'
-    default:
-      return 'default'
-  }
-}
-
-function statusIconClass(status) {
-  switch (status) {
-    case 'Delivered':
-      return 'fa-solid fa-box-open'
-    case 'Shipped':
-    case 'In Transit':
-      return 'fa-solid fa-truck-fast'
-    case 'Processing':
-      return 'fa-solid fa-hourglass-half'
-    case 'Cancelled':
-      return 'fa-solid fa-circle-xmark'
-    default:
-      return 'fa-solid fa-box'
-  }
-}
-
-function orderStatusNote(status) {
-  switch (status) {
-    case 'Delivered':
-      return 'Share your experience — verified buyers can leave a review on the product page.'
-    case 'Cancelled':
-      return 'This order was cancelled.'
-    case 'Shipped':
-    case 'In Transit':
-      return 'Your order is on the way. We will update you when it is delivered.'
-    case 'Processing':
-      return 'We are confirming and preparing your order for dispatch.'
-    default:
-      return null
-  }
-}
 
 function Order() {
   const [searchParams, setSearchParams] = useSearchParams()
   const placedId = searchParams.get('placed')
+  const orderFromQuery = searchParams.get('order')
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [expandedId, setExpandedId] = useState(() => placedId || orderFromQuery || null)
 
   const load = useCallback(async () => {
     setLoadError('')
@@ -167,9 +99,31 @@ function Order() {
   }, [placedId, setSearchParams])
 
   const sorted = useMemo(
-    () => [...orders].sort((a, b) => String(b.date).localeCompare(String(a.date))),
+    () =>
+      [...orders].sort((a, b) =>
+        String(b.placedAt || b.date).localeCompare(String(a.placedAt || a.date)),
+      ),
     [orders],
   )
+
+  const placedOrder = placedId ? sorted.find((o) => String(o.id) === String(placedId)) : null
+  const expandedOrder = expandedId
+    ? sorted.find((o) => String(o.id) === String(expandedId)) || placedOrder
+    : null
+  const invoiceOrder = expandedOrder || placedOrder
+
+  useEffect(() => {
+    if (placedId) setExpandedId(placedId)
+    else if (orderFromQuery) setExpandedId(orderFromQuery)
+  }, [placedId, orderFromQuery])
+
+  const handleOrderUpdated = (updated) => {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+  }
+
+  const toggleExpand = (orderId) => {
+    setExpandedId((prev) => (prev === orderId ? null : orderId))
+  }
 
   const hasToken =
     typeof localStorage !== 'undefined' && !!localStorage.getItem(STORAGE_KEYS.customerToken)
@@ -196,17 +150,39 @@ function Order() {
         <div className="orders-banner orders-banner--success" role="status">
           <h2 className="orders-banner__title">Order placed successfully</h2>
           <p className="orders-banner__text">
-            Order <span className="orders-banner__id">{placedId}</span> is now listed as{' '}
-            <strong>Processing</strong>
-            {!USE_LOCAL_API && hasToken
-              ? '.'
-              : !USE_LOCAL_API
-                ? ' after you sign in with the same account.'
-                : '.'}
+            Order <span className="orders-banner__id">{placedId}</span> was placed successfully
+            {placedOrder ? (
+              <>
+                {' '}
+                with status <strong>{placedOrder.status}</strong>
+              </>
+            ) : (
+              '.'
+            )}
+            {!USE_LOCAL_API && !hasToken ? ' Sign in with the same account to track it.' : null}
           </p>
           <p className="orders-banner__text">
-            We will confirm shortly. Payment details for UPI/card follow confirmation; COD is paid on
-            delivery.
+            {placedOrder ? (
+              <>
+                <button
+                  type="button"
+                  className="font-semibold underline text-royal-700"
+                  onClick={() => setExpandedId(placedId)}
+                >
+                  View details
+                </button>
+                {' · '}
+                <button
+                  type="button"
+                  className="font-semibold underline text-royal-700"
+                  onClick={() => printOrderInvoice(placedId)}
+                >
+                  Download invoice
+                </button>
+              </>
+            ) : (
+              'Your order will appear in the list below shortly.'
+            )}
           </p>
           <a
             href={whatsappUrl(`Hi, I placed order ${placedId} on ${STORE_NAME}.`)}
@@ -254,29 +230,30 @@ function Order() {
         <ul className="orders-list">
           {sorted.map((order) => {
             const items = order.items || []
-            const tone = statusTone(order.status)
-            const payment = formatPaymentLabel(order.paymentMethod)
-            const statusNote = orderStatusNote(order.status)
-            const showReview = order.status === 'Delivered'
+            const status = order.status || 'Placed'
+            const tone = orderStatusTone(status)
+            const payment = formatPaymentMethodLabel(order.paymentMethod)
+            const statusNote = orderStatusNote(status)
+            const showReview = status === 'Delivered'
+
+            const isExpanded = expandedId === order.id
 
             return (
               <li key={order.id}>
-                <article className="order-card">
+                <article className={`order-card${isExpanded ? ' order-card--expanded' : ''}`}>
                   <header className="order-card__status">
                     <div className="order-card__status-main">
                       <span
                         className={`order-card__status-icon order-card__status-icon--${tone}`}
                         aria-hidden
                       >
-                        <i className={statusIconClass(order.status)} />
+                        <i className={orderStatusIcon(status)} />
                       </span>
                       <div className="order-card__status-text">
                         <p className={`order-card__status-label order-card__status-label--${tone}`}>
-                          {order.status}
+                          {status}
                         </p>
-                        <p className="order-card__status-date">
-                          {formatStatusWhen(order.date, order.status)}
-                        </p>
+                        <p className="order-card__status-date">{formatStatusWhen(order)}</p>
                       </div>
                     </div>
                     <p className="order-card__order-id" title={order.id}>
@@ -359,10 +336,19 @@ function Order() {
                     <span className="order-card__total">
                       Order total: ₹{Number(order.total).toLocaleString('en-IN')}
                       {payment ? ` · ${payment}` : ''}
-                      {` · Payment ${formatPaymentStatus(order.paymentStatus)}`}
+                      {` · Payment ${formatPaymentStatusLabel(order.paymentStatus)}`}
                     </span>
                     <div className="order-card__foot-actions">
-                      {order.status === 'Delivered' ? (
+                      <button
+                        type="button"
+                        className={`order-card__foot-link${isExpanded ? ' order-card__foot-link--active' : ''}`}
+                        onClick={() => toggleExpand(order.id)}
+                        aria-expanded={isExpanded}
+                        aria-controls={`order-expand-${order.id}`}
+                      >
+                        {isExpanded ? 'Hide details' : 'View details'}
+                      </button>
+                      {status === 'Delivered' ? (
                         <Link to="/collections" className="order-card__foot-link">
                           Shop again
                         </Link>
@@ -378,6 +364,14 @@ function Order() {
                       )}
                     </div>
                   </footer>
+
+                  {isExpanded ? (
+                    <OrderDetailPanel
+                      order={order}
+                      onOrderUpdated={handleOrderUpdated}
+                      onClose={() => setExpandedId(null)}
+                    />
+                  ) : null}
                 </article>
               </li>
             )
@@ -389,6 +383,13 @@ function Order() {
 
   return (
     <div id="main-content" className="page-shell" tabIndex={-1}>
+      {invoiceOrder ? (
+        <OrderInvoicePrint
+          order={invoiceOrder}
+          shipping={invoiceOrder.shipping || {}}
+          items={invoiceOrder.items || []}
+        />
+      ) : null}
       <SiteHeader />
 
       <div className="account-page orders-page section-container">

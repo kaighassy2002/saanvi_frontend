@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import {
   STORE_NAME,
   SUPPORT_EMAIL,
@@ -43,6 +44,11 @@ function ContactCard({ icon, label, hint, href, children, featured, wide, extern
 
 function Contact() {
   const whatsappHref = whatsappUrl('Hi, I would like help with Aashmika Designs.')
+
+  usePageMeta({
+    title: 'Contact',
+    description: `Contact ${STORE_NAME} for orders, sizing, shipping, and returns. Email, phone, and WhatsApp support.`,
+  })
 
   return (
     <div className="page-shell">

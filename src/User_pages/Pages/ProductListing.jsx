@@ -28,6 +28,8 @@ import {
   productMatchesFacet,
 } from '../../services/collectionProductAttributes'
 import { productIsInStock } from '../../services/productVariants'
+import { usePageMeta } from '../../hooks/usePageMeta'
+import { STORE_NAME } from '../../services/storefrontConstants'
 import '../Styles/collection.css'
 
 const SKELETON_COUNT = 8
@@ -78,6 +80,27 @@ function ProductListing() {
 
   const selectedCategory = searchParams.get('category') || 'All'
   const searchTerm = (searchParams.get('search') || '').trim()
+
+  const listingMeta = useMemo(() => {
+    if (searchTerm) {
+      return {
+        title: `Search: ${searchTerm}`,
+        description: `Search results for “${searchTerm}” at ${STORE_NAME}.`,
+      }
+    }
+    if (selectedCategory && selectedCategory !== 'All') {
+      return {
+        title: selectedCategory,
+        description: `Shop ${selectedCategory} jewellery at ${STORE_NAME}. Filter by price, colour, and availability.`,
+      }
+    }
+    return {
+      title: 'Shop collections',
+      description: `Browse our full jewellery collection at ${STORE_NAME}. Necklaces, earrings, rings, and more.`,
+    }
+  }, [searchTerm, selectedCategory])
+
+  usePageMeta(listingMeta)
   const searchTermLower = searchTerm.toLowerCase()
 
   const priceBounds = useMemo(() => {

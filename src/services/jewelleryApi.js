@@ -185,6 +185,26 @@ export async function fetchBackendMyOrders() {
   return Array.isArray(data?.orders) ? data.orders : []
 }
 
+export async function fetchBackendOrderById(orderId) {
+  return jewelleryFetch(`/api/auth/orders/${encodeURIComponent(orderId)}`, { auth: 'customer' })
+}
+
+export async function requestOrderCancellation(orderId, note = '') {
+  return jewelleryFetch(`/api/auth/orders/${encodeURIComponent(orderId)}/cancel-request`, {
+    method: 'POST',
+    body: { note },
+    auth: 'customer',
+  })
+}
+
+export async function requestOrderReturn(orderId, note = '') {
+  return jewelleryFetch(`/api/auth/orders/${encodeURIComponent(orderId)}/return-request`, {
+    method: 'POST',
+    body: { note },
+    auth: 'customer',
+  })
+}
+
 // --- Admin ---
 
 export async function adminLoginRequest(email, password) {

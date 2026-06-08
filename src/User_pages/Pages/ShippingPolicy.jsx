@@ -4,6 +4,7 @@ import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
 import { useStoreSettings } from '../../context/storeSettingsContext'
+import { usePageMeta } from '../../hooks/usePageMeta'
 import {
   formatInr,
   STORE_NAME,
@@ -18,6 +19,11 @@ const LAST_UPDATED = '25 May 2026'
 
 function ShippingPolicy() {
   const { freeShippingThreshold, shippingFee } = useStoreSettings()
+
+  usePageMeta({
+    title: 'Shipping & Delivery',
+    description: `Shipping policy for ${STORE_NAME} — delivery times, COD, free shipping thresholds, and courier partners across India.`,
+  })
 
   return (
     <div className="page-shell">

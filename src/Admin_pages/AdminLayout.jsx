@@ -1,59 +1,63 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { NavLink, Outlet, Navigate, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
 import { AdminToastProvider } from './shared/AdminToastProvider'
 import { getDashboardSummary } from './services/adminApi'
 import AdminBreadcrumbs from './components/AdminBreadcrumbs'
+import AdminTopBar from './components/AdminTopBar'
+import { AdminNavIcon } from './components/AdminNavIcons'
 
 const NAV_GROUPS = [
   {
     label: 'Home',
-    items: [{ to: '/admin', end: true, label: 'Dashboard', icon: '◆' }],
+    items: [{ to: '/admin', end: true, label: 'Dashboard', icon: 'dashboard' }],
   },
   {
     label: 'Sales',
-    items: [{ to: '/admin/orders', label: 'Orders', icon: '◎' }],
+    items: [{ to: '/admin/orders', label: 'Orders', icon: 'orders', badgeKey: 'processingOrders' }],
   },
   {
     label: 'Catalog',
     items: [
-      { to: '/admin/products', label: 'Products', icon: '✦' },
-      { to: '/admin/categories', label: 'Categories', icon: '◇' },
-      { to: '/admin/collections', label: 'Collections', icon: '▣' },
-      { to: '/admin/inventory', label: 'Inventory', icon: '⊞', badgeKey: 'lowStock' },
+      { to: '/admin/products', label: 'Products', icon: 'products' },
+      { to: '/admin/categories', label: 'Categories', icon: 'categories' },
+      { to: '/admin/collections', label: 'Collections', icon: 'collections' },
+      { to: '/admin/inventory', label: 'Inventory', icon: 'inventory', badgeKey: 'lowStock' },
     ],
   },
   {
     label: 'Customers',
-    items: [{ to: '/admin/customers', label: 'Customers', icon: '○' }],
+    items: [{ to: '/admin/customers', label: 'Customers', icon: 'customers' }],
   },
   {
     label: 'Marketing',
     items: [
-      { to: '/admin/merchandising', label: 'Merchandising', icon: '★' },
-      { to: '/admin/reviews', label: 'Reviews', icon: '¶', badgeKey: 'pendingReviews' },
+      { to: '/admin/merchandising', label: 'Merchandising', icon: 'merchandising' },
+      { to: '/admin/reviews', label: 'Reviews', icon: 'reviews', badgeKey: 'pendingReviews' },
     ],
   },
   {
     label: 'Insights',
-    items: [{ to: '/admin/analytics', label: 'Analytics', icon: '▤' }],
+    items: [{ to: '/admin/analytics', label: 'Analytics', icon: 'analytics' }],
   },
   {
     label: 'Settings',
     items: [
-      { to: '/admin/settings', label: 'Store settings', icon: '⚙' },
-      { to: '/admin/coupons', label: 'Coupons', icon: '%' },
-      { to: '/admin/size-charts', label: 'Size charts', icon: '↔' },
+      { to: '/admin/settings', label: 'Store settings', icon: 'settings' },
+      { to: '/admin/size-charts', label: 'Size charts', icon: 'size-charts' },
     ],
   },
 ]
 
 function AdminLayoutInner() {
+  usePageMeta({ title: 'Admin', noIndex: true })
+
   const { isAdmin, logout, profile, authFetch } = useAdminAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [badges, setBadges] = useState({ pendingReviews: 0, lowStock: 0 })
+  const [badges, setBadges] = useState({ pendingReviews: 0, lowStock: 0, processingOrders: 0 })
 
   const breadcrumbs = useMemo(() => {
     const path = location.pathname.replace(/\/$/, '') || '/admin'
@@ -102,9 +106,10 @@ function AdminLayoutInner() {
       setBadges({
         pendingReviews: Number(s.pendingReviews) || 0,
         lowStock: Number(s.lowStockCount) || 0,
+        processingOrders: Number(s.processingOrders) || 0,
       })
     } catch {
-      setBadges({ pendingReviews: 0, lowStock: 0 })
+      setBadges({ pendingReviews: 0, lowStock: 0, processingOrders: 0 })
     }
   }, [authFetch])
 
@@ -121,15 +126,15 @@ function AdminLayoutInner() {
 
   const sidebar = (
     <>
-      <div className="mb-6 px-1">
-        <span className="font-playfair text-lg text-ink">Aashmika Designs</span>
-        <span className="block text-xs text-muted mt-0.5">Store Admin</span>
+      <div className="mb-5 px-2">
+        <span className="font-playfair text-base text-ink tracking-wide">Aashmika Designs</span>
+        <span className="block text-[10px] uppercase tracking-[0.14em] text-muted mt-0.5">Admin</span>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto">
+      <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
+            <p className="px-2.5 mb-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted/80">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -142,21 +147,15 @@ function AdminLayoutInner() {
                     end={end}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                        isActive
-                          ? 'bg-[#f4e8db] text-ink font-medium'
-                          : 'text-muted hover:text-ink hover:bg-[#faf7f2]'
-                      }`
+                      `admin-nav-link ${isActive ? 'admin-nav-link--active' : ''}`
                     }
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="text-[10px] opacity-70">{icon}</span>
-                      {label}
+                    <span className="admin-nav-link__icon">
+                      <AdminNavIcon name={icon} />
                     </span>
+                    <span className="truncate">{label}</span>
                     {badge > 0 ? (
-                      <span className="rounded-full bg-[#7a2c3a] px-1.5 py-0.5 text-[10px] font-medium text-white">
-                        {badge > 99 ? '99+' : badge}
-                      </span>
+                      <span className="admin-nav-badge">{badge > 99 ? '99+' : badge}</span>
                     ) : null}
                   </NavLink>
                 )
@@ -166,17 +165,17 @@ function AdminLayoutInner() {
         ))}
       </nav>
 
-      <div className="mt-auto pt-4 border-t border-[#e8d5c0]">
-        <p className="text-xs text-muted mb-1 truncate">{profile?.email}</p>
-        <p className="text-[10px] text-muted mb-2 capitalize">{profile?.role || 'admin'}</p>
-        <div className="flex flex-col gap-2">
-          <Link to="/" className="text-xs text-muted hover:text-ink" target="_blank" rel="noreferrer">
+      <div className="mt-auto pt-3 border-t border-[#e8d5c0]">
+        <p className="text-[11px] text-muted mb-0.5 truncate px-1">{profile?.email}</p>
+        <p className="text-[10px] text-muted mb-2 capitalize px-1">{profile?.role || 'admin'}</p>
+        <div className="flex flex-col gap-1.5 px-1">
+          <Link to="/" className="text-[11px] text-muted hover:text-ink transition" target="_blank" rel="noreferrer">
             View storefront →
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="text-left text-sm text-muted hover:text-red-600 transition"
+            className="text-left text-[11px] text-muted hover:text-[#7a2c3a] transition"
           >
             Sign out
           </button>
@@ -187,7 +186,7 @@ function AdminLayoutInner() {
 
   return (
     <div className="min-h-screen flex bg-[#faf7f2]">
-      <aside className="hidden lg:flex w-60 bg-white border-r border-[#e8d5c0] flex-col py-6 px-4 shrink-0 sticky top-0 h-screen">
+      <aside className="hidden lg:flex w-[220px] bg-[#fffdf9] border-r border-[#e8d5c0] flex-col py-5 px-3 shrink-0 sticky top-0 h-screen print:hidden">
         {sidebar}
       </aside>
 
@@ -199,18 +198,18 @@ function AdminLayoutInner() {
             aria-label="Close menu"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative w-64 max-w-[85vw] h-full bg-white border-r border-[#e8d5c0] flex flex-col py-6 px-4 shadow-xl">
+          <aside className="relative w-[240px] max-w-[85vw] h-full bg-[#fffdf9] border-r border-[#e8d5c0] flex flex-col py-5 px-3 shadow-xl">
             {sidebar}
           </aside>
         </div>
       ) : null}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-[#e8d5c0] bg-white px-4 py-3">
+        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-[#e8d5c0] bg-[#fffdf9] px-4 py-2.5 print:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg border border-[#d8c4a7] px-3 py-1.5 text-sm"
+            className="rounded-lg border border-[#d8c4a7] px-3 py-1.5 text-xs"
           >
             Menu
           </button>
@@ -220,8 +219,12 @@ function AdminLayoutInner() {
           </Link>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-          <AdminBreadcrumbs items={breadcrumbs} />
+        <AdminTopBar profile={profile} badges={badges} />
+
+        <main className="flex-1 p-4 sm:p-5 lg:p-6 overflow-auto">
+          {location.pathname.replace(/\/$/, '') !== '/admin' ? (
+            <AdminBreadcrumbs items={breadcrumbs} />
+          ) : null}
           <Outlet context={{ refreshBadges: loadBadges }} />
         </main>
       </div>

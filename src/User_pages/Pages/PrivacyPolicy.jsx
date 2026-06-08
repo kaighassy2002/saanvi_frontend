@@ -1,5 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../../hooks/usePageMeta'
+import { STORE_NAME } from '../../services/storefrontConstants'
 import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
@@ -25,6 +27,11 @@ const sections = [
 ]
 
 function PrivacyPolicy() {
+  usePageMeta({
+    title: 'Privacy Policy',
+    description: `How ${STORE_NAME} collects, uses, and protects your personal data when you shop on our website.`,
+  })
+
   return (
     <div className="page-shell">
       <SiteHeader showSearch={false} />

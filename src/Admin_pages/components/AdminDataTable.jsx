@@ -41,7 +41,7 @@ function AdminDataTable({ columns, children, loading, emptyMessage = 'No data ye
 
   return (
     <div className="overflow-x-auto rounded-xl border border-[#e8d5c0] bg-white">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[720px] text-left text-sm">
         <thead className="border-b border-[#e8d5c0] bg-[#faf7f2] font-playfair text-xs uppercase tracking-wide text-muted">
           <tr>
             {columns.map((col) => (
