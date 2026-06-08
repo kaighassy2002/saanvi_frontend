@@ -7,6 +7,9 @@ import {
 export const defaultStoreSettings = {
   shippingFee: DEFAULT_SHIPPING_FEE,
   freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
+  heroSlides: [],
+  featuredProductIds: [],
+  homeCategoryImages: [],
 }
 
 export const StoreSettingsContext = createContext({

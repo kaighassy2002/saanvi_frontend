@@ -166,7 +166,7 @@
   display: flex;
   align-items: center;
   gap: 0.15rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
 }
 
 .site-header__nav-link {
@@ -174,9 +174,9 @@
   align-items: center;
   padding: 0.5rem 0.85rem;
   border-radius: 999px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--nav-muted);
@@ -230,7 +230,7 @@
   border-radius: 999px;
   border: 1px solid var(--icon-border);
   background: #fff;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: #1f1514;
   outline: none;
@@ -345,7 +345,7 @@
   padding: 0 0.25rem;
   border-radius: 999px;
   background: linear-gradient(135deg, #f3d894, #c9a34a);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.5625rem;
   font-weight: 700;
   color: #241714;
@@ -366,7 +366,7 @@
   border-radius: 999px;
   border: 1px solid var(--icon-border);
   background: var(--icon-bg);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--nav-muted);
@@ -429,7 +429,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
 }
 
 .site-header__menu-actions {
@@ -457,7 +457,7 @@
   border-radius: 0.85rem;
   border: 1px solid #e8dcc8;
   background: #fff8ee;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -586,7 +586,7 @@
 
 .site-header__menu-account-name {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.9375rem;
   font-weight: 600;
   color: #1f1514;
@@ -599,7 +599,7 @@
 
 .site-header__menu-account-email {
   margin: 0.15rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   color: #9a8578;
   overflow: hidden;
@@ -626,7 +626,7 @@
   border: none;
   border-radius: 0.55rem;
   background: transparent;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-muted);
@@ -701,7 +701,7 @@
   border-radius: 999px;
   border: 1px solid #7a2c3a;
   background: linear-gradient(135deg, #7a2c3a, #5c1f2a);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -743,7 +743,7 @@
   border: none;
   border-radius: 0.5rem;
   background: transparent;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   color: var(--color-muted);
   text-align: left;

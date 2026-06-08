@@ -15,7 +15,7 @@ function AnnouncementBar({ variant = 'default' }) {
       }
     >
       <p
-        className={`px-4 py-2 font-playfair text-[11px] tracking-[0.06em] sm:text-xs ${
+        className={`px-4 py-2 font-sans text-xs font-medium tracking-wide sm:text-sm ${
           isHero ? 'text-[#f2dfbf]' : 'text-[#f5ead7]'
         }`}
       >

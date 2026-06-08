@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useCatalog } from '../../../hooks/useCatalog'
 import { useNewArrivals } from '../../../hooks/useNewArrivals'
 import { useWishlist } from '../../../hooks/useWishlist'
+import { useFeaturedProducts } from '../../../hooks/useFeaturedProducts'
+import { useReviewSummaries } from '../../../hooks/useReviewSummaries'
 import { getProductPrimaryImage } from '../../utils/productImages'
 import HomeProductCard from '../HomeProductCard'
 
@@ -18,9 +20,8 @@ function HomeMobileTrending() {
   const [activeTab, setActiveTab] = useState('featured')
   const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
+  const { products: featured, loading: featuredLoading } = useFeaturedProducts(GRID_SIZE)
   const { toggle, isInWishlist } = useWishlist()
-
-  const featured = useMemo(() => products.slice(0, GRID_SIZE), [products])
 
   const bestseller = useMemo(() => {
     return [...products]
@@ -49,7 +50,11 @@ function HomeMobileTrending() {
     activeTab === 'new' ? newProducts : activeTab === 'bestseller' ? bestseller : featured
 
   const loading =
-    (activeTab === 'new' ? newLoading : catalogLoading) && displayProducts.length === 0
+    (activeTab === 'new'
+      ? newLoading
+      : activeTab === 'featured'
+        ? featuredLoading
+        : catalogLoading) && displayProducts.length === 0
 
   const viewAllHref =
     activeTab === 'new'
@@ -57,6 +62,8 @@ function HomeMobileTrending() {
       : activeTab === 'bestseller'
         ? '/collections?sort=price-high'
         : '/collections'
+
+  const reviewSummaries = useReviewSummaries(displayProducts.map((p) => p.id))
 
   return (
     <section className="home-mobile-section" aria-label="Trending products">
@@ -99,6 +106,7 @@ function HomeMobileTrending() {
             <HomeProductCard
               key={product.id}
               product={product}
+              reviewSummary={reviewSummaries[String(product.id)]}
               saved={isInWishlist(product.id)}
               onToggleWishlist={() =>
                 toggle({

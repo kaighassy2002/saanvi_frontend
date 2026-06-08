@@ -14,7 +14,7 @@ function FreeShippingProgress({ subtotal }) {
 
   return (
     <div className="rounded-xl border border-[#e3d1b4] bg-[#fff6eb] px-4 py-3">
-      <p className="font-playfair text-sm text-ink">
+      <p className="font-sans text-sm leading-relaxed text-ink">
         {qualified ? (
           <>
             <i className="fa-solid fa-circle-check mr-1.5 text-success" aria-hidden />
@@ -41,7 +41,7 @@ function FreeShippingProgress({ subtotal }) {
         />
       </div>
       {!qualified ? (
-        <Link to="/collections" className="mt-2 inline-block font-playfair text-xs text-[#7a2c3a] hover:underline">
+        <Link to="/collections" className="mt-2 inline-block font-sans text-xs font-medium text-[#7a2c3a] hover:underline">
           Continue shopping
         </Link>
       ) : null}

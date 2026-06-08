@@ -67,15 +67,51 @@ export async function bulkProducts(authFetch, ids, action) {
   })
 }
 
+export async function duplicateProduct(authFetch, id) {
+  return authFetch(`/api/admin/products/${encodeURIComponent(id)}/duplicate`, { method: 'POST' })
+}
+
+export async function downloadProductsExport() {
+  const { API_BASE, STORAGE_KEYS } = await import('../../services/config')
+  const token = localStorage.getItem(STORAGE_KEYS.adminToken)
+  const res = await fetch(`${API_BASE}/api/admin/products/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error('Export failed')
+  return res.text()
+}
+
+export async function importProductsCsv(authFetch, csv) {
+  return authFetch('/api/admin/products/import', { method: 'POST', body: { csv } })
+}
+
 // --- Inventory ---
+
+export async function getAllStock(authFetch, params = {}) {
+  const data = await authFetch(`/api/admin/inventory/stock${buildQuery(params)}`)
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    categories: Array.isArray(data?.categories) ? data.categories : [],
+    total: Number(data?.total) || 0,
+  }
+}
 
 export async function getLowStock(authFetch) {
   const data = await authFetch('/api/admin/inventory/low-stock')
   return Array.isArray(data?.items) ? data.items : []
 }
 
+export async function getStockMovements(authFetch, params = {}) {
+  const data = await authFetch(`/api/admin/inventory/movements${buildQuery(params)}`)
+  return Array.isArray(data?.movements) ? data.movements : []
+}
+
 export async function adjustStock(authFetch, body) {
   return authFetch('/api/admin/inventory/adjust', { method: 'POST', body })
+}
+
+export async function submitStockTake(authFetch, body) {
+  return authFetch('/api/admin/inventory/stock-take', { method: 'POST', body })
 }
 
 // --- Orders ---

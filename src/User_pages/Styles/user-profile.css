@@ -23,7 +23,7 @@
 
 .account-page__hero-title {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.75rem;
   line-height: 1.15;
   color: #1f1514;
@@ -39,7 +39,7 @@
 .account-page__hero-sub {
   margin: 0.5rem 0 0;
   max-width: 32rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.6;
   color: #6f5d5b;
@@ -59,7 +59,7 @@
   border-radius: 999px;
   border: 1px solid #e3d1b4;
   background: #fff;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #7a2c3a;
@@ -125,7 +125,7 @@
   margin: 0 auto 0.85rem;
   border-radius: 999px;
   background: linear-gradient(145deg, #f3d894, #c9a34a 55%, #9f7a2c);
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.35rem;
   font-weight: 600;
   color: #241714;
@@ -134,14 +134,14 @@
 
 .account-profile-chip__name {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.125rem;
   color: #1f1514;
 }
 
 .account-profile-chip__email {
   margin: 0.35rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 1.4;
   color: #9a8578;
@@ -183,7 +183,7 @@
   border: none;
   border-radius: 0.65rem;
   background: transparent;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 500;
   color: #6f5d5b;
@@ -251,7 +251,7 @@
   border-radius: 999px;
   border: 1px solid #e3d1b4;
   background: #fff;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #6f5d5b;
@@ -291,7 +291,7 @@
 
 .account-panel__title {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.25rem;
   color: #1f1514;
 }
@@ -304,7 +304,7 @@
 
 .account-panel__desc {
   margin: 0.35rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: #9a8578;
 }
@@ -317,7 +317,7 @@
   border-radius: 999px;
   border: 1px solid #dcc6a6;
   background: #fffaf2;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #1f1514;
@@ -369,7 +369,7 @@
 
 .account-field__label {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -379,7 +379,7 @@
 
 .account-field__value {
   margin: 0.25rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.9375rem;
   line-height: 1.45;
   color: #1f1514;
@@ -390,7 +390,7 @@
   margin-bottom: 1rem;
   padding: 0.65rem 0.85rem;
   border-radius: 0.65rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
 }
 
@@ -446,7 +446,7 @@
   padding: 0.15rem 0.5rem;
   border-radius: 0.35rem;
   background: #faf0dc;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -489,7 +489,7 @@
 
 .account-address-card__line {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   line-height: 1.55;
   color: #6f5d5b;
@@ -508,7 +508,7 @@
 
 .account-form-block__title {
   margin: 0 0 1rem;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.0625rem;
   color: #1f1514;
 }
@@ -532,7 +532,7 @@
 
 .account-security-tip__text {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   line-height: 1.55;
   color: #6f5d5b;
@@ -581,7 +581,7 @@
   border-radius: 0.85rem;
   border: 1px dashed #e3d1b4;
   background: #fdfbf7;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   color: #9a8578;
 }

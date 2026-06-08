@@ -32,7 +32,7 @@
   border-radius: 9999px;
   border: 1px solid #c9a34a;
   background: #fff6eb;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
   color: #7a2c3a;

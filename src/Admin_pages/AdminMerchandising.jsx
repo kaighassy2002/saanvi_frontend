@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useAdminAuth } from '../context/AdminAuthProvider'
 import {
   getAdminSettings,
+  getCategories,
   getNewArrivals,
+  listCatalogCategories,
   listProductsAll,
   putAdminSettings,
   putNewArrivals,
@@ -11,6 +13,10 @@ import AdminPageHeader from './components/AdminPageHeader'
 import AdminErrorBanner from './components/AdminErrorBanner'
 import { useAdminToast } from './shared/AdminToastProvider'
 import { productImageUrl } from '../utils/cloudinaryImage'
+import HeroSlidesEditor from './components/HeroSlidesEditor'
+import HomePopularCategoriesEditor from './components/HomePopularCategoriesEditor'
+import { normalizeAdminHeroSlides } from '../services/homeMerchandising'
+import { buildHomeCategoryTilesForAdmin } from '../services/shopCategories'
 
 const MAX_NEW = 12
 const MAX_FEATURED = 12
@@ -68,6 +74,8 @@ function AdminMerchandising() {
   const [newIds, setNewIds] = useState([])
   const [featuredIds, setFeaturedIds] = useState([])
   const [heroSlides, setHeroSlides] = useState([])
+  const [heroUsingDefaults, setHeroUsingDefaults] = useState(false)
+  const [categoryTiles, setCategoryTiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -76,14 +84,28 @@ function AdminMerchandising() {
     setLoading(true)
     setError('')
     try {
-      const [ids, products, settings] = await Promise.all([
+      const [ids, products, settings, shopNames, catalogCategories] = await Promise.all([
         getNewArrivals(authFetch),
         listProductsAll(authFetch),
         getAdminSettings(authFetch),
+        getCategories(authFetch),
+        listCatalogCategories(authFetch),
       ])
       setNewIds(ids)
       setFeaturedIds(Array.isArray(settings.featuredProductIds) ? settings.featuredProductIds.map(String) : [])
-      setHeroSlides(Array.isArray(settings.heroSlides) ? settings.heroSlides : [])
+      const savedHero = Array.isArray(settings.heroSlides) ? settings.heroSlides : []
+      const hasSavedHero = savedHero.some(
+        (s) => String(s?.image || '').trim() || String(s?.title || '').trim()
+      )
+      setHeroSlides(normalizeAdminHeroSlides(savedHero))
+      setHeroUsingDefaults(!hasSavedHero)
+      setCategoryTiles(
+        buildHomeCategoryTilesForAdmin(
+          Array.isArray(shopNames) ? shopNames : [],
+          Array.isArray(catalogCategories) ? catalogCategories : [],
+          settings.homeCategoryImages || []
+        )
+      )
       setAllItems(products.filter((p) => p.published !== false))
     } catch (err) {
       setError(err?.message || 'Failed to load')
@@ -116,6 +138,27 @@ function AdminMerchandising() {
     }
   }
 
+  const saveHomeCategories = async () => {
+    setSaving(true)
+    try {
+      const settings = await getAdminSettings(authFetch)
+      await putAdminSettings(authFetch, {
+        ...settings,
+        homeCategoryImages: categoryTiles
+          .filter((tile) => tile.name && String(tile.image || '').trim())
+          .map((tile) => ({
+            name: String(tile.name).trim(),
+            image: String(tile.image).trim(),
+          })),
+      })
+      toast('Popular category images saved.')
+    } catch (err) {
+      toast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const saveFeaturedAndHero = async () => {
     setSaving(true)
     try {
@@ -125,6 +168,7 @@ function AdminMerchandising() {
         featuredProductIds: featuredIds,
         heroSlides: heroSlides.filter((s) => s.image || s.title),
       })
+      setHeroUsingDefaults(false)
       toast('Homepage settings saved.')
     } catch (err) {
       toast(err?.message || 'Save failed', 'error')
@@ -133,32 +177,24 @@ function AdminMerchandising() {
     }
   }
 
-  const addHeroSlide = () => {
-    setHeroSlides((p) => [...p, { image: '', title: '', subtitle: '', link: '' }])
-  }
-
-  const updateSlide = (index, field, value) => {
-    setHeroSlides((p) => p.map((s, i) => (i === index ? { ...s, [field]: value } : s)))
-  }
-
-  const removeSlide = (index) => {
-    setHeroSlides((p) => p.filter((_, i) => i !== index))
-  }
-
   const tabs = [
     { id: 'new', label: 'New arrivals' },
     { id: 'featured', label: 'Featured products' },
     { id: 'hero', label: 'Hero slides' },
+    { id: 'categories', label: 'Popular categories' },
   ]
+
+  const saveSection =
+    tab === 'new' ? saveNew : tab === 'categories' ? saveHomeCategories : saveFeaturedAndHero
 
   return (
     <div className="max-w-4xl">
       <AdminPageHeader
         title="Merchandising"
-        description="Control homepage sections: new arrivals, featured products, and hero carousel."
+        description="Control homepage sections: new arrivals, featured products, hero carousel, and category images."
         action={{
           label: saving ? 'Saving…' : 'Save section',
-          onClick: tab === 'new' ? saveNew : saveFeaturedAndHero,
+          onClick: saveSection,
         }}
       />
 
@@ -197,44 +233,19 @@ function AdminMerchandising() {
           max={MAX_FEATURED}
           label="Featured products"
         />
+      ) : tab === 'hero' ? (
+        <HeroSlidesEditor
+          slides={heroSlides}
+          onChange={setHeroSlides}
+          authFetch={authFetch}
+          usingDefaults={heroUsingDefaults}
+        />
       ) : (
-        <div className="space-y-4">
-          <p className="text-xs text-muted">Hero carousel slides (image URL, title, subtitle, link).</p>
-          {heroSlides.map((slide, index) => (
-            <div key={index} className="lux-card p-4 space-y-2">
-              <input
-                className="w-full rounded-lg border border-[#e8d5c0] px-3 py-2 text-sm"
-                placeholder="Image URL"
-                value={slide.image || ''}
-                onChange={(e) => updateSlide(index, 'image', e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#e8d5c0] px-3 py-2 text-sm"
-                placeholder="Title"
-                value={slide.title || ''}
-                onChange={(e) => updateSlide(index, 'title', e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#e8d5c0] px-3 py-2 text-sm"
-                placeholder="Subtitle"
-                value={slide.subtitle || ''}
-                onChange={(e) => updateSlide(index, 'subtitle', e.target.value)}
-              />
-              <input
-                className="w-full rounded-lg border border-[#e8d5c0] px-3 py-2 text-sm"
-                placeholder="Link (e.g. /collections)"
-                value={slide.link || ''}
-                onChange={(e) => updateSlide(index, 'link', e.target.value)}
-              />
-              <button type="button" onClick={() => removeSlide(index)} className="text-xs text-red-700">
-                Remove slide
-              </button>
-            </div>
-          ))}
-          <button type="button" onClick={addHeroSlide} className="text-sm text-muted underline">
-            + Add hero slide
-          </button>
-        </div>
+        <HomePopularCategoriesEditor
+          tiles={categoryTiles}
+          onChange={setCategoryTiles}
+          authFetch={authFetch}
+        />
       )}
     </div>
   )

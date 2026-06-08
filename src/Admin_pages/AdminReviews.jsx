@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   adminBulkReviews,
   adminDeleteReview,
@@ -12,11 +13,15 @@ const STATUS_OPTIONS = ['all', 'pending', 'approved', 'rejected']
 
 function AdminReviews() {
   const { toast } = useAdminToast()
+  const [searchParams] = useSearchParams()
+  const initialStatus = searchParams.get('status') || 'all'
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState(
+    STATUS_OPTIONS.includes(initialStatus) ? initialStatus : 'all'
+  )
   const [selected, setSelected] = useState(new Set())
   const [deleteTarget, setDeleteTarget] = useState(null)
 

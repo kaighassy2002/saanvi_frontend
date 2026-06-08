@@ -52,14 +52,16 @@ function StarRating({
   )
 }
 
-export function StarRatingCompact({ average, count, className = '' }) {
+export function StarRatingCompact({ average, count, className = '', showCount = true }) {
   if (!count || count <= 0) return null
   return (
     <div className={`inline-flex items-center gap-1.5 ${className}`}>
       <StarRating value={average} size="sm" />
-      <span className="font-playfair text-xs text-muted">
-        {average.toFixed(1)} ({count})
-      </span>
+      {showCount ? (
+        <span className="font-sans text-xs text-muted">
+          {average.toFixed(1)} ({count})
+        </span>
+      ) : null}
     </div>
   )
 }

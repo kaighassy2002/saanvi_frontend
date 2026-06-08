@@ -16,6 +16,7 @@ import { pushRecentlyViewed } from '../../services/recentlyViewed'
 import ProductImageGallery from '../Components/ProductImageGallery'
 import ColorVariantPicker from '../Components/ColorVariantPicker'
 import SizeVariantPicker from '../Components/SizeVariantPicker'
+import SizeChartModal from '../Components/SizeChartModal'
 import {
   formatCartItemName,
   getColorVariantOptions,
@@ -132,6 +133,7 @@ function ProductDetailView({ product }) {
   const [quantity, setQuantity] = useState(1)
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedSize, setSelectedSize] = useState('')
+  const [sizeChartOpen, setSizeChartOpen] = useState(false)
 
   const hasVariants = productHasVariants(product)
   const colorOptions = useMemo(() => getColorVariantOptions(product), [product])
@@ -230,7 +232,6 @@ function ProductDetailView({ product }) {
       color: line.variantLabel || specs.color || '',
       weight: specs.weight || '',
       length: specs.length || '',
-      certification: specs.certification || '',
       sizeOptions: Array.isArray(product.sizeOptions) ? product.sizeOptions.join(', ') : '',
       dimensions:
         product.dimensions && (product.dimensions.length || product.dimensions.width || product.dimensions.height)
@@ -395,14 +396,31 @@ function ProductDetailView({ product }) {
             ) : null}
 
             {requiresSize ? (
-              <SizeVariantPicker
-                sizes={sizeOptions}
-                selectedSize={selectedSize}
-                onSelect={setSelectedSize}
-              />
+              <div>
+                <SizeVariantPicker
+                  sizes={sizeOptions}
+                  selectedSize={selectedSize}
+                  onSelect={setSelectedSize}
+                />
+                {product.sizeChart ? (
+                  <button
+                    type="button"
+                    onClick={() => setSizeChartOpen(true)}
+                    className="mt-2 text-xs font-medium text-[#7a2c3a] hover:underline"
+                  >
+                    Size guide — {product.sizeChart.name}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
 
             <PurchaseBlock {...purchaseProps} className="product-detail__purchase--desktop" />
+
+            <SizeChartModal
+              chart={product.sizeChart}
+              open={sizeChartOpen}
+              onClose={() => setSizeChartOpen(false)}
+            />
 
             <TrustStrip className="product-detail__trust" />
 

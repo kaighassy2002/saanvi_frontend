@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../hooks/useShopCategories'
 import { categoryCollectionHref } from '../data/shopNav'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import { productImageUrl } from '../../utils/cloudinaryImage'
 
 function HomePopularCategories() {
   const ref = useScrollReveal()
@@ -13,7 +14,7 @@ function HomePopularCategories() {
     <section ref={ref} className="section-reveal border-t border-[#ebebeb] bg-[#fafafa] py-12 sm:py-16">
       <div className="section-container">
         <p className="text-overline text-center">Shop by mood</p>
-        <h2 className="mt-2 text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">
+        <h2 className="section-heading mt-2 text-center">
           Popular Categories
         </h2>
 
@@ -36,7 +37,7 @@ function HomePopularCategories() {
               >
                 <div className="jewelsium-category-circle">
                   <img
-                    src={category.image}
+                    src={productImageUrl(category.image, 'category')}
                     alt={category.name}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
                     loading="lazy"
@@ -53,7 +54,7 @@ function HomePopularCategories() {
         <div className="mt-12 text-center">
           <Link
             to="/collections"
-            className="inline-flex min-h-[44px] items-center bg-[#1f1514] px-10 py-3 font-playfair text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#3a151d]"
+            className="inline-flex min-h-[44px] items-center bg-[#1f1514] px-10 py-3 font-sans text-xs font-medium uppercase tracking-[0.14em] text-white transition hover:bg-[#3a151d]"
           >
             Shop all categories
           </Link>

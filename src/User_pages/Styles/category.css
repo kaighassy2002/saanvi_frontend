@@ -44,7 +44,7 @@
 }
 
 .category-title {
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 3rem;
   font-weight: 600;
   color: var(--black);
@@ -64,7 +64,7 @@
 }
 
 .category-subtitle {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1.1rem;
   color: #666;
   font-style: italic;
@@ -133,7 +133,7 @@
 }
 
 .category-name {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1rem; 
   font-weight: 500;
   color: var(--black);

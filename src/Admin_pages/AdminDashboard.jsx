@@ -7,6 +7,9 @@ import AdminStatusBadge from './components/AdminStatusBadge'
 import AdminErrorBanner from './components/AdminErrorBanner'
 import { RevenueLineChart, OrderStatusDonut } from './components/AdminDashboardCharts'
 import { AdminKpiIcon } from './components/AdminKpiIcons'
+import AdminDashboardActionQueue from './components/AdminDashboardActionQueue'
+import AdminDashboardPaymentSplit from './components/AdminDashboardPaymentSplit'
+import AdminDashboardCampaignPanel from './components/AdminDashboardCampaignPanel'
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -50,8 +53,16 @@ const ORDER_LANES = [
 ]
 
 const KPI_CONFIG = [
-  { key: 'revenue', icon: 'revenue', label: 'Total Revenue', field: 'revenue7d', format: formatPrice, to: '/admin/analytics', trendKey: 'revenue' },
-  { key: 'orders', icon: 'orders', label: 'Total Orders', field: 'orders7d', format: (v) => v, to: '/admin/orders', trendKey: 'orders' },
+  {
+    key: 'revenue',
+    icon: 'revenue',
+    label: 'Net Revenue',
+    getValue: (s) => formatPrice(s.revenue?.net ?? s.revenue7d ?? 0),
+    getSublabel: (s) => `Gross ${formatPrice(s.revenue?.gross ?? 0)}`,
+    to: '/admin/analytics',
+    trendKey: 'netRevenue',
+  },
+  { key: 'orders', icon: 'orders', label: 'Orders', field: 'orders7d', format: (v) => v, to: '/admin/orders', trendKey: 'orders' },
   { key: 'customers', icon: 'customers', label: 'Total Customers', field: 'customerCount', format: (v) => v, to: '/admin/customers', trendKey: 'customers' },
   { key: 'products', icon: 'products', label: 'Total Products', field: 'publishedCount', format: (v) => v, to: '/admin/products', trendKey: null },
   { key: 'pending', icon: 'pending', label: 'Active Orders', field: 'processingOrders', format: (v) => v, to: '/admin/orders?status=Placed', trendKey: 'processing' },
@@ -74,7 +85,7 @@ function KpiTrend({ value, periodLabel }) {
   )
 }
 
-function KpiTile({ icon, label, value, trend, periodLabel, to }) {
+function KpiTile({ icon, label, value, sublabel, trend, periodLabel, to }) {
   const inner = (
     <div className="admin-kpi-tile">
       <span className={`admin-kpi-tile__icon admin-kpi-tile__icon--${icon}`}>
@@ -83,6 +94,7 @@ function KpiTile({ icon, label, value, trend, periodLabel, to }) {
       <div className="admin-kpi-tile__body">
         <p className="admin-kpi-tile__label">{label}</p>
         <p className="admin-kpi-tile__value">{value}</p>
+        {sublabel ? <p className="admin-kpi-tile__sublabel">{sublabel}</p> : null}
         {trend != null ? <KpiTrend value={trend} periodLabel={periodLabel} /> : null}
       </div>
     </div>
@@ -141,6 +153,7 @@ function PeriodSelect({ value, onChange }) {
 function DashboardSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
+      <div className="h-36 rounded-xl bg-[#f4e8db]" />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="h-[88px] rounded-xl bg-[#f4e8db]" />
@@ -149,6 +162,10 @@ function DashboardSkeleton() {
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-8" />
         <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-4" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-4" />
+        <div className="h-72 rounded-xl bg-[#f4e8db] lg:col-span-8" />
       </div>
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="h-96 rounded-xl bg-[#f4e8db] lg:col-span-8" />
@@ -221,17 +238,28 @@ function AdminDashboard() {
         <DashboardSkeleton />
       ) : summary ? (
         <>
+          <AdminDashboardActionQueue actionQueue={summary.actionQueue} />
+
           <KpiRow
             periodLabel={periodLabel}
             items={KPI_CONFIG.map((kpi) => ({
               key: kpi.key,
               icon: kpi.icon,
               label: kpi.label,
-              value: kpi.format(summary[kpi.field] ?? 0),
+              value: kpi.getValue ? kpi.getValue(summary) : kpi.format(summary[kpi.field] ?? 0),
+              sublabel: kpi.getSublabel ? kpi.getSublabel(summary) : null,
               trend: kpi.trendKey ? trends[kpi.trendKey] : null,
               to: kpi.to,
             }))}
           />
+
+          {summary.revenue?.refunds > 0 ? (
+            <p className="mb-4 text-xs text-muted">
+              Refunds in period: {formatPrice(summary.revenue.refunds)} across{' '}
+              {summary.revenue.refundOrderCount || 0} order
+              {(summary.revenue.refundOrderCount || 0) === 1 ? '' : 's'}
+            </p>
+          ) : null}
 
           <div className="mb-4 grid gap-4 lg:grid-cols-12">
             <PanelCard
@@ -239,11 +267,28 @@ function AdminDashboard() {
               title="Sales Overview"
               action={<PeriodSelect value={days} onChange={setDays} />}
             >
+              <p className="px-4 pb-2 text-[11px] text-muted">Net revenue after refunds</p>
               <RevenueLineChart series={revenueSeries} formatPrice={formatPrice} />
             </PanelCard>
 
+            <PanelCard className="lg:col-span-4" title="Payment Split">
+              <div className="p-4 pt-0">
+                <AdminDashboardPaymentSplit paymentSplit={summary.paymentSplit} formatPrice={formatPrice} />
+              </div>
+            </PanelCard>
+          </div>
+
+          <div className="mb-4 grid gap-4 lg:grid-cols-12">
             <PanelCard className="lg:col-span-4" title="Orders Overview">
               <OrderStatusDonut statusCounts={orderOverview} lanes={ORDER_LANES} />
+            </PanelCard>
+
+            <PanelCard
+              className="lg:col-span-8"
+              title="Festival & Campaign Spotlight"
+              action={<ViewAllButton to="/admin/merchandising" />}
+            >
+              <AdminDashboardCampaignPanel campaignPerformance={summary.campaignPerformance} />
             </PanelCard>
           </div>
 

@@ -85,7 +85,7 @@
 
 .auth-page__visual-title {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.75rem;
   line-height: 1.2;
   color: #fff8ee;
@@ -94,7 +94,7 @@
 
 .auth-page__visual-text {
   margin: 0.85rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.9375rem;
   line-height: 1.65;
   color: rgba(249, 240, 229, 0.82);
@@ -113,7 +113,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.45;
   color: rgba(249, 240, 229, 0.9);
@@ -138,7 +138,7 @@
   margin-top: 2rem;
   padding-top: 1.25rem;
   border-top: 1px solid rgba(242, 217, 171, 0.2);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.75rem;
   color: rgba(249, 240, 229, 0.55);
 }
@@ -164,7 +164,7 @@
 
 .auth-page__eyebrow {
   margin: 0 0 0.35rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -174,14 +174,14 @@
 
 .auth-page__title {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.75rem;
   color: #1f1514;
 }
 
 .auth-page__subtitle {
   margin: 0.5rem 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.55;
   color: #6f5d5b;
@@ -196,7 +196,7 @@
   border-radius: 0.75rem;
   border: 1px solid #e3d1b4;
   background: #fff9f0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   line-height: 1.5;
   color: #1f1514;
@@ -223,7 +223,7 @@
   border: none;
   border-radius: 999px;
   background: transparent;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #6f5d5b;
@@ -245,7 +245,7 @@
   margin-bottom: 1rem;
   padding: 0.65rem 0.85rem;
   border-radius: 0.65rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
 }
 
@@ -280,7 +280,7 @@
 .auth-page__footer-hint {
   margin-top: 1.25rem;
   text-align: center;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: #9a8578;
 }
@@ -375,7 +375,7 @@
     border: none;
     border-bottom: 3px solid transparent;
     background: #faf6ef;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -400,7 +400,7 @@
 
   .auth-page__mobile-title {
     margin: 0;
-    font-family: 'Bodoni Moda', serif;
+    font-family: var(--font-bodoni);
     font-size: 1.5rem;
     line-height: 1.2;
     color: #1f1514;
@@ -409,7 +409,7 @@
 
   .auth-page__mobile-subtitle {
     margin: 0.5rem 0 0;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     line-height: 1.55;
     color: #6f5d5b;
@@ -434,7 +434,7 @@
     border-radius: 999px;
     background: #faf6ef;
     border: 1px solid #f0e6d8;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-sans);
     font-size: 0.6875rem;
     color: #6f5d5b;
   }
@@ -468,7 +468,7 @@
     display: block;
     margin-top: 1.25rem;
     text-align: center;
-    font-family: 'Playfair Display', serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     color: #9a8578;
   }

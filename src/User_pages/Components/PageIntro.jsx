@@ -8,9 +8,9 @@ function PageIntro({ eyebrow, title, subtitle, stats = [] }) {
       {eyebrow ? <p className="mb-3 text-kicker">{eyebrow}</p> : null}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="font-bodoni text-3xl text-ink sm:text-4xl md:text-5xl">{title}</h1>
+          <h1 className="font-bodoni text-3xl font-medium tracking-[0.04em] text-ink sm:text-4xl md:text-5xl">{title}</h1>
           {subtitle ? (
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+            <p className="text-helper mt-4 max-w-2xl sm:text-base">
               {subtitle}
             </p>
           ) : null}

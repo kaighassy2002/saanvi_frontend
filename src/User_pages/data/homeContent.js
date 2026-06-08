@@ -44,7 +44,7 @@ export const HOME_PROMO_BANNERS = [
 ]
 
 export const HOME_SERVICES = [
-  { icon: 'fa-paper-plane', title: 'Free Shipping', text: 'Orders over ₹2,999' },
+  { icon: 'fa-paper-plane', title: 'Free Shipping', text: 'On qualifying orders' },
   { icon: 'fa-rotate-left', title: 'Easy Returns', text: '7-day returns' },
   { icon: 'fa-wallet', title: 'Secure Pay', text: 'COD available' },
   { icon: 'fa-headset', title: 'Support', text: 'WhatsApp help' },

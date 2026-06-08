@@ -65,7 +65,7 @@ function CartDrawer({ open, onClose }) {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="font-playfair text-muted">Your bag is empty.</p>
+              <p className="text-helper">Your bag is empty.</p>
               <Link to="/collections" onClick={onClose} className="lux-button mt-4 inline-flex text-sm">
                 Start shopping
               </Link>
@@ -86,11 +86,11 @@ function CartDrawer({ open, onClose }) {
                     <Link
                       to={`/product/${item.productId}`}
                       onClick={onClose}
-                      className="line-clamp-2 font-playfair text-sm text-ink hover:text-[#7a2c3a]"
+                      className="line-clamp-2 font-sans text-sm font-medium text-ink hover:text-[#7a2c3a]"
                     >
                       {item.name}
                     </Link>
-                    <p className="mt-1 text-sm text-gold">₹{item.price.toLocaleString()}</p>
+                    <p className="text-price mt-1 text-sm">₹{item.price.toLocaleString()}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <div className="flex items-center rounded-full border border-[#d6c0a2]">
                         <button
@@ -130,12 +130,12 @@ function CartDrawer({ open, onClose }) {
           <div className="border-t border-[#eadfc9] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <FreeShippingProgress subtotal={totals.subtotal} />
             <div className="mt-4 flex items-center justify-between">
-              <span className="font-playfair text-sm text-muted">Subtotal</span>
+              <span className="text-meta text-sm">Subtotal</span>
               <span className="font-bodoni text-lg text-ink">₹{totals.subtotal.toLocaleString()}</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <span className="font-playfair text-sm text-muted">Shipping</span>
-              <span className="font-playfair text-sm text-ink">
+              <span className="text-meta text-sm">Shipping</span>
+              <span className="font-sans text-sm text-ink">
                 {totals.shipping > 0 ? `₹${totals.shipping.toLocaleString()}` : 'Free'}
               </span>
             </div>
@@ -145,7 +145,7 @@ function CartDrawer({ open, onClose }) {
             <Link
               to="/cart"
               onClick={onClose}
-              className="mt-3 block text-center font-playfair text-sm text-muted hover:text-[#7a2c3a]"
+              className="button-tertiary mt-3 block w-full text-center text-sm"
             >
               View full cart
             </Link>

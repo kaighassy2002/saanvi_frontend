@@ -22,27 +22,6 @@
   background: linear-gradient(180deg, var(--color-beige) 0%, var(--color-surface) 100%);
 }
 
-.jewelsium-hero .swiper-button-prev,
-.jewelsium-hero .swiper-button-next {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  color: var(--color-ink);
-  box-shadow: 0 4px 14px rgba(58, 21, 29, 0.1);
-}
-
-.jewelsium-hero .swiper-button-prev::after,
-.jewelsium-hero .swiper-button-next::after {
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.jewelsium-hero .swiper-button-disabled {
-  opacity: 0.35;
-}
-
 .jewelsium-hero .swiper-pagination {
   bottom: 1rem !important;
 }
@@ -112,17 +91,18 @@
 
 .jewelsium-service-card__title {
   margin: 0;
-  font-family: var(--font-playfair);
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--color-ink);
 }
 
 .jewelsium-service-card__text {
   margin: 0;
-  font-family: var(--font-playfair);
-  font-size: 0.76rem;
-  line-height: 1.35;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.5;
   color: var(--color-muted);
 }
 
@@ -138,9 +118,10 @@
 }
 
 .jewelsium-tabs__btn {
-  font-family: var(--font-playfair);
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
-  letter-spacing: 0.12em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-muted);
   padding: 0.5rem 0;

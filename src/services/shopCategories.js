@@ -28,14 +28,61 @@ export function imageForCategory(name) {
 }
 
 /**
- * @param {string[]} apiNames - category strings from GET /api/categories
- * @returns {{ name: string, image: string }[]}
+ * @param {string[]} apiNames - legacy shop filter names from GET /api/categories
+ * @param {{ name: string, image?: string, slug?: string }[]} [catalogCategories] - rich categories from GET /api/catalog/categories
+ * @returns {{ name: string, image: string, slug?: string }[]}
  */
-export function mergeCategoriesWithImages(apiNames) {
+export function mergeCategoriesWithImages(apiNames, catalogCategories = []) {
+  if (Array.isArray(catalogCategories) && catalogCategories.length > 0) {
+    return catalogCategories
+      .map((row) => {
+        const name = String(row.name || '').trim()
+        if (!name) return null
+        const image = String(row.image || '').trim() || imageForCategory(name)
+        return {
+          name,
+          image,
+          slug: row.slug || '',
+        }
+      })
+      .filter(Boolean)
+  }
+
   const names = Array.isArray(apiNames) && apiNames.length > 0 ? apiNames : FALLBACK_CATEGORY_NAMES
   const unique = [...new Set(names.map((n) => String(n).trim()).filter(Boolean))]
   return unique.map((name) => ({
     name,
     image: imageForCategory(name),
+  }))
+}
+
+/** Apply admin-uploaded home category images by category name. */
+export function applyHomeCategoryImageOverrides(categories, overrides) {
+  if (!Array.isArray(overrides) || overrides.length === 0) return categories
+  const byName = new Map(
+    overrides
+      .filter((row) => String(row?.name || '').trim() && String(row?.image || '').trim())
+      .map((row) => [String(row.name).trim(), String(row.image).trim()])
+  )
+  if (byName.size === 0) return categories
+
+  return categories.map((category) => {
+    const override = byName.get(category.name)
+    return override ? { ...category, image: override } : category
+  })
+}
+
+/** Rows for admin Popular Categories editor (home page circles). */
+export function buildHomeCategoryTilesForAdmin(legacyNames, catalogCategories, savedOverrides = []) {
+  const base = mergeCategoriesWithImages(legacyNames, catalogCategories)
+  const overrideMap = new Map(
+    (savedOverrides || [])
+      .filter((row) => String(row?.name || '').trim())
+      .map((row) => [String(row.name).trim(), String(row.image || '').trim()])
+  )
+
+  return base.map((category) => ({
+    name: category.name,
+    image: overrideMap.get(category.name) || category.image,
   }))
 }

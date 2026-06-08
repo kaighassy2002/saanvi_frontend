@@ -54,15 +54,19 @@ export function productHasVariants(product) {
   return Array.isArray(product?.variants) && product.variants.length > 0
 }
 
-/** Total units across variant SKUs, or parent stock when no variants. */
+export function availableUnits(stock, reserved) {
+  return Math.max(0, (Number(stock) || 0) - (Number(reserved) || 0))
+}
+
+/** Total sellable units across variant SKUs, or parent stock when no variants. */
 export function getProductAvailableStock(product) {
   if (productHasVariants(product)) {
     return getProductVariants(product).reduce(
-      (sum, v) => sum + Math.max(0, Number(v?.stock) || 0),
+      (sum, v) => sum + availableUnits(v?.stock, v?.reservedStock),
       0
     )
   }
-  return Math.max(0, Number(product?.stock) || 0)
+  return availableUnits(product?.stock, product?.reservedStock)
 }
 
 export function productIsInStock(product) {
@@ -115,7 +119,7 @@ export function getColorVariantOptions(product) {
     const color = getVariantColor(variant)
     if (!color) continue
     const size = getVariantSize(variant)
-    const stock = Math.max(0, Number(variant?.stock) || 0)
+    const stock = availableUnits(variant?.stock, variant?.reservedStock)
     const variantImages = Array.isArray(variant?.images) ? variant.images.filter(Boolean) : []
     const productImages = Array.isArray(product?.images) ? product.images.filter(Boolean) : []
 
@@ -172,8 +176,8 @@ export function getSizeOptionsForColor(product, color) {
     return getProductSizeList(product).map((size) => ({
       size,
       label: size,
-      stock: Math.max(0, Number(product?.stock) || 0),
-      inStock: Number(product?.stock) > 0,
+      stock: availableUnits(product?.stock, product?.reservedStock),
+      inStock: availableUnits(product?.stock, product?.reservedStock) > 0,
     }))
   }
 
@@ -182,11 +186,13 @@ export function getSizeOptionsForColor(product, color) {
 
 export function resolveProductLine(product, color = '', size = '') {
   const basePrice = Math.max(0, Number(product?.price) || 0)
-  const baseStock = Math.max(0, Number(product?.stock) || 0)
+  const baseStock = availableUnits(product?.stock, product?.reservedStock)
   const images = Array.isArray(product?.images) ? product.images.filter(Boolean) : []
   const baseImage = images[0] || product?.image || ''
 
   const hasMatrix = productHasVariants(product)
+  const productCert = product?.certification || {}
+
   if (!hasMatrix) {
     return {
       variantKey: '',
@@ -197,6 +203,8 @@ export function resolveProductLine(product, color = '', size = '') {
       stock: baseStock,
       image: baseImage,
       images,
+      sku: String(product?.sku || '').trim(),
+      certification: productCert,
     }
   }
 
@@ -226,9 +234,11 @@ export function resolveProductLine(product, color = '', size = '') {
     size: vSize,
     variantLabel: [vColor, vSize].filter(Boolean).join(' · '),
     price: Number.isFinite(variantPrice) && variantPrice > 0 ? variantPrice : basePrice,
-    stock: Math.max(0, Number(variant.stock) || 0),
+    stock: availableUnits(variant.stock, variant.reservedStock),
     image: variantImages[0] || baseImage,
     images: gallery,
+    sku: String(variant.sku || product?.sku || '').trim(),
+    certification: variant.certification || productCert,
   }
 }
 

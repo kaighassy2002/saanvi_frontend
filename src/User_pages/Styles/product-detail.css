@@ -43,10 +43,10 @@
 
 .product-detail__category {
   display: inline-block;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #9a7a4d;
   transition: color 0.15s ease;
@@ -58,7 +58,7 @@
 
 .product-detail__title {
   margin: 0;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: clamp(1.75rem, 3vw, 2.35rem);
   line-height: 1.15;
   color: #1f1514;
@@ -78,11 +78,11 @@
 }
 
 .product-detail__price {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair);
   font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 700;
+  font-weight: 500;
   color: #1f1514;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
 }
 
 .product-detail__discount-badge {
@@ -91,7 +91,7 @@
   border-radius: 999px;
   background: var(--color-gold-dark);
   padding: 0.2rem 0.55rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair);
   font-size: 0.75rem;
   font-weight: 600;
   color: #fff;
@@ -103,7 +103,7 @@
   border-radius: 999px;
   background: #f5ead7;
   padding: 0.25rem 0.65rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair);
   font-size: 0.75rem;
   font-weight: 500;
   color: #7a2c3a;
@@ -113,7 +113,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
 }
 
@@ -135,7 +135,7 @@
 
 .product-detail__variant-label {
   margin: 0 0 0.5rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: #5c4a3d;
 }
@@ -182,7 +182,7 @@
 .product-detail__color-swatch-text {
   padding: 0.2rem;
   text-align: center;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.625rem;
   line-height: 1.2;
   color: #1f1514;
@@ -200,7 +200,7 @@
   border: 1px solid #d6c0a2;
   background: #fffdf9;
   padding: 0.45rem 0.85rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: #1f1514;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -232,7 +232,7 @@
 
 .product-detail__purchase-label {
   margin: 0 0 0.75rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #6f5d5b;
@@ -277,7 +277,7 @@
 .product-detail__qty-value {
   min-width: 2.5rem;
   text-align: center;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -311,7 +311,7 @@
   border-radius: 999px;
   background: #1f1514;
   padding: 0.75rem 1.5rem;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
@@ -360,9 +360,10 @@
 
 .product-detail__description {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 0.9375rem;
-  line-height: 1.7;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
   color: #6f5d5b;
 }
 
@@ -380,7 +381,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  font-family: 'Bodoni Moda', serif;
+  font-family: var(--font-bodoni);
   font-size: 1.0625rem;
   color: #1f1514;
 }
@@ -391,7 +392,7 @@
 
 .product-detail__specs summary::after {
   content: '+';
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1.25rem;
   color: #9a8578;
 }
@@ -421,13 +422,13 @@
 
 .product-detail__specs-row dt {
   color: #9a8578;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
 }
 
 .product-detail__specs-row dd {
   margin: 0;
   text-align: right;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-weight: 500;
   color: #1f1514;
 }

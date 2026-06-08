@@ -64,6 +64,11 @@ export async function fetchBackendCategories() {
   return Array.isArray(data?.categories) ? data.categories : []
 }
 
+export async function fetchPublicCatalogCategories() {
+  const data = await jewelleryFetch('/api/catalog/categories')
+  return Array.isArray(data?.categories) ? data.categories : []
+}
+
 export async function fetchBackendProducts() {
   const data = await jewelleryFetch('/api/products')
   return Array.isArray(data?.products) ? data.products : []

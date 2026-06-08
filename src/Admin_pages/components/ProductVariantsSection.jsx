@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import ProductImageUpload from './ProductImageUpload'
 import { productImageUrl } from '../../utils/cloudinaryImage'
-import { EMPTY_COLOR_ROW, parseSizesInput } from '../../services/variantMatrixForm'
+import { EMPTY_COLOR_ROW, EMPTY_SKU_DETAIL, parseSizesInput } from '../../services/variantMatrixForm'
 
 const ic =
   'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/30 transition-colors'
@@ -58,6 +58,13 @@ export default function ProductVariantsSection({ form, setField, fieldErrors, au
     const row = colorMatrix[colorIndex] || EMPTY_COLOR_ROW()
     const stocks = { ...(row.stocks || {}), [size]: value }
     updateColorRow(colorIndex, { stocks })
+  }
+
+  const updateSkuDetail = (colorIndex, sizeKey, patch) => {
+    const row = colorMatrix[colorIndex] || EMPTY_COLOR_ROW()
+    const skuDetails = { ...(row.skuDetails || {}) }
+    skuDetails[sizeKey] = { ...EMPTY_SKU_DETAIL(), ...(skuDetails[sizeKey] || {}), ...patch }
+    updateColorRow(colorIndex, { skuDetails })
   }
 
   const addColor = () => updateMatrix([...colorMatrix, EMPTY_COLOR_ROW()])
@@ -225,6 +232,33 @@ export default function ProductVariantsSection({ form, setField, fieldErrors, au
                         updateColorRow(colorIndex, { imagesMeta: value })
                       }}
                     />
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted">SKU codes</p>
+                    {sizes.length === 0 ? (
+                      <Field label="SKU">
+                        <input
+                          className={ic}
+                          value={row.skuDetails?.['']?.sku || ''}
+                          placeholder="e.g. ASD-RING-6"
+                          onChange={(e) => updateSkuDetail(colorIndex, '', { sku: e.target.value })}
+                        />
+                      </Field>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {sizes.map((size) => (
+                          <Field key={size} label={`SKU — size ${size}`}>
+                            <input
+                              className={ic}
+                              value={row.skuDetails?.[size]?.sku || ''}
+                              placeholder={`SKU for ${size}`}
+                              onChange={(e) => updateSkuDetail(colorIndex, size, { sku: e.target.value })}
+                            />
+                          </Field>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>

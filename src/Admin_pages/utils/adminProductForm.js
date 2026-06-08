@@ -8,6 +8,13 @@ import {
 
 const EMPTY_SPECS = { material: '', color: '', weight: '', length: '', certification: '' }
 const EMPTY_SHIPPING = { weight: '', length: '', width: '', height: '', unit: 'cm', freeShipping: false }
+function formatPublishAtInput(raw) {
+  if (!raw) return ''
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export function productToForm(product) {
   if (!product) {
@@ -30,7 +37,6 @@ export function productToForm(product) {
       color: '',
       weight: '',
       length: '',
-      certification: '',
       sizeOptions: '',
       dimensionsLength: '',
       dimensionsWidth: '',
@@ -50,6 +56,8 @@ export function productToForm(product) {
       shippingHeight: '',
       shippingUnit: 'cm',
       freeShipping: false,
+      sizeChartId: '',
+      publishAt: '',
     }
   }
 
@@ -95,7 +103,6 @@ export function productToForm(product) {
     color: specs.color || '',
     weight: specs.weight || product.weight || '',
     length: specs.length || '',
-    certification: specs.certification || '',
     sizeOptions: matrix.hasVariants ? '' : Array.isArray(product.sizeOptions) ? product.sizeOptions.join(', ') : '',
     dimensionsLength: product.dimensions?.length || '',
     dimensionsWidth: product.dimensions?.width || '',
@@ -122,6 +129,8 @@ export function productToForm(product) {
     shippingHeight: ship.height || '',
     shippingUnit: ship.unit || 'cm',
     freeShipping: !!ship.freeShipping,
+    sizeChartId: String(product.sizeChartId || '').trim(),
+    publishAt: formatPublishAtInput(product.publishAt),
   }
 }
 
@@ -222,7 +231,7 @@ export function formToApiBody(form) {
     color: hasVariants ? '' : String(form.color || '').trim(),
     weight,
     length: String(form.length || '').trim(),
-    certification: String(form.certification || '').trim(),
+    certification: '',
   }
 
   let imagesMeta = (Array.isArray(form.imagesMeta) ? form.imagesMeta : [])
@@ -285,6 +294,9 @@ export function formToApiBody(form) {
     subcategory: String(form.subcategory || '').trim(),
     tags,
     price: Number(form.price),
+    useMakingChargePricing: false,
+    metalValue: 0,
+    makingCharge: 0,
     discountType: 'none',
     discountValue: 0,
     images,
@@ -302,6 +314,14 @@ export function formToApiBody(form) {
     lowStockThreshold: Number(form.lowStockThreshold) || 5,
     published: !!form.published,
     featured: !!form.featured,
+    publishAt: String(form.publishAt || '').trim() || null,
+    sizeChartId: String(form.sizeChartId || '').trim(),
+    certification: {
+      bisHallmark: false,
+      bisLicense: '',
+      diamondCertUrl: '',
+      diamondCertNumber: '',
+    },
     seoTitle: String(form.seoTitle || '').trim(),
     seoDescription: String(form.seoDescription || '').trim(),
     seoKeywords,

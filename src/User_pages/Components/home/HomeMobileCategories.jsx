@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../../hooks/useShopCategories'
 import { categoryCollectionHref } from '../../data/shopNav'
+import { productImageUrl } from '../../../utils/cloudinaryImage'
 
 function HomeMobileCategories() {
   const { categories, loading } = useShopCategories()
@@ -32,7 +33,7 @@ function HomeMobileCategories() {
               >
                 <div className="home-mobile-cat-card__img-wrap">
                   <img
-                    src={category.image}
+                    src={productImageUrl(category.image, 'category')}
                     alt=""
                     className="home-mobile-cat-card__img"
                     loading="lazy"

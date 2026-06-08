@@ -9,7 +9,7 @@ function HomePromoBanners() {
     <section ref={ref} className="section-container section-reveal py-10 sm:py-14">
       <div className="mb-7 text-center sm:mb-9">
         <p className="text-overline">Curated offers</p>
-        <h2 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Signature savings</h2>
+        <h2 className="section-heading mt-2">Signature savings</h2>
       </div>
       <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
         {HOME_PROMO_BANNERS.map((banner) => (
@@ -29,8 +29,8 @@ function HomePromoBanners() {
               <p className="font-playfair text-[10px] uppercase tracking-[0.16em] text-white/90 sm:text-xs">
                 {banner.label}
               </p>
-              <h2 className="mt-1 font-bodoni text-xl capitalize sm:text-2xl">{banner.title}</h2>
-              <span className="mt-3 inline-block border-b border-white pb-0.5 font-playfair text-xs uppercase tracking-[0.12em] transition group-hover:border-[#f3d894] group-hover:text-[#f3d894]">
+              <h2 className="mt-1 font-bodoni text-xl font-medium tracking-[0.03em] capitalize text-white sm:text-2xl">{banner.title}</h2>
+              <span className="mt-3 inline-block border-b border-white pb-0.5 font-sans text-xs font-medium uppercase tracking-[0.14em] transition group-hover:border-[#f3d894] group-hover:text-[#f3d894]">
                 Shop now
               </span>
             </div>

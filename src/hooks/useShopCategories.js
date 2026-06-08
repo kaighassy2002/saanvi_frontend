@@ -1,28 +1,45 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useStoreSettings } from '../context/storeSettingsContext'
 import { USE_LOCAL_API } from '../services/config'
-import { fetchBackendCategories } from '../services/jewelleryApi'
+import {
+  fetchBackendCategories,
+  fetchPublicCatalogCategories,
+} from '../services/jewelleryApi'
 import { getLocalCategories } from '../services/localCatalog'
-import { mergeCategoriesWithImages } from '../services/shopCategories'
+import {
+  applyHomeCategoryImageOverrides,
+  mergeCategoriesWithImages,
+} from '../services/shopCategories'
 
 export function useShopCategories() {
-  const [categories, setCategories] = useState([])
+  const { homeCategoryImages } = useStoreSettings()
+  const [rawCategories, setRawCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const categories = useMemo(
+    () => applyHomeCategoryImageOverrides(rawCategories, homeCategoryImages),
+    [rawCategories, homeCategoryImages]
+  )
 
   const load = useCallback(async () => {
     setError('')
     setLoading(true)
     try {
-      let names = []
       if (USE_LOCAL_API) {
-        names = getLocalCategories()
-      } else {
-        names = await fetchBackendCategories()
+        const names = getLocalCategories()
+        setRawCategories(mergeCategoriesWithImages(names))
+        return
       }
-      setCategories(mergeCategoriesWithImages(names))
+
+      const [catalogCategories, legacyNames] = await Promise.all([
+        fetchPublicCatalogCategories().catch(() => []),
+        fetchBackendCategories().catch(() => []),
+      ])
+      setRawCategories(mergeCategoriesWithImages(legacyNames, catalogCategories))
     } catch (e) {
       setError(e?.message || 'Could not load categories')
-      setCategories(mergeCategoriesWithImages([]))
+      setRawCategories(mergeCategoriesWithImages([]))
     } finally {
       setLoading(false)
     }

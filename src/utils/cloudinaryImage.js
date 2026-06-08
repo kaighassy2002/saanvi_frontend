@@ -10,16 +10,21 @@ export const PRODUCT_IMAGE_ASPECT = 4 / 5
 const PAD_BG = 'f8f2e7'
 
 const PRESETS = {
-  card: { width: 640, height: 800 },
-  gallery: { width: 1200, height: 1500 },
-  lightbox: { width: 1600, height: 2000 },
-  thumb: { width: 120, height: 150 },
-  adminPreview: { width: 400, height: 500 },
+  card: { width: 640, height: 800, mode: 'pad' },
+  gallery: { width: 1200, height: 1500, mode: 'pad' },
+  lightbox: { width: 1600, height: 2000, mode: 'pad' },
+  thumb: { width: 120, height: 150, mode: 'pad' },
+  adminPreview: { width: 400, height: 500, mode: 'pad' },
+  hero: { width: 1200, height: 1500, mode: 'fill' },
+  category: { width: 400, height: 400, mode: 'fill' },
 }
 
 const UPLOAD_MARKER = '/image/upload/'
 
-function buildTransform({ width, height }) {
+function buildTransform({ width, height, mode = 'pad' }) {
+  if (mode === 'fill') {
+    return `c_fill,w_${width},h_${height},g_auto,f_auto,q_auto`
+  }
   return `c_pad,w_${width},h_${height},b_rgb:${PAD_BG},f_auto,q_auto`
 }
 
@@ -62,7 +67,7 @@ function insertCloudinaryTransform(url, transform) {
 
 /**
  * @param {string} url
- * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview'} [preset]
+ * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview' | 'hero' | 'category'} [preset]
  * @returns {string}
  */
 export function productImageUrl(url, preset = 'card') {

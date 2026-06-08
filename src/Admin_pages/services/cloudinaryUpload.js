@@ -2,8 +2,16 @@
  * Signed direct upload to Cloudinary (progress via XMLHttpRequest).
  */
 
-export async function getCloudinaryUploadParams(authFetch) {
-  return authFetch('/api/admin/upload/cloudinary-signature')
+/**
+ * @param {Function} authFetch
+ * @param {'product' | 'hero' | 'category'} [purpose]
+ */
+export async function getCloudinaryUploadParams(authFetch, purpose = 'product') {
+  const q =
+    purpose && purpose !== 'product'
+      ? `?purpose=${encodeURIComponent(purpose)}`
+      : ''
+  return authFetch(`/api/admin/upload/cloudinary-signature${q}`)
 }
 
 /**

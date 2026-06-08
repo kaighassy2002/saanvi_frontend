@@ -42,10 +42,10 @@ function StoreProductCard({
 
   const bodyAlign = isHome ? 'text-center' : ''
   const titleClass = isCompact
-    ? 'line-clamp-2 font-sans text-[11px] leading-snug text-muted'
+    ? 'line-clamp-2 font-sans text-xs leading-snug font-medium text-ink'
     : isHome
-      ? 'line-clamp-2 font-playfair text-sm leading-snug text-ink transition group-hover:text-royal-700'
-      : 'collection-card__title line-clamp-2 font-playfair text-sm leading-snug text-ink'
+      ? 'line-clamp-2 font-sans text-sm leading-snug font-medium text-ink transition group-hover:text-royal-700'
+      : 'collection-card__title line-clamp-2 font-sans text-sm leading-snug font-medium text-ink'
 
   return (
     <article className={articleClass}>
@@ -101,14 +101,9 @@ function StoreProductCard({
           <StarRatingCompact
             average={reviewSummary.average}
             count={reviewSummary.count}
+            showCount={!isHome}
             className={`${isHome ? 'mt-1.5 justify-center' : isCompact ? 'mt-1' : 'mt-1.5'}`}
           />
-        ) : isHome ? (
-          <div className="mt-1.5 flex justify-center gap-0.5 text-beige-dark" aria-hidden>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <i key={i} className="fa-regular fa-star text-xs" />
-            ))}
-          </div>
         ) : null}
 
         <div

@@ -4,7 +4,10 @@ import { useAdminAuth } from '../context/AdminAuthProvider'
 import {
   bulkProducts,
   deleteProduct,
+  downloadProductsExport,
+  duplicateProduct,
   getCategories,
+  importProductsCsv,
   listProducts,
 } from './services/adminApi'
 import { useAdminToast } from './shared/AdminToastProvider'
@@ -38,6 +41,9 @@ function AdminProducts() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [importBusy, setImportBusy] = useState(false)
+  const [duplicatingId, setDuplicatingId] = useState(null)
+  const fileInputRef = React.useRef(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -104,6 +110,54 @@ function AdminProducts() {
     }
   }
 
+  const handleExport = async () => {
+    try {
+      const csv = await downloadProductsExport()
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'products.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Products exported.')
+    } catch (e) {
+      toast(e?.message || 'Export failed', 'error')
+    }
+  }
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportBusy(true)
+    try {
+      const csv = await file.text()
+      const result = await importProductsCsv(authFetch, csv)
+      const msg = `Import done: ${result.created} created, ${result.updated} updated.`
+      toast(result.errors?.length ? `${msg} ${result.errors.length} issue(s).` : msg)
+      if (result.errors?.length) console.warn('Import errors:', result.errors)
+      await load()
+    } catch (err) {
+      toast(err?.message || 'Import failed', 'error')
+    } finally {
+      setImportBusy(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleDuplicate = async (productId) => {
+    setDuplicatingId(productId)
+    try {
+      const copy = await duplicateProduct(authFetch, productId)
+      toast('Product duplicated as draft.')
+      navigate(`/admin/products/${encodeURIComponent(copy.id)}/edit`)
+    } catch (e) {
+      toast(e?.message || 'Duplicate failed', 'error')
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
@@ -144,7 +198,29 @@ function AdminProducts() {
 
       <AdminErrorBanner message={error} onRetry={load} />
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleExport}
+          className="rounded-lg border border-[#d8c4a7] bg-white px-3 py-2 text-xs hover:bg-[#f7ecee]"
+        >
+          Export CSV
+        </button>
+        <button
+          type="button"
+          disabled={importBusy}
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded-lg border border-[#d8c4a7] bg-white px-3 py-2 text-xs hover:bg-[#f7ecee] disabled:opacity-60"
+        >
+          {importBusy ? 'Importing…' : 'Import CSV'}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={handleImportFile}
+        />
         <input
           type="search"
           placeholder="Search name, SKU, category…"
@@ -250,7 +326,11 @@ function AdminProducts() {
                   <span
                     className={`text-xs ${p.published !== false ? 'text-emerald-700' : 'text-muted'}`}
                   >
-                    {p.published !== false ? 'Published' : 'Draft'}
+                    {p.publishAt && new Date(p.publishAt) > new Date()
+                      ? 'Scheduled'
+                      : p.published !== false
+                        ? 'Published'
+                        : 'Draft'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -261,6 +341,14 @@ function AdminProducts() {
                       className="rounded-lg border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee]"
                     >
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={duplicatingId === p.id}
+                      onClick={() => handleDuplicate(p.id)}
+                      className="rounded-lg border border-[#d8c4a7] px-2 py-1 text-xs hover:bg-[#f7ecee] disabled:opacity-60"
+                    >
+                      {duplicatingId === p.id ? '…' : 'Duplicate'}
                     </button>
                     <button
                       type="button"

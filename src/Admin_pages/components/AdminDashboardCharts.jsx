@@ -215,6 +215,9 @@ export function RevenueLineChart({ series = [], formatPrice }) {
         >
           <p className="text-[10px] text-[#f8f1e6]/80">{formatShortDate(active.date)}</p>
           <p className="font-semibold">{formatPrice(active.revenue)}</p>
+          {active.gross > active.revenue ? (
+            <p className="text-[10px] text-[#f8f1e6]/70">Gross {formatPrice(active.gross)}</p>
+          ) : null}
         </div>
       ) : null}
 
@@ -246,6 +249,37 @@ export function OrderStatusDonut({ statusCounts = {}, lanes = [] }) {
         <>
           <span className="font-sans text-lg font-semibold text-ink leading-tight">{total}</span>
           <span className="text-[10px] text-muted">Total</span>
+        </>
+      }
+    />
+  )
+}
+
+const PAYMENT_COLORS = {
+  COD: '#9f7a2c',
+  Prepaid: '#5a6b52',
+}
+
+export function PaymentSplitChart({ cod = {}, prepaid = {}, formatPrice }) {
+  const { segments, total } = useMemo(() => {
+    const entries = [
+      { name: 'COD', value: Number(cod.revenue) || 0 },
+      { name: 'Prepaid', value: Number(prepaid.revenue) || 0 },
+    ]
+    const segs = buildDonutSegments(entries, PAYMENT_COLORS)
+    const sum = (Number(cod.orders) || 0) + (Number(prepaid.orders) || 0)
+    return { segments: segs, total: sum }
+  }, [cod, prepaid])
+
+  return (
+    <DonutChart
+      segments={segments}
+      total={total}
+      formatValue={(seg) => formatPrice(seg.value)}
+      centerContent={
+        <>
+          <span className="font-sans text-lg font-semibold text-ink leading-tight">{total}</span>
+          <span className="text-[10px] text-muted">Orders</span>
         </>
       }
     />

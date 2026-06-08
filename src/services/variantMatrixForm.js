@@ -4,10 +4,15 @@
 
 import { buildVariantKey, getVariantColor, getVariantSize } from './productVariants'
 
+const EMPTY_SKU_DETAIL = () => ({
+  sku: '',
+})
+
 const EMPTY_COLOR_ROW = () => ({
   colorName: '',
   imagesMeta: [],
   stocks: {},
+  skuDetails: {},
 })
 
 export function parseSizesInput(raw) {
@@ -43,13 +48,18 @@ export function variantsToMatrixForm(variants, productSizes = []) {
         colorName: color,
         imagesMeta: urls.map((url) => ({ url, alt: '' })),
         stocks: {},
+        skuDetails: {},
       })
     }
     const row = colorMap.get(color)
+    const sizeKey = size || ''
     if (size) {
       row.stocks[size] = String(v.stock ?? '')
     } else {
       row.stocks[''] = String(v.stock ?? '')
+    }
+    row.skuDetails[sizeKey] = {
+      sku: String(v.sku || '').trim(),
     }
     const urls = Array.isArray(v.images) ? v.images.filter(Boolean) : []
     if (urls.length > 0 && row.imagesMeta.length === 0) {
@@ -87,26 +97,34 @@ export function matrixFormToVariants(form) {
     const imageUrls = imagesFromRow(row)
     const stocks = row?.stocks && typeof row.stocks === 'object' ? row.stocks : {}
 
+    const skuDetails = row?.skuDetails && typeof row.skuDetails === 'object' ? row.skuDetails : {}
+
     if (sizes.length === 0) {
       const stock = Math.max(0, Number(stocks['']) || 0)
+      const detail = skuDetails[''] || EMPTY_SKU_DETAIL()
       variants.push({
         name: buildVariantKey(colorName, ''),
-        sku: '',
+        sku: String(detail.sku || '').trim(),
         price: 0,
         stock,
         images: imageUrls,
-        attributes: [
-          { key: 'Color', value: colorName },
-        ],
+        attributes: [{ key: 'Color', value: colorName }],
+        certification: {
+          bisHallmark: false,
+          bisLicense: '',
+          diamondCertUrl: '',
+          diamondCertNumber: '',
+        },
       })
       continue
     }
 
     for (const size of sizes) {
       const stock = Math.max(0, Number(stocks[size]) || 0)
+      const detail = skuDetails[size] || EMPTY_SKU_DETAIL()
       variants.push({
         name: buildVariantKey(colorName, size),
-        sku: '',
+        sku: String(detail.sku || '').trim(),
         price: 0,
         stock,
         images: imageUrls,
@@ -114,6 +132,12 @@ export function matrixFormToVariants(form) {
           { key: 'Color', value: colorName },
           { key: 'Size', value: size },
         ],
+        certification: {
+          bisHallmark: false,
+          bisLicense: '',
+          diamondCertUrl: '',
+          diamondCertNumber: '',
+        },
       })
     }
   }
@@ -140,4 +164,4 @@ export function totalMatrixStock(form) {
   return total
 }
 
-export { EMPTY_COLOR_ROW }
+export { EMPTY_COLOR_ROW, EMPTY_SKU_DETAIL }

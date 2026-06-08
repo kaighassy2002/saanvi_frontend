@@ -14,7 +14,7 @@ function NewArrivals() {
   if (loading && newArrivals.length === 0) {
     return (
       <section className="section-container pb-16 pt-12 sm:pt-16">
-        <p className="text-center font-playfair text-muted">Loading new arrivals…</p>
+        <p className="text-helper text-center">Loading new arrivals…</p>
       </section>
     )
   }
@@ -24,7 +24,7 @@ function NewArrivals() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-overline">New Arrivals</p>
-          <h2 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Fresh Picks For This Week</h2>
+          <h2 className="section-heading mt-2">Fresh Picks For This Week</h2>
           <p className="mt-3 max-w-2xl text-helper">
             Newly added pieces curated for festive styling and everyday elegance.
           </p>

@@ -1,21 +1,60 @@
 import { getVariantColor } from './productVariants'
 
-const COLOR_KEYWORDS = [
-  ['rose gold', 'Rose Gold'],
-  ['white gold', 'White Gold'],
-  ['yellow gold', 'Yellow Gold'],
-  ['gold', 'Gold'],
-  ['sterling silver', 'Silver'],
-  ['silver', 'Silver'],
-  ['platinum', 'Platinum'],
-  ['emerald', 'Emerald'],
-  ['ruby', 'Ruby'],
-  ['sapphire', 'Sapphire'],
-  ['pearl', 'Pearl'],
-  ['diamond', 'Diamond'],
-  ['meenakari', 'Meenakari'],
-  ['multicolor', 'Multicolor'],
+/** Standard colours shown in the collection sidebar filter */
+export const COMMON_FILTER_COLORS = [
+  'Gold',
+  'Rose Gold',
+  'Silver',
+  'Red',
+  'Green',
+  'Blue',
+  'White',
+  'Purple',
+  'Pink',
+  'Black',
+  'Brown',
+  'Multicolor',
 ]
+
+/** Maps free-text / variant labels → common filter colour (longest match first) */
+const COLOR_ALIASES = [
+  ['antique gold', 'Gold'],
+  ['rose gold', 'Rose Gold'],
+  ['white gold', 'Gold'],
+  ['yellow gold', 'Gold'],
+  ['ruby red', 'Red'],
+  ['sterling silver', 'Silver'],
+  ['multicolour', 'Multicolor'],
+  ['multicolor', 'Multicolor'],
+  ['meenakari', 'Multicolor'],
+  ['emerald', 'Green'],
+  ['sapphire', 'Blue'],
+  ['maroon', 'Red'],
+  ['crimson', 'Red'],
+  ['burgundy', 'Red'],
+  ['navy', 'Blue'],
+  ['teal', 'Blue'],
+  ['violet', 'Purple'],
+  ['magenta', 'Pink'],
+  ['gold', 'Gold'],
+  ['silver', 'Silver'],
+  ['ruby', 'Red'],
+  ['pearl', 'White'],
+  ['diamond', 'White'],
+  ['ivory', 'White'],
+  ['cream', 'White'],
+  ['purple', 'Purple'],
+  ['green', 'Green'],
+  ['blue', 'Blue'],
+  ['red', 'Red'],
+  ['pink', 'Pink'],
+  ['white', 'White'],
+  ['black', 'Black'],
+  ['brown', 'Brown'],
+  ['orange', 'Red'],
+]
+
+const COLOR_KEYWORDS = COLOR_ALIASES
 
 /** Fixed list shown in collection material filter */
 export const BASIC_MATERIALS = ['Gold', 'Silver', 'Rose Gold', 'Platinum', 'Brass']
@@ -74,19 +113,69 @@ export function buildBasicMaterialFacetOptions(products) {
   )
 }
 
-/** All colour labels for a product (variants + single spec colour). */
-export function getProductColorLabels(product) {
-  const variants = Array.isArray(product?.variants) ? product.variants : []
-  const fromVariants = variants.map((v) => getVariantColor(v)).filter(Boolean)
-  if (fromVariants.length > 0) return [...new Set(fromVariants)]
+function parseColorTokens(raw) {
+  return [
+    ...new Set(
+      String(raw || '')
+        .split(/[,/&]|(?:\s+and\s+)/i)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    ),
+  ]
+}
 
-  const stored = String(product?.specifications?.color || product?.color || '').trim()
-  if (stored) return [stored]
-  const inferred = inferFromKeywords(
-    `${product?.name || ''} ${product?.description || ''}`,
-    COLOR_KEYWORDS
-  )
-  return inferred ? [inferred] : []
+function normalizeColorToken(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return ''
+
+  const exact = COMMON_FILTER_COLORS.find((c) => c.toLowerCase() === text.toLowerCase())
+  if (exact) return exact
+
+  const inferred = inferFromKeywords(text, COLOR_ALIASES)
+  if (inferred && COMMON_FILTER_COLORS.includes(inferred)) return inferred
+
+  const titled = text
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+  if (COMMON_FILTER_COLORS.includes(titled)) return titled
+
+  return ''
+}
+
+function normalizeColorLabels(rawLabels) {
+  const normalized = new Set()
+  for (const raw of rawLabels) {
+    for (const token of parseColorTokens(raw)) {
+      const color = normalizeColorToken(token)
+      if (color) normalized.add(color)
+    }
+  }
+  return [...normalized]
+}
+
+/** All common colour labels for a product (variants + spec colour, comma-separated values split). */
+export function getProductColorLabels(product) {
+  const rawLabels = []
+  const variants = Array.isArray(product?.variants) ? product.variants : []
+  for (const variant of variants) {
+    const color = getVariantColor(variant)
+    if (color) rawLabels.push(color)
+  }
+
+  if (rawLabels.length === 0) {
+    const stored = String(product?.specifications?.color || product?.color || '').trim()
+    if (stored) rawLabels.push(stored)
+    else {
+      const inferred = inferFromKeywords(
+        `${product?.name || ''} ${product?.description || ''}`,
+        COLOR_KEYWORDS
+      )
+      if (inferred) rawLabels.push(inferred)
+    }
+  }
+
+  return normalizeColorLabels(rawLabels)
 }
 
 /** Primary colour label for display (first variant or spec colour). */
@@ -102,17 +191,17 @@ export function productMatchesColorFacet(product, selectedColors) {
   return selectedColors.some((s) => labels.includes(String(s).toLowerCase()))
 }
 
-/** @returns {{ value: string, count: number }[]} — counts each colour variant separately */
+/** @returns {{ value: string, count: number }[]} — common colours only, fixed display order */
 export function buildColorFacetOptions(products) {
-  const counts = {}
+  const counts = Object.fromEntries(COMMON_FILTER_COLORS.map((c) => [c, 0]))
   for (const product of products) {
     for (const value of getProductColorLabels(product)) {
-      counts[value] = (counts[value] || 0) + 1
+      if (counts[value] != null) counts[value] += 1
     }
   }
-  return Object.entries(counts)
-    .map(([value, count]) => ({ value, count }))
-    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+  return COMMON_FILTER_COLORS.map((value) => ({ value, count: counts[value] })).filter(
+    (option) => option.count > 0
+  )
 }
 
 /** @returns {{ value: string, count: number }[]} */

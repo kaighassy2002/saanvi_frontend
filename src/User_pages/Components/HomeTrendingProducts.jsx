@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useCatalog } from '../../hooks/useCatalog'
 import { useNewArrivals } from '../../hooks/useNewArrivals'
 import { useWishlist } from '../../hooks/useWishlist'
+import { useReviewSummaries } from '../../hooks/useReviewSummaries'
+import { useFeaturedProducts } from '../../hooks/useFeaturedProducts'
 import { getProductPrimaryImage } from '../utils/productImages'
 import HomeProductCard from './HomeProductCard'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
@@ -30,9 +32,8 @@ function HomeTrendingProducts() {
   const [activeTab, setActiveTab] = useState('featured')
   const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
+  const { products: featured, loading: featuredLoading } = useFeaturedProducts(GRID_SIZE)
   const { toggle, isInWishlist } = useWishlist()
-
-  const featured = useMemo(() => products.slice(0, GRID_SIZE), [products])
 
   const bestseller = useMemo(() => {
     return [...products]
@@ -61,12 +62,18 @@ function HomeTrendingProducts() {
     activeTab === 'new' ? newProducts : activeTab === 'bestseller' ? bestseller : featured
 
   const loading =
-    (activeTab === 'new' ? newLoading : catalogLoading) && displayProducts.length === 0
+    (activeTab === 'new'
+      ? newLoading
+      : activeTab === 'featured'
+        ? featuredLoading
+        : catalogLoading) && displayProducts.length === 0
+
+  const reviewSummaries = useReviewSummaries(displayProducts.map((p) => p.id))
 
   return (
     <section ref={ref} className="section-container section-reveal py-10 sm:py-16">
       <p className="text-overline text-center">Most loved picks</p>
-      <h2 className="mt-2 text-center font-bodoni text-3xl text-[#1f1514] sm:text-4xl">
+      <h2 className="section-heading mt-2 text-center">
         Trending Products
       </h2>
 
@@ -97,10 +104,10 @@ function HomeTrendingProducts() {
         </div>
       ) : displayProducts.length === 0 ? (
         <div className="mt-10 border border-[#ebebeb] bg-[#fafafa] p-10 text-center">
-          <p className="font-playfair text-muted">No products to show yet.</p>
+          <p className="text-helper text-center">No products to show yet.</p>
           <Link
             to="/collections"
-            className="mt-4 inline-flex min-h-[44px] items-center bg-[#1f1514] px-8 py-2.5 font-playfair text-xs uppercase tracking-[0.12em] text-white"
+            className="mt-4 inline-flex min-h-[44px] items-center bg-[#1f1514] px-8 py-2.5 font-sans text-xs font-medium uppercase tracking-[0.14em] text-white"
           >
             Browse shop
           </Link>
@@ -114,6 +121,7 @@ function HomeTrendingProducts() {
             <HomeProductCard
               key={product.id}
               product={product}
+              reviewSummary={reviewSummaries[String(product.id)]}
               saved={isInWishlist(product.id)}
               onToggleWishlist={() =>
                 toggle({
@@ -137,7 +145,7 @@ function HomeTrendingProducts() {
                 ? '/collections?sort=discount'
                 : '/collections'
           }
-          className="inline-flex border-b border-[#1f1514] pb-1 font-playfair text-sm uppercase tracking-[0.1em] text-[#1f1514] transition hover:text-[#7a2c3a] hover:border-[#7a2c3a]"
+          className="inline-flex border-b border-[#1f1514] pb-1 font-sans text-sm font-medium uppercase tracking-[0.12em] text-[#1f1514] transition hover:border-[#7a2c3a] hover:text-[#7a2c3a]"
         >
           View all products
         </Link>
