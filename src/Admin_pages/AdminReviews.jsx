@@ -113,19 +113,19 @@ function AdminReviews() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <header className="admin-page-header">
         <div>
-          <h1 className="font-bodoni text-2xl text-ink">Reviews</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="admin-page-title">Reviews</h1>
+          <p className="admin-page-lead">
             Moderate customer reviews before they appear on the storefront.
           </p>
         </div>
         {pendingCount > 0 ? (
-          <span className="rounded-full bg-[#fff6eb] px-3 py-1 font-playfair text-sm text-[#9a3412]">
+          <span className="admin-body rounded-full bg-[#fff6eb] px-3 py-1 font-medium text-[#9a3412]">
             {pendingCount} pending
           </span>
         ) : null}
-      </div>
+      </header>
 
       {error ? (
         <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
@@ -174,7 +174,7 @@ function AdminReviews() {
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#e8d5c0] bg-white">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-[#e8d5c0] bg-[#faf7f2] font-playfair text-xs uppercase tracking-wide text-muted">
+            <thead className="border-b border-[#e8d5c0] bg-[#faf7f2]">
               <tr>
                 <th className="px-4 py-3 w-8">
                   <input
@@ -184,12 +184,12 @@ function AdminReviews() {
                     aria-label="Select all"
                   />
                 </th>
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Rating</th>
-                <th className="px-4 py-3">Review</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className="admin-table-head px-4 py-3">Product</th>
+                <th className="admin-table-head px-4 py-3">Customer</th>
+                <th className="admin-table-head px-4 py-3">Rating</th>
+                <th className="admin-table-head px-4 py-3">Review</th>
+                <th className="admin-table-head px-4 py-3">Status</th>
+                <th className="admin-table-head px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>

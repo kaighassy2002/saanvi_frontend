@@ -114,7 +114,7 @@ function AdminCoupons() {
       <AdminErrorBanner message={error} onRetry={load} />
 
       <form onSubmit={handleSubmit} className="lux-card p-5 mb-6 space-y-3">
-        <h2 className="font-playfair text-sm">{editId ? 'Edit' : 'New'} coupon</h2>
+        <h2 className="admin-section-title text-base">{editId ? 'Edit' : 'New'} coupon</h2>
         <input className={inputClass} placeholder="Code *" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required />
         <div className="grid grid-cols-2 gap-3">
           <select className={inputClass} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>

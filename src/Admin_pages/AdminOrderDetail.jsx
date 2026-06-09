@@ -476,9 +476,9 @@ function AdminOrderDetail() {
         <section className="admin-order-hero mb-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Order detail</p>
-              <h1 className="font-bodoni text-2xl text-ink mt-1">{order.id}</h1>
-              <p className="text-sm text-muted mt-1">
+              <p className="admin-eyebrow">Order detail</p>
+              <h1 className="admin-page-title mt-1">{order.id}</h1>
+              <p className="admin-page-lead">
                 {formatDateTime(order.placedAt || order.date || order.createdAt)}
               </p>
               {order.cancellationRequestedAt ? (
@@ -846,7 +846,7 @@ function AdminOrderDetail() {
               onSubmit={handleRefund}
               className="w-full max-w-md rounded-xl border border-[#e8d5c0] bg-white p-5 shadow-xl space-y-3"
             >
-              <h3 className="font-bodoni text-lg text-ink">Process refund</h3>
+              <h3 className="admin-section-title">Process refund</h3>
               <p className="text-xs text-muted">
                 Max refundable: {formatPrice(maxRefund)}
                 {refundedTotal > 0 ? ` (${formatPrice(refundedTotal)} already refunded)` : ''}

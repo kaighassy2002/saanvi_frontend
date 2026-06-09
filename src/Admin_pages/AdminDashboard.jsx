@@ -10,6 +10,7 @@ import { AdminKpiIcon } from './components/AdminKpiIcons'
 import AdminDashboardActionQueue from './components/AdminDashboardActionQueue'
 import AdminDashboardPaymentSplit from './components/AdminDashboardPaymentSplit'
 import AdminDashboardCampaignPanel from './components/AdminDashboardCampaignPanel'
+import AdminPageHeader from './components/AdminPageHeader'
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -223,14 +224,14 @@ function AdminDashboard() {
 
   return (
     <div className="admin-dashboard">
-      <div className="admin-dashboard-header">
-        <div>
-          <h1 className="font-bodoni text-2xl text-ink">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-muted">
-            Welcome back, <span className="text-ink">{displayName}</span>!
-          </p>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Dashboard"
+        description={
+          <>
+            Welcome back, <span className="font-medium text-ink">{displayName}</span>!
+          </>
+        }
+      />
 
       <AdminErrorBanner message={error} onRetry={load} />
 

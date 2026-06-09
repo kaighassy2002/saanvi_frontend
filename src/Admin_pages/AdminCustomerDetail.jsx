@@ -109,9 +109,9 @@ function AdminCustomerDetail() {
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-bodoni text-2xl text-ink">{name}</h1>
-          <p className="text-sm text-muted mt-1">{user.email}</p>
-          {user.phone ? <p className="text-sm text-muted">{user.phone}</p> : null}
+          <h1 className="admin-page-title">{name}</h1>
+          <p className="admin-page-lead">{user.email}</p>
+          {user.phone ? <p className="admin-body-sm">{user.phone}</p> : null}
         </div>
         <div className="flex gap-2">
           <button
@@ -126,7 +126,7 @@ function AdminCustomerDetail() {
 
       <div className="grid gap-6 lg:grid-cols-2 mb-8">
         <section className="lux-card p-5 space-y-3">
-          <h2 className="font-playfair text-sm text-ink">Admin notes</h2>
+          <h2 className="admin-section-title text-base">Admin notes</h2>
           <textarea
             rows={4}
             className={inputClass}
@@ -147,12 +147,12 @@ function AdminCustomerDetail() {
         </section>
         <section className="lux-card p-5">
           <p className="text-xs text-muted uppercase tracking-wide">Order history</p>
-          <p className="mt-2 font-playfair text-3xl text-ink">{orders.length}</p>
+          <p className="admin-metric mt-2 text-3xl">{orders.length}</p>
           <p className="text-sm text-muted">orders placed</p>
         </section>
       </div>
 
-      <h2 className="font-playfair text-lg text-ink mb-3">Orders</h2>
+      <h2 className="admin-section-title mb-3">Orders</h2>
       <AdminDataTable columns={orderColumns} loading={false} emptyMessage="No orders for this customer.">
         {orders.map((o) => (
           <tr

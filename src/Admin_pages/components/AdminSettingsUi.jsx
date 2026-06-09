@@ -6,7 +6,7 @@ export function SettingsSection({ title, description, children, action }) {
     <section className="rounded-xl border border-[#e8d5c0] bg-white overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#f0e6d6] px-5 py-4 bg-[#faf7f2]">
         <div>
-          <h3 className="font-playfair text-sm font-medium text-ink">{title}</h3>
+          <h3 className="admin-section-title text-base">{title}</h3>
           {description ? <p className="text-xs text-muted mt-0.5 max-w-xl">{description}</p> : null}
         </div>
         {action || null}

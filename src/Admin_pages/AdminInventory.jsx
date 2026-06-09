@@ -98,7 +98,7 @@ function AdjustModal({ row, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-[#e8d5c0] bg-white p-6">
-        <h2 className="font-playfair text-lg text-ink">Adjust stock</h2>
+        <h2 className="admin-section-title">Adjust stock</h2>
         <p className="text-sm text-muted mt-1">
           {row.name}
           {row.variantName ? ` · ${row.variantName}` : ''}

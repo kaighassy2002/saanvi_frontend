@@ -48,7 +48,7 @@ function SectionTitle({ icon, title, subtitle }) {
     <div className={sectionHeadCls}>
       <SectionIcon icon={icon} />
       <div>
-        <p className="font-playfair text-sm font-semibold text-ink leading-tight">{title}</p>
+        <p className="admin-body font-semibold leading-tight">{title}</p>
         {subtitle ? <p className="text-[11px] text-muted mt-0.5">{subtitle}</p> : null}
       </div>
     </div>
@@ -1036,15 +1036,15 @@ function AdminProductFormPage({ mode = 'new' }) {
           <Link to="/admin/products" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors mb-2">
             ← Products
           </Link>
-          <h1 className="font-bodoni text-2xl text-ink">
+          <h1 className="admin-page-title">
             {isEdit ? 'Edit product' : 'Add new product'}
           </h1>
           {isEdit ? (
-            <p className="mt-1 text-xs text-muted">
-              ID: <code className="font-mono bg-[#f0e6d6] px-1 rounded">{id}</code>
+            <p className="admin-page-lead">
+              ID: <code className="rounded bg-[#f0e6d6] px-1 font-mono text-xs">{id}</code>
             </p>
           ) : (
-            <p className="mt-1 text-xs text-muted">Fill in the details below to list a new product on the storefront.</p>
+            <p className="admin-page-lead">Fill in the details below to list a new product on the storefront.</p>
           )}
         </div>
         <div className="flex shrink-0 gap-2">

@@ -260,6 +260,179 @@ const PAYMENT_COLORS = {
   Prepaid: '#5a6b52',
 }
 
+const CATEGORY_COLORS = ['#c9a34a', '#9f7a2c', '#5a6b52', '#7a2c3a', '#b8956a', '#8a7a6e', '#d4b87a', '#6f5d5b']
+
+export function OrdersVolumeChart({ series = [] }) {
+  const [hoverIdx, setHoverIdx] = useState(null)
+
+  const max = useMemo(
+    () => Math.max(...series.map((s) => Number(s.orders) || 0), 1),
+    [series]
+  )
+
+  if (!series.length) {
+    return <p className="text-sm text-muted py-16 text-center">No orders for this period.</p>
+  }
+
+  const active = hoverIdx != null ? series[hoverIdx] : null
+  const yTicks = [0, 0.5, 1].map((pct) => Math.round(max * pct))
+
+  return (
+    <div className="relative">
+      <div className="flex gap-3">
+        <div className="flex flex-col justify-between py-1 text-[9px] tabular-nums text-muted">
+          {yTicks
+            .slice()
+            .reverse()
+            .map((tick) => (
+              <span key={tick}>{tick}</span>
+            ))}
+        </div>
+        <div className="relative flex-1">
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex h-44 flex-col justify-between">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="border-t border-dashed border-[#efe2d1]" />
+            ))}
+          </div>
+          <div className="relative flex h-44 items-end gap-1 px-0.5">
+            {series.map((point, i) => {
+              const orders = Number(point.orders) || 0
+              const heightPct = Math.max(orders > 0 ? 8 : 3, (orders / max) * 100)
+              return (
+                <div
+                  key={point.date}
+                  className="relative flex flex-1 flex-col items-center justify-end gap-1.5 min-w-0 h-full"
+                  onMouseEnter={() => setHoverIdx(i)}
+                  onMouseLeave={() => setHoverIdx(null)}
+                >
+                  <div
+                    className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 ${
+                      hoverIdx === i
+                        ? 'bg-[#9f7a2c] shadow-[0_-4px_12px_-2px_rgba(159,122,44,0.45)]'
+                        : 'bg-[linear-gradient(180deg,#d4b87a_0%,#c9a34a_100%)]'
+                    }`}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-2 flex gap-1 border-t border-[#f0e6d6] pt-2">
+            {series.map((point) => (
+              <span key={point.date} className="flex-1 truncate text-center text-[9px] text-muted font-sans">
+                {formatShortDate(point.date)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {active ? (
+        <div className="admin-chart-tooltip static mt-3 w-fit mx-auto translate-x-0 translate-y-0 pointer-events-auto">
+          <p className="text-[10px] text-[#f8f1e6]/80">{formatShortDate(active.date)}</p>
+          <p className="font-semibold tabular-nums">
+            {Number(active.orders) || 0} order{(Number(active.orders) || 0) === 1 ? '' : 's'}
+          </p>
+          {active.revenue != null ? (
+            <p className="text-[10px] text-[#f8f1e6]/70">{formatCompactPrice(active.revenue)} revenue</p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-3 text-center text-[11px] text-muted">Hover a bar for daily details</p>
+      )}
+    </div>
+  )
+}
+
+export function MiniSparkline({ values = [], color = '#c9a34a', height = 32 }) {
+  const points = useMemo(() => {
+    const nums = values.map((v) => Number(v) || 0)
+    if (!nums.length) return []
+    const max = Math.max(...nums, 1)
+    const width = 88
+    return nums.map((v, i) => ({
+      x: (i / Math.max(nums.length - 1, 1)) * width,
+      y: height - (v / max) * (height - 4) - 2,
+    }))
+  }, [values, height])
+
+  if (points.length < 2) return <div className="h-8" aria-hidden />
+
+  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const area = `${line} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`
+
+  return (
+    <svg width="88" height={height} className="mt-2 block" aria-hidden>
+      <path d={area} fill={color} fillOpacity="0.12" />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function CategoryBreakdownChart({ items = [], showDonut = false }) {
+  const total = items.reduce((s, row) => s + (Number(row.count) || 0), 0) || 1
+  const segments = useMemo(() => {
+    if (!items.length) return []
+    const colorMap = Object.fromEntries(
+      items.map((row, i) => [row.category, CATEGORY_COLORS[i % CATEGORY_COLORS.length]])
+    )
+    const entries = items.map((row) => ({ name: row.category, value: Number(row.count) || 0 }))
+    return buildDonutSegments(entries, colorMap)
+  }, [items])
+
+  if (!items.length) {
+    return <p className="text-sm text-muted py-8 text-center">No published products.</p>
+  }
+
+  const list = (
+    <ul className="space-y-3">
+      {items.map((row, i) => {
+        const count = Number(row.count) || 0
+        const pct = Math.round((count / total) * 1000) / 10
+        const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+        return (
+          <li key={row.category}>
+            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                <span className="truncate font-medium text-ink">{row.category}</span>
+              </span>
+              <span className="shrink-0 tabular-nums text-muted">
+                {count} <span className="text-[10px]">({pct}%)</span>
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-[#f4e8db]">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: color }}
+              />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  if (!showDonut) return list
+
+  return (
+    <div className="space-y-5">
+      <DonutChart
+        segments={segments}
+        total={total}
+        formatValue={(seg) => seg.value}
+        centerContent={
+          <>
+            <span className="font-sans text-lg font-semibold text-ink leading-tight">{total}</span>
+            <span className="text-[10px] text-muted">Products</span>
+          </>
+        }
+      />
+      {list}
+    </div>
+  )
+}
+
 export function PaymentSplitChart({ cod = {}, prepaid = {}, formatPrice }) {
   const { segments, total } = useMemo(() => {
     const entries = [

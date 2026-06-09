@@ -125,14 +125,14 @@ function AdminLayoutInner() {
   const sidebar = (
     <>
       <div className="mb-5 px-2">
-        <span className="font-playfair text-base text-ink tracking-wide">Aashmika Designs</span>
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-muted mt-0.5">Admin</span>
+        <span className="font-sans text-base font-semibold tracking-[-0.01em] text-ink">Aashmika Designs</span>
+        <span className="admin-eyebrow mt-0.5 block">Admin</span>
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="px-2.5 mb-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted/80">
+            <p className="admin-eyebrow mb-1 px-2.5 opacity-80">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -164,16 +164,16 @@ function AdminLayoutInner() {
       </nav>
 
       <div className="mt-auto pt-3 border-t border-[#e8d5c0]">
-        <p className="text-[11px] text-muted mb-0.5 truncate px-1">{profile?.email}</p>
-        <p className="text-[10px] text-muted mb-2 capitalize px-1">{profile?.role || 'admin'}</p>
+        <p className="admin-caption mb-0.5 truncate px-1">{profile?.email}</p>
+        <p className="admin-caption mb-2 capitalize px-1">{profile?.role || 'admin'}</p>
         <div className="flex flex-col gap-1.5 px-1">
-          <Link to="/" className="text-[11px] text-muted hover:text-ink transition" target="_blank" rel="noreferrer">
+          <Link to="/" className="admin-caption transition hover:text-ink" target="_blank" rel="noreferrer">
             View storefront →
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="text-left text-[11px] text-muted hover:text-[#7a2c3a] transition"
+            className="admin-caption text-left transition hover:text-[#7a2c3a]"
           >
             Sign out
           </button>
@@ -183,7 +183,7 @@ function AdminLayoutInner() {
   )
 
   return (
-    <div className="min-h-screen flex bg-[#faf7f2]">
+    <div className="admin-shell min-h-screen flex bg-[#faf7f2]">
       <aside className="hidden lg:flex w-[220px] bg-[#fffdf9] border-r border-[#e8d5c0] flex-col py-5 px-3 shrink-0 sticky top-0 h-screen print:hidden">
         {sidebar}
       </aside>
@@ -211,7 +211,7 @@ function AdminLayoutInner() {
           >
             Menu
           </button>
-          <span className="font-playfair text-sm text-ink">Admin</span>
+          <span className="font-sans text-sm font-semibold tracking-[-0.01em] text-ink">Admin</span>
           <Link to="/admin/products/new" className="text-xs text-[#7a2c3a] font-medium">
             + Add
           </Link>
@@ -219,7 +219,7 @@ function AdminLayoutInner() {
 
         <AdminTopBar profile={profile} badges={badges} />
 
-        <main className="flex-1 p-4 sm:p-5 lg:p-6 overflow-auto">
+        <main className="admin-page flex-1 overflow-auto p-4 sm:p-5 lg:p-6">
           {location.pathname.replace(/\/$/, '') !== '/admin' ? (
             <AdminBreadcrumbs items={breadcrumbs} />
           ) : null}

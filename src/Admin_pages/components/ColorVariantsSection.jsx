@@ -79,7 +79,7 @@ export default function ColorVariantsSection({ form, setField, fieldErrors, auth
       <div className="border-b border-[#f0e6d6] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-playfair text-sm font-semibold text-ink">Colour variants</p>
+            <p className="admin-body font-semibold">Colour variants</p>
             <p className="mt-1 text-[11px] text-muted leading-relaxed">
               One product listing with multiple colours. Upload a separate <strong>image set per colour</strong>.
               The <strong>first colour&apos;s gallery</strong> is used as the shop thumbnail.

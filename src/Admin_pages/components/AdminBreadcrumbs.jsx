@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 export default function AdminBreadcrumbs({ items = [] }) {
   if (!items.length) return null
   return (
-    <nav className="mb-4 flex flex-wrap items-center gap-1 text-xs text-muted print:hidden" aria-label="Breadcrumb">
+    <nav className="admin-caption mb-4 flex flex-wrap items-center gap-1 print:hidden" aria-label="Breadcrumb">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1">
           {i > 0 ? <span className="text-[#d8c4a7]">/</span> : null}
@@ -13,7 +13,7 @@ export default function AdminBreadcrumbs({ items = [] }) {
               {item.label}
             </Link>
           ) : (
-            <span className="text-ink font-medium">{item.label}</span>
+            <span className="font-medium text-ink">{item.label}</span>
           )}
         </span>
       ))}

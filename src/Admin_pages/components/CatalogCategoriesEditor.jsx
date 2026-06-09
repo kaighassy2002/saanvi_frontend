@@ -252,7 +252,7 @@ function CatalogCategoriesEditor({
 
       {editingId === 'new' ? (
         <div className="lux-card p-4">
-          <h3 className="mb-3 font-playfair text-sm text-ink">New category</h3>
+          <h3 className="admin-section-title mb-3 text-base">New category</h3>
           <CategoryFormFields
             form={form}
             setForm={setForm}

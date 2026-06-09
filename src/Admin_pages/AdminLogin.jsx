@@ -25,11 +25,11 @@ function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#faf7f2] px-4">
+    <div className="admin-shell min-h-screen flex items-center justify-center bg-[#faf7f2] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-playfair text-2xl text-ink">Aashmika Designs Admin</h1>
-          <p className="text-sm text-muted mt-1">Sign in with your admin credentials</p>
+          <h1 className="admin-page-title">Aashmika Designs Admin</h1>
+          <p className="admin-page-lead mt-1 text-center">Sign in with your admin credentials</p>
         </div>
 
         <div className="lux-card p-6">

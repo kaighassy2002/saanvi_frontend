@@ -101,7 +101,7 @@ export default function ProductVariantsSection({ form, setField, fieldErrors, au
       <div className="border-b border-[#f0e6d6] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-playfair text-sm font-semibold text-ink">Variants (colour &amp; size)</p>
+            <p className="admin-body font-semibold">Variants (colour &amp; size)</p>
             <p className="mt-1 text-[11px] text-muted leading-relaxed">
               Shared product details apply to all variants. Set <strong>stock per colour and size</strong>.
               First colour&apos;s images are used for shop listings.
