@@ -39,6 +39,9 @@ export function normalizeProduct(raw) {
     customAttributes: Array.isArray(raw.customAttributes) ? raw.customAttributes : [],
     variants: Array.isArray(raw.variants) ? raw.variants : [],
     published: raw.published !== false,
+    featured: !!raw.featured,
+    createdAt: raw.createdAt || null,
+    updatedAt: raw.updatedAt || null,
     stock: raw.stock != null ? Number(raw.stock) : 10,
   }
 }

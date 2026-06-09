@@ -1,20 +1,25 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../../hooks/useShopCategories'
+import { useHomeContent } from '../../../hooks/useHomeContent'
 import { categoryCollectionHref } from '../../data/shopNav'
 import { productImageUrl } from '../../../utils/cloudinaryImage'
 
 function HomeMobileCategories() {
   const { categories, loading } = useShopCategories()
+  const { homeSections } = useHomeContent()
+  const copy = homeSections.mobileCategories || {}
   const display = categories.slice(0, 10)
 
   return (
     <section className="home-mobile-section pb-2" aria-label="Shop by category">
       <div className="home-mobile-section__head">
-        <h2 className="home-mobile-section__title">Shop by category</h2>
-        <Link to="/collections" className="home-mobile-section__link">
-          All
-        </Link>
+        {copy.title ? <h2 className="home-mobile-section__title">{copy.title}</h2> : null}
+        {copy.linkLabel ? (
+          <Link to={copy.linkUrl || '/collections'} className="home-mobile-section__link">
+            {copy.linkLabel}
+          </Link>
+        ) : null}
       </div>
 
       <div className="home-mobile-scroll">
@@ -44,13 +49,17 @@ function HomeMobileCategories() {
             ))}
       </div>
 
-      <div className="home-mobile-cta">
-        <h3 className="home-mobile-cta__title">Discover handcrafted jewellery</h3>
-        <p className="home-mobile-cta__text">Bridal, festive, and everyday pieces curated for you.</p>
-        <Link to="/collections" className="home-mobile-cta__btn">
-          Explore collections
-        </Link>
-      </div>
+      {copy.ctaTitle || copy.ctaText || copy.ctaButtonLabel ? (
+        <div className="home-mobile-cta">
+          {copy.ctaTitle ? <h3 className="home-mobile-cta__title">{copy.ctaTitle}</h3> : null}
+          {copy.ctaText ? <p className="home-mobile-cta__text">{copy.ctaText}</p> : null}
+          {copy.ctaButtonLabel ? (
+            <Link to={copy.ctaButtonLink || '/collections'} className="home-mobile-cta__btn">
+              {copy.ctaButtonLabel}
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }

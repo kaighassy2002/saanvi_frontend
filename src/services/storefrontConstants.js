@@ -32,8 +32,9 @@ export function formatInr(amount) {
   return `₹${Number(amount).toLocaleString('en-IN')}`
 }
 
-export function whatsappUrl(message) {
-  const base = `https://wa.me/${WHATSAPP_PHONE}`
+export function whatsappUrl(message, phoneDigits) {
+  const digits = String(phoneDigits || WHATSAPP_PHONE).replace(/\D/g, '') || WHATSAPP_PHONE
+  const base = `https://wa.me/${digits}`
   if (!message) return base
   return `${base}?text=${encodeURIComponent(message)}`
 }

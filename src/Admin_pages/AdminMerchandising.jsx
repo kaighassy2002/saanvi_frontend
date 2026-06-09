@@ -15,11 +15,23 @@ import { useAdminToast } from './shared/AdminToastProvider'
 import { productImageUrl } from '../utils/cloudinaryImage'
 import HeroSlidesEditor from './components/HeroSlidesEditor'
 import HomePopularCategoriesEditor from './components/HomePopularCategoriesEditor'
-import { normalizeAdminHeroSlides } from '../services/homeMerchandising'
+import PromoBannersEditor from './components/PromoBannersEditor'
+import HomeServicesEditor from './components/HomeServicesEditor'
+import HomeSectionsEditor from './components/HomeSectionsEditor'
+import {
+  normalizeAdminHeroSlides,
+  normalizeAdminPromoBanners,
+  normalizeAdminHomeServices,
+  normalizeAdminHomeSections,
+} from '../services/homeMerchandising'
 import { buildHomeCategoryTilesForAdmin } from '../services/shopCategories'
 
 const MAX_NEW = 12
 const MAX_FEATURED = 12
+
+function hasSavedContent(items, fields) {
+  return Array.isArray(items) && items.some((item) => fields.some((f) => String(item?.[f] || '').trim()))
+}
 
 function ProductPicker({ items, selectedIds, onToggle, max, label }) {
   return (
@@ -75,6 +87,11 @@ function AdminMerchandising() {
   const [featuredIds, setFeaturedIds] = useState([])
   const [heroSlides, setHeroSlides] = useState([])
   const [heroUsingDefaults, setHeroUsingDefaults] = useState(false)
+  const [promoBanners, setPromoBanners] = useState([])
+  const [promoUsingDefaults, setPromoUsingDefaults] = useState(false)
+  const [homeServices, setHomeServices] = useState([])
+  const [servicesUsingDefaults, setServicesUsingDefaults] = useState(false)
+  const [homeSections, setHomeSections] = useState({})
   const [categoryTiles, setCategoryTiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -93,12 +110,21 @@ function AdminMerchandising() {
       ])
       setNewIds(ids)
       setFeaturedIds(Array.isArray(settings.featuredProductIds) ? settings.featuredProductIds.map(String) : [])
+
       const savedHero = Array.isArray(settings.heroSlides) ? settings.heroSlides : []
-      const hasSavedHero = savedHero.some(
-        (s) => String(s?.image || '').trim() || String(s?.title || '').trim()
-      )
       setHeroSlides(normalizeAdminHeroSlides(savedHero))
-      setHeroUsingDefaults(!hasSavedHero)
+      setHeroUsingDefaults(!hasSavedContent(savedHero, ['image', 'title']))
+
+      const savedPromo = Array.isArray(settings.promoBanners) ? settings.promoBanners : []
+      setPromoBanners(normalizeAdminPromoBanners(savedPromo))
+      setPromoUsingDefaults(!hasSavedContent(savedPromo, ['image', 'title']))
+
+      const savedServices = Array.isArray(settings.homeServices) ? settings.homeServices : []
+      setHomeServices(normalizeAdminHomeServices(savedServices))
+      setServicesUsingDefaults(!hasSavedContent(savedServices, ['title', 'text']))
+
+      setHomeSections(normalizeAdminHomeSections(settings.homeSections))
+
       setCategoryTiles(
         buildHomeCategoryTilesForAdmin(
           Array.isArray(shopNames) ? shopNames : [],
@@ -169,7 +195,57 @@ function AdminMerchandising() {
         heroSlides: heroSlides.filter((s) => s.image || s.title),
       })
       setHeroUsingDefaults(false)
-      toast('Homepage settings saved.')
+      toast('Featured products and hero slides saved.')
+    } catch (err) {
+      toast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const savePromoBanners = async () => {
+    setSaving(true)
+    try {
+      const settings = await getAdminSettings(authFetch)
+      await putAdminSettings(authFetch, {
+        ...settings,
+        promoBanners: promoBanners.filter((b) => b.image || b.title),
+      })
+      setPromoUsingDefaults(false)
+      toast('Promo banners saved.')
+    } catch (err) {
+      toast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveHomeServices = async () => {
+    setSaving(true)
+    try {
+      const settings = await getAdminSettings(authFetch)
+      await putAdminSettings(authFetch, {
+        ...settings,
+        homeServices: homeServices.filter((s) => s.title || s.text),
+      })
+      setServicesUsingDefaults(false)
+      toast('Service cards saved.')
+    } catch (err) {
+      toast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveHomeSections = async () => {
+    setSaving(true)
+    try {
+      const settings = await getAdminSettings(authFetch)
+      await putAdminSettings(authFetch, {
+        ...settings,
+        homeSections,
+      })
+      toast('Section copy saved.')
     } catch (err) {
       toast(err?.message || 'Save failed', 'error')
     } finally {
@@ -181,17 +257,30 @@ function AdminMerchandising() {
     { id: 'new', label: 'New arrivals' },
     { id: 'featured', label: 'Featured products' },
     { id: 'hero', label: 'Hero slides' },
+    { id: 'promo', label: 'Promo banners' },
+    { id: 'services', label: 'Service bar' },
+    { id: 'sections', label: 'Section copy' },
     { id: 'categories', label: 'Popular categories' },
   ]
 
   const saveSection =
-    tab === 'new' ? saveNew : tab === 'categories' ? saveHomeCategories : saveFeaturedAndHero
+    tab === 'new'
+      ? saveNew
+      : tab === 'categories'
+        ? saveHomeCategories
+        : tab === 'promo'
+          ? savePromoBanners
+          : tab === 'services'
+            ? saveHomeServices
+            : tab === 'sections'
+              ? saveHomeSections
+              : saveFeaturedAndHero
 
   return (
     <div className="max-w-4xl">
       <AdminPageHeader
         title="Merchandising"
-        description="Control homepage sections: new arrivals, featured products, hero carousel, and category images."
+        description="Control all homepage sections: products, hero, promos, services, copy, and category images. Images upload to Cloudinary; content saves to MongoDB."
         action={{
           label: saving ? 'Saving…' : 'Save section',
           onClick: saveSection,
@@ -240,6 +329,21 @@ function AdminMerchandising() {
           authFetch={authFetch}
           usingDefaults={heroUsingDefaults}
         />
+      ) : tab === 'promo' ? (
+        <PromoBannersEditor
+          banners={promoBanners}
+          onChange={setPromoBanners}
+          authFetch={authFetch}
+          usingDefaults={promoUsingDefaults}
+        />
+      ) : tab === 'services' ? (
+        <HomeServicesEditor
+          services={homeServices}
+          onChange={setHomeServices}
+          usingDefaults={servicesUsingDefaults}
+        />
+      ) : tab === 'sections' ? (
+        <HomeSectionsEditor sections={homeSections} onChange={setHomeSections} />
       ) : (
         <HomePopularCategoriesEditor
           tiles={categoryTiles}

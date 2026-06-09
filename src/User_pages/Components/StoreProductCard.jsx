@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import ProductCardMedia from './ProductCardMedia'
 import { StarRatingCompact } from './StarRating'
 import { STORE_NAME } from '../../services/storefrontConstants'
+import { productIsInStock } from '../../services/productVariants'
 
 /**
  * Unified storefront product card.
@@ -14,6 +15,8 @@ function StoreProductCard({
   onToggleWishlist,
   reviewSummary,
   variant = 'grid',
+  colorLabel = '',
+  productHref: productHrefProp,
 }) {
   const price = Number(product.price || 0)
   const originalPrice = Number(product.originalPrice || 0)
@@ -21,9 +24,10 @@ function StoreProductCard({
     originalPrice > price && originalPrice > 0
       ? Math.round(((originalPrice - price) / originalPrice) * 100)
       : 0
-  const inStock = Number(product.stock ?? 0) > 0
+  const inStock = productIsInStock(product)
   const isHome = variant === 'home'
   const isCompact = variant === 'compact'
+  const productHref = productHrefProp || `/product/${product.id}`
 
   const imageWrapClass = isCompact
     ? 'store-product-card__media-wrap'
@@ -68,13 +72,20 @@ function StoreProductCard({
           <i className={`fa-heart text-sm ${saved ? 'fa-solid text-gold' : 'fa-regular'}`} aria-hidden />
         </button>
 
-        <Link to={`/product/${product.id}`} className="store-product-card__media-link">
+        <Link to={productHref} className="store-product-card__media-link">
           <ProductCardMedia
             product={product}
-            alt={product.name}
+            alt={colorLabel ? `${product.name} — ${colorLabel}` : product.name}
             compact={isCompact}
+            singleImage={Boolean(colorLabel)}
             imageClassName={`store-product-card__media-img transition duration-300 ${
-              isCompact ? 'p-2 group-hover:scale-[1.02]' : 'p-3 sm:p-4 group-hover:scale-[1.03]'
+              colorLabel
+                ? isCompact
+                  ? 'p-1.5 group-hover:scale-[1.01]'
+                  : 'p-2 sm:p-3 group-hover:scale-[1.02]'
+                : isCompact
+                  ? 'p-2 group-hover:scale-[1.02]'
+                  : 'p-3 sm:p-4 group-hover:scale-[1.03]'
             }`}
           />
         </Link>
@@ -93,9 +104,13 @@ function StoreProductCard({
           <p className="store-product-card__brand">{STORE_NAME}</p>
         ) : null}
 
-        <Link to={`/product/${product.id}`} className="block flex-1">
+        <Link to={productHref} className="block flex-1">
           <h3 className={titleClass}>{product.name}</h3>
         </Link>
+
+        {colorLabel ? (
+          <p className="store-product-card__color-label">{colorLabel}</p>
+        ) : null}
 
         {reviewSummary?.count > 0 ? (
           <StarRatingCompact

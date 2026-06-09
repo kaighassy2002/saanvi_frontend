@@ -17,6 +17,7 @@ const PRESETS = {
   adminPreview: { width: 400, height: 500, mode: 'pad' },
   hero: { width: 1200, height: 1500, mode: 'fill' },
   category: { width: 400, height: 400, mode: 'fill' },
+  promo: { width: 800, height: 533, mode: 'fill' },
 }
 
 const UPLOAD_MARKER = '/image/upload/'

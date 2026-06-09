@@ -2,11 +2,8 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import {
   BRAND_LOGO_SRC,
-  STORE_LOCATION,
-  STORE_NAME,
-  SUPPORT_EMAIL,
-  SUPPORT_PHONE,
 } from '../../services/storefrontConstants'
+import { useStoreProfile } from '../../hooks/useStoreProfile'
 import { formatPaymentMethodLabel, formatPaymentStatusLabel } from '../../services/orderWorkflow'
 
 function formatPrice(n) {
@@ -35,6 +32,7 @@ function lineTotal(item) {
 }
 
 export default function OrderInvoicePrint({ order, shipping, items }) {
+  const { storeName, storeLocation, supportEmail, supportPhone } = useStoreProfile()
   const safeOrder = order || {}
   const safeShipping = shipping || {}
   const lineItems = Array.isArray(items) ? items : []
@@ -75,10 +73,10 @@ export default function OrderInvoicePrint({ order, shipping, items }) {
         <div className="order-invoice__brand">
           <img src={BRAND_LOGO_SRC} alt="" className="order-invoice__logo" />
           <div>
-            <p className="order-invoice__store-name">{STORE_NAME}</p>
-            <p className="order-invoice__store-meta">{STORE_LOCATION}</p>
+            <p className="order-invoice__store-name">{storeName}</p>
+            <p className="order-invoice__store-meta">{storeLocation}</p>
             <p className="order-invoice__store-meta">
-              {SUPPORT_EMAIL} · {SUPPORT_PHONE}
+              {supportEmail} · {supportPhone}
             </p>
           </div>
         </div>
@@ -205,7 +203,7 @@ export default function OrderInvoicePrint({ order, shipping, items }) {
       </div>
 
       <footer className="order-invoice__footer">
-        <p className="order-invoice__thanks">Thank you for choosing {STORE_NAME}.</p>
+        <p className="order-invoice__thanks">Thank you for choosing {storeName}.</p>
         <p>
           Questions about this order? {SUPPORT_EMAIL} · {SUPPORT_PHONE}
         </p>

@@ -1,12 +1,14 @@
 import { API_BASE, STORAGE_KEYS } from './config'
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, data = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     /** @deprecated use status */
     this.statusCode = status
+    this.data = data
+    this.errors = data?.errors
   }
 }
 
@@ -46,7 +48,7 @@ export async function jewelleryFetch(path, options = {}) {
   if (!res.ok) {
     const msg =
       typeof data === 'object' && data?.message ? data.message : text || res.statusText
-    throw new ApiError(String(msg), res.status)
+    throw new ApiError(String(msg), res.status, typeof data === 'object' ? data : null)
   }
 
   if (res.status === 204) return null

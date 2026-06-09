@@ -126,10 +126,10 @@ export async function listOrdersAll(authFetch) {
   return normalizeList(data).items
 }
 
-export async function downloadOrdersExport() {
+export async function downloadOrdersExport(params = {}) {
   const { API_BASE, STORAGE_KEYS } = await import('../../services/config')
   const token = localStorage.getItem(STORAGE_KEYS.adminToken)
-  const res = await fetch(`${API_BASE}/api/admin/orders/export`, {
+  const res = await fetch(`${API_BASE}/api/admin/orders/export${buildQuery(params)}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) throw new Error('Export failed')
@@ -145,6 +145,58 @@ export async function patchOrder(authFetch, publicId, body) {
     method: 'PATCH',
     body,
   })
+}
+
+export async function bulkOrders(authFetch, ids, action, note) {
+  return authFetch('/api/admin/orders/bulk', {
+    method: 'PATCH',
+    body: { ids, action, note },
+  })
+}
+
+export async function downloadOrderInvoice(publicId) {
+  const { API_BASE, STORAGE_KEYS } = await import('../../services/config')
+  const token = localStorage.getItem(STORAGE_KEYS.adminToken)
+  const res = await fetch(`${API_BASE}/api/admin/orders/${encodeURIComponent(publicId)}/invoice`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || 'Invoice download failed')
+  }
+  return res.blob()
+}
+
+export async function confirmCodOrder(authFetch, publicId, note) {
+  return authFetch(`/api/admin/orders/${encodeURIComponent(publicId)}/confirm-cod`, {
+    method: 'POST',
+    body: { note },
+  })
+}
+
+export async function processOrderRefund(authFetch, publicId, body) {
+  return authFetch(`/api/admin/orders/${encodeURIComponent(publicId)}/refund`, {
+    method: 'POST',
+    body,
+  })
+}
+
+export async function rmaOrderAction(authFetch, publicId, step, note) {
+  return authFetch(`/api/admin/orders/${encodeURIComponent(publicId)}/rma`, {
+    method: 'POST',
+    body: { step, note },
+  })
+}
+
+export async function generateCourierAwb(authFetch, publicId, partner) {
+  return authFetch(`/api/admin/orders/${encodeURIComponent(publicId)}/courier/awb`, {
+    method: 'POST',
+    body: { partner },
+  })
+}
+
+export async function getCourierStatus(authFetch) {
+  return authFetch('/api/admin/orders/courier-status')
 }
 
 // --- Categories (legacy strings) ---
@@ -186,30 +238,6 @@ export async function deleteCatalogCategory(authFetch, id) {
   })
 }
 
-// --- Collections ---
-
-export async function listCollections(authFetch) {
-  const data = await authFetch('/api/admin/catalog/collections')
-  return Array.isArray(data?.collections) ? data.collections : []
-}
-
-export async function createCollection(authFetch, body) {
-  return authFetch('/api/admin/catalog/collections', { method: 'POST', body })
-}
-
-export async function updateCollection(authFetch, id, body) {
-  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    body,
-  })
-}
-
-export async function deleteCollection(authFetch, id) {
-  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  })
-}
-
 // --- Merchandising ---
 
 export async function getNewArrivals(authFetch) {
@@ -238,6 +266,10 @@ export async function putAdminSettings(authFetch, settings) {
     body: { settings },
   })
   return data?.settings ?? settings
+}
+
+export async function getIntegrationsHealth(authFetch) {
+  return authFetch('/api/admin/settings/integrations')
 }
 
 export async function getShippingSettings(authFetch) {

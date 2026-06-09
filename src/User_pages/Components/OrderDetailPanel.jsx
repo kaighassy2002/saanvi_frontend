@@ -187,7 +187,15 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
             <p className="order-expand__tracking">
               <i className="fa-solid fa-truck-fast" aria-hidden />{' '}
               {order.courierPartner ? `${order.courierPartner} · ` : ''}
-              {order.trackingNumber ? `Tracking ${order.trackingNumber}` : ''}
+              {order.trackingUrl ? (
+                <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="order-expand__tracking-link">
+                  Track {order.trackingNumber || 'shipment'}
+                </a>
+              ) : order.trackingNumber ? (
+                `Tracking ${order.trackingNumber}`
+              ) : (
+                ''
+              )}
             </p>
           ) : null}
 

@@ -5,15 +5,11 @@ import { useNewArrivals } from '../../hooks/useNewArrivals'
 import { useWishlist } from '../../hooks/useWishlist'
 import { useReviewSummaries } from '../../hooks/useReviewSummaries'
 import { useFeaturedProducts } from '../../hooks/useFeaturedProducts'
+import { useHomeContent } from '../../hooks/useHomeContent'
+import { trendingViewAllHref } from '../../services/homeMerchandising'
 import { getProductPrimaryImage } from '../utils/productImages'
 import HomeProductCard from './HomeProductCard'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
-
-const TABS = [
-  { id: 'featured', label: 'Featured' },
-  { id: 'new', label: 'New Arrivals' },
-  { id: 'bestseller', label: 'Best Seller' },
-]
 
 const GRID_SIZE = 10
 
@@ -29,7 +25,20 @@ function ProductSkeleton() {
 
 function HomeTrendingProducts() {
   const ref = useScrollReveal()
-  const [activeTab, setActiveTab] = useState('featured')
+  const { homeSections } = useHomeContent()
+  const trending = homeSections.trending || {}
+  const tabs = useMemo(
+    () =>
+      Array.isArray(trending.tabs) && trending.tabs.length
+        ? trending.tabs
+        : [
+            { id: 'featured', label: 'Featured' },
+            { id: 'new', label: 'New Arrivals' },
+            { id: 'bestseller', label: 'Best Seller' },
+          ],
+    [trending.tabs]
+  )
+  const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'featured')
   const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
   const { products: featured, loading: featuredLoading } = useFeaturedProducts(GRID_SIZE)
@@ -72,17 +81,17 @@ function HomeTrendingProducts() {
 
   return (
     <section ref={ref} className="section-container section-reveal py-10 sm:py-16">
-      <p className="text-overline text-center">Most loved picks</p>
-      <h2 className="section-heading mt-2 text-center">
-        Trending Products
-      </h2>
+      {trending.overline ? <p className="text-overline text-center">{trending.overline}</p> : null}
+      {trending.title ? (
+        <h2 className="section-heading mt-2 text-center">{trending.title}</h2>
+      ) : null}
 
       <div
         className="mt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10"
         role="tablist"
         aria-label="Product collections"
       >
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -136,20 +145,16 @@ function HomeTrendingProducts() {
         </div>
       )}
 
-      <div className="mt-12 text-center">
-        <Link
-          to={
-            activeTab === 'new'
-              ? '/collections?sort=latest'
-              : activeTab === 'bestseller'
-                ? '/collections?sort=discount'
-                : '/collections'
-          }
-          className="inline-flex border-b border-[#1f1514] pb-1 font-sans text-sm font-medium uppercase tracking-[0.12em] text-[#1f1514] transition hover:border-[#7a2c3a] hover:text-[#7a2c3a]"
-        >
-          View all products
-        </Link>
-      </div>
+      {trending.viewAllLabel ? (
+        <div className="mt-12 text-center">
+          <Link
+            to={trendingViewAllHref(activeTab)}
+            className="inline-flex border-b border-[#1f1514] pb-1 font-sans text-sm font-medium uppercase tracking-[0.12em] text-[#1f1514] transition hover:border-[#7a2c3a] hover:text-[#7a2c3a]"
+          >
+            {trending.viewAllLabel}
+          </Link>
+        </div>
+      ) : null}
     </section>
   )
 }

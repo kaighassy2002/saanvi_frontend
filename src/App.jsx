@@ -37,7 +37,6 @@ const AdminCustomers = lazy(() => import('./Admin_pages/AdminCustomers'))
 const AdminCustomerDetail = lazy(() => import('./Admin_pages/AdminCustomerDetail'))
 const AdminInventory = lazy(() => import('./Admin_pages/AdminInventory'))
 const AdminSettings = lazy(() => import('./Admin_pages/AdminSettings'))
-const AdminCollections = lazy(() => import('./Admin_pages/AdminCollections'))
 const AdminAnalytics = lazy(() => import('./Admin_pages/AdminAnalytics'))
 const AdminCoupons = lazy(() => import('./Admin_pages/AdminCoupons'))
 const AdminSizeCharts = lazy(() => import('./Admin_pages/AdminSizeCharts'))
@@ -108,7 +107,7 @@ function App() {
                       <Route path="customers" element={<AdminCustomers />} />
                       <Route path="customers/:id" element={<AdminCustomerDetail />} />
                       <Route path="inventory" element={<AdminInventory />} />
-                      <Route path="collections" element={<AdminCollections />} />
+                      <Route path="collections" element={<Navigate to="/admin/products" replace />} />
                       <Route path="analytics" element={<AdminAnalytics />} />
                       <Route path="settings" element={<AdminSettings />} />
                       <Route path="coupons" element={<AdminCoupons />} />

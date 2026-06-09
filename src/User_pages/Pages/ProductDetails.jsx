@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import ProductRecommendations from '../Components/ProductRecommendations'
@@ -126,6 +126,7 @@ function ProductDetailView({ product }) {
   usePageMeta({ title: metaTitle, description: metaDescription, image: metaImage })
 
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { addItem } = useCart()
   const { openDrawer } = useCartDrawer()
   const [addedFeedback, setAddedFeedback] = useState(false)
@@ -162,10 +163,25 @@ function ProductDetailView({ product }) {
       return
     }
     const current = colorOptions.find((o) => o.color === selectedColor || o.variantName === selectedColor)
-    if (current?.inStock) return
+    if (current) return
+
+    const fromUrl = searchParams.get('color')?.trim()
+    if (fromUrl) {
+      const urlMatch = colorOptions.find(
+        (o) =>
+          o.color === fromUrl ||
+          o.variantName === fromUrl ||
+          o.color.toLowerCase() === fromUrl.toLowerCase()
+      )
+      if (urlMatch) {
+        setSelectedColor(urlMatch.color || urlMatch.variantName)
+        return
+      }
+    }
+
     const preferred = colorOptions.find((o) => o.inStock) || colorOptions[0]
     setSelectedColor(preferred?.color || preferred?.variantName || '')
-  }, [product.id, hasColors, colorOptions, selectedColor])
+  }, [product.id, hasColors, colorOptions, selectedColor, searchParams])
 
   useEffect(() => {
     setSelectedSize('')

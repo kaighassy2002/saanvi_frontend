@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useShopCategories } from '../../hooks/useShopCategories'
+import { useHomeContent } from '../../hooks/useHomeContent'
 import { categoryCollectionHref } from '../data/shopNav'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import { productImageUrl } from '../../utils/cloudinaryImage'
@@ -8,15 +9,17 @@ import { productImageUrl } from '../../utils/cloudinaryImage'
 function HomePopularCategories() {
   const ref = useScrollReveal()
   const { categories, loading } = useShopCategories()
+  const { homeSections } = useHomeContent()
+  const copy = homeSections.categories || {}
   const display = categories.slice(0, 6)
 
   return (
     <section ref={ref} className="section-reveal border-t border-[#ebebeb] bg-[#fafafa] py-12 sm:py-16">
       <div className="section-container">
-        <p className="text-overline text-center">Shop by mood</p>
-        <h2 className="section-heading mt-2 text-center">
-          Popular Categories
-        </h2>
+        {copy.overline ? <p className="text-overline text-center">{copy.overline}</p> : null}
+        {copy.title ? (
+          <h2 className="section-heading mt-2 text-center">{copy.title}</h2>
+        ) : null}
 
         {loading ? (
           <div className="mt-10 flex flex-wrap justify-center gap-8">
@@ -51,14 +54,16 @@ function HomePopularCategories() {
           </div>
         )}
 
-        <div className="mt-12 text-center">
-          <Link
-            to="/collections"
-            className="inline-flex min-h-[44px] items-center bg-[#1f1514] px-10 py-3 font-sans text-xs font-medium uppercase tracking-[0.14em] text-white transition hover:bg-[#3a151d]"
-          >
-            Shop all categories
-          </Link>
-        </div>
+        {copy.buttonLabel ? (
+          <div className="mt-12 text-center">
+            <Link
+              to={copy.buttonLink || '/collections'}
+              className="inline-flex min-h-[44px] items-center bg-[#1f1514] px-10 py-3 font-sans text-xs font-medium uppercase tracking-[0.14em] text-white transition hover:bg-[#3a151d]"
+            >
+              {copy.buttonLabel}
+            </Link>
+          </div>
+        ) : null}
       </div>
     </section>
   )

@@ -1,7 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
-import { getOrder, patchOrder } from './services/adminApi'
+import {
+  confirmCodOrder,
+  downloadOrderInvoice,
+  generateCourierAwb,
+  getAdminSettings,
+  getCourierStatus,
+  getOrder,
+  patchOrder,
+  processOrderRefund,
+  rmaOrderAction,
+} from './services/adminApi'
 import { useAdminToast } from './shared/AdminToastProvider'
 import AdminStatusBadge, { ORDER_STATUS_OPTIONS, PAYMENT_STATUS_OPTIONS } from './components/AdminStatusBadge'
 import AdminErrorBanner from './components/AdminErrorBanner'
@@ -179,6 +189,12 @@ function AdminOrderDetail() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [courierPartner, setCourierPartner] = useState('')
   const [internalNotes, setInternalNotes] = useState('')
+  const [courierStatus, setCourierStatus] = useState({ shiprocket: false, delhivery: false })
+  const [refundOpen, setRefundOpen] = useState(false)
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('')
+  const [refundNote, setRefundNote] = useState('')
+  const [codConfirmThreshold, setCodConfirmThreshold] = useState(10000)
 
   const load = useCallback(async () => {
     setError('')
@@ -202,6 +218,15 @@ function AdminOrderDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    getCourierStatus(authFetch)
+      .then(setCourierStatus)
+      .catch(() => setCourierStatus({ shiprocket: false, delhivery: false }))
+    getAdminSettings(authFetch)
+      .then((s) => setCodConfirmThreshold(Number(s.codConfirmThreshold) || 10000))
+      .catch(() => {})
+  }, [authFetch])
 
   const hasChanges =
     order &&
@@ -255,6 +280,87 @@ function AdminOrderDetail() {
     }
   }
 
+  const handleDownloadInvoice = async () => {
+    try {
+      const blob = await downloadOrderInvoice(publicId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${order?.invoiceNumber || publicId.replace('ORD-', 'INV-')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('GST invoice downloaded.')
+    } catch (e) {
+      toast(e?.message || 'Invoice download failed', 'error')
+    }
+  }
+
+  const handleConfirmCod = async () => {
+    setSaving(true)
+    try {
+      const updated = await confirmCodOrder(authFetch, publicId, 'COD verified by admin')
+      setOrder(updated)
+      toast('COD order confirmed — safe to pack.')
+    } catch (e) {
+      toast(e?.message || 'COD confirmation failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleGenerateAwb = async (partner) => {
+    setSaving(true)
+    try {
+      const updated = await generateCourierAwb(authFetch, publicId, partner)
+      setOrder(updated)
+      setTrackingNumber(updated.trackingNumber || '')
+      setCourierPartner(updated.courierPartner || '')
+      toast(`AWB generated: ${updated.trackingNumber || 'see courier panel'}`)
+    } catch (e) {
+      toast(e?.message || 'AWB generation failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRmaStep = async (step) => {
+    setSaving(true)
+    try {
+      const updated = await rmaOrderAction(authFetch, publicId, step)
+      setOrder(updated)
+      setStatus(updated.status || status)
+      setPaymentStatus(updated.paymentStatus || paymentStatus)
+      toast(`RMA: ${step} completed.`)
+    } catch (e) {
+      toast(e?.message || 'RMA step failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRefund = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const updated = await processOrderRefund(authFetch, publicId, {
+        amount: refundAmount ? Number(refundAmount) : undefined,
+        reason: refundReason,
+        note: refundNote,
+      })
+      setOrder(updated)
+      setPaymentStatus(updated.paymentStatus || paymentStatus)
+      setRefundOpen(false)
+      setRefundAmount('')
+      setRefundReason('')
+      setRefundNote('')
+      toast('Refund processed.')
+    } catch (err) {
+      toast(err?.message || 'Refund failed', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <OrderDetailSkeleton />
 
   if (!order) {
@@ -285,6 +391,19 @@ function AdminOrderDetail() {
   const inputClass = 'royal-input text-sm py-2'
   const recipientName =
     [shipping.firstName, shipping.lastName].filter(Boolean).join(' ') || order.customerName || '—'
+  const isCod = String(order.paymentMethod || '').toLowerCase() === 'cod'
+  const codThreshold = codConfirmThreshold
+  const needsCodConfirm = isCod && !order.codConfirmedAt && total >= codThreshold
+  const refunds = Array.isArray(order.refunds) ? order.refunds : []
+  const refundedTotal = refunds.reduce((s, r) => s + Number(r.amount || 0), 0)
+  const maxRefund = Math.max(0, total - refundedTotal)
+  const trackingLink =
+    order.trackingUrl ||
+    (order.courierPartner?.toLowerCase().includes('delhivery') && order.trackingNumber
+      ? `https://www.delhivery.com/track/package/${order.trackingNumber}`
+      : order.trackingNumber
+        ? `https://shiprocket.co/tracking/${order.trackingNumber}`
+        : '')
 
   return (
     <>
@@ -305,8 +424,54 @@ function AdminOrderDetail() {
             <button type="button" onClick={() => window.print()} className="admin-view-all">
               Print slip
             </button>
+            <button type="button" onClick={handleDownloadInvoice} className="admin-view-all">
+              GST invoice PDF
+            </button>
           </div>
         </div>
+
+        {needsCodConfirm ? (
+          <div className="mb-4 rounded-lg border border-[#e8c87a] bg-[#fff6eb] px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-[#9f7a2c]">High-value COD — verify before packing</p>
+              <p className="text-xs text-muted mt-0.5">
+                Confirm customer phone and address to reduce RTO risk.
+              </p>
+            </div>
+            <button type="button" disabled={saving} onClick={handleConfirmCod} className="lux-button rounded-lg px-4 py-2 text-xs">
+              Confirm COD order
+            </button>
+          </div>
+        ) : null}
+
+        {order.rmaId ? (
+          <div className="mb-4 rounded-lg border border-[#e8d5c0] bg-white px-4 py-3">
+            <p className="text-sm font-medium text-ink">
+              RMA {order.rmaId}
+              {order.rmaStatus ? (
+                <span className="ml-2 text-xs font-normal text-muted capitalize">· {order.rmaStatus}</span>
+              ) : null}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {order.rmaStatus === 'requested' ? (
+                <button type="button" disabled={saving} onClick={() => handleRmaStep('receive')} className="admin-quick-action text-xs">
+                  Mark received
+                </button>
+              ) : null}
+              {order.rmaStatus === 'received' ? (
+                <button type="button" disabled={saving} onClick={() => handleRmaStep('restock')} className="admin-quick-action text-xs">
+                  Restock items
+                </button>
+              ) : null}
+              {['restocked', 'received', 'requested'].includes(order.rmaStatus) &&
+              order.paymentStatus !== 'refunded' ? (
+                <button type="button" disabled={saving} onClick={() => setRefundOpen(true)} className="admin-quick-action text-xs">
+                  Process refund
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <section className="admin-order-hero mb-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -404,6 +569,26 @@ function AdminOrderDetail() {
                 </div>
               </div>
             </Panel>
+
+            {refunds.length > 0 ? (
+              <Panel title="Refunds">
+                <div className="space-y-2">
+                  {refunds.map((r, i) => (
+                    <div key={i} className="admin-order-payment-card text-sm">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-semibold tabular-nums">{formatPrice(r.amount)}</span>
+                        <span className="text-xs text-muted capitalize">{r.status || 'processed'}</span>
+                      </div>
+                      <p className="text-xs text-muted mt-1">{formatDateTime(r.at)} · {r.by || 'admin'}</p>
+                      {r.reason ? <p className="text-xs mt-0.5">{r.reason}</p> : null}
+                      {r.razorpayRefundId ? (
+                        <p className="text-[10px] text-muted break-all">Razorpay: {r.razorpayRefundId}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            ) : null}
 
             {payments.length > 0 ? (
               <Panel title="Payments">
@@ -522,22 +707,49 @@ function AdminOrderDetail() {
                     </button>
                   </>
                 ) : null}
-                {order.status === 'Returned' ? (
+                {order.status === 'Returned' && order.paymentStatus !== 'refunded' ? (
                   <button
                     type="button"
-                    disabled={saving || order.paymentStatus === 'refunded'}
-                    onClick={async () => {
-                      setPaymentStatus('refunded')
-                      try {
-                        await saveOrder({ paymentStatus: 'refunded', note: 'Refund processed' })
-                      } catch {
-                        setPaymentStatus(order.paymentStatus || 'pending')
-                      }
-                    }}
+                    disabled={saving}
+                    onClick={() => setRefundOpen(true)}
                     className="admin-quick-action disabled:opacity-50"
                   >
                     Process refund
                   </button>
+                ) : null}
+              </div>
+
+              <div className="mb-4 rounded-lg border border-[#efe2d1] bg-[#faf7f2] p-3 space-y-2">
+                <p className="text-xs font-medium text-ink">Courier integration</p>
+                <div className="flex flex-wrap gap-2">
+                  {courierStatus.shiprocket ? (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleGenerateAwb('shiprocket')}
+                      className="admin-quick-action text-xs"
+                    >
+                      Shiprocket AWB
+                    </button>
+                  ) : null}
+                  {courierStatus.delhivery ? (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleGenerateAwb('delhivery')}
+                      className="admin-quick-action text-xs"
+                    >
+                      Delhivery AWB
+                    </button>
+                  ) : null}
+                  {!courierStatus.shiprocket && !courierStatus.delhivery ? (
+                    <p className="text-xs text-muted">Set SHIPROCKET_* or DELHIVERY_* in server .env for AWB generation.</p>
+                  ) : null}
+                </div>
+                {trackingLink ? (
+                  <a href={trackingLink} target="_blank" rel="noreferrer" className="admin-panel-link text-xs">
+                    Track shipment →
+                  </a>
                 ) : null}
               </div>
 
@@ -627,6 +839,59 @@ function AdminOrderDetail() {
             </Panel>
           </div>
         </div>
+
+        {refundOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
+            <form
+              onSubmit={handleRefund}
+              className="w-full max-w-md rounded-xl border border-[#e8d5c0] bg-white p-5 shadow-xl space-y-3"
+            >
+              <h3 className="font-bodoni text-lg text-ink">Process refund</h3>
+              <p className="text-xs text-muted">
+                Max refundable: {formatPrice(maxRefund)}
+                {refundedTotal > 0 ? ` (${formatPrice(refundedTotal)} already refunded)` : ''}
+              </p>
+              <div>
+                <label className="form-label text-xs">Amount (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={inputClass}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  placeholder={String(maxRefund)}
+                />
+              </div>
+              <div>
+                <label className="form-label text-xs">Reason</label>
+                <input
+                  className={inputClass}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  placeholder="e.g. Return — size issue"
+                />
+              </div>
+              <div>
+                <label className="form-label text-xs">Internal note</label>
+                <textarea
+                  rows={2}
+                  className={inputClass}
+                  value={refundNote}
+                  onChange={(e) => setRefundNote(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button type="button" onClick={() => setRefundOpen(false)} className="admin-view-all text-sm">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="lux-button rounded-lg px-4 py-2 text-sm">
+                  {saving ? 'Processing…' : 'Confirm refund'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
 
         {hasChanges ? (
           <div className="fixed bottom-4 left-4 right-4 z-40 flex items-center justify-between gap-3 rounded-xl border border-[#e8d5c0] bg-white px-4 py-3 shadow-lg lg:hidden">

@@ -18,7 +18,8 @@ import {
   PAYMENT_COD,
   PAYMENT_RAZORPAY,
 } from '../../services/paymentMethods'
-import { whatsappUrl } from '../../services/storefrontConstants'
+import { useStoreSettings } from '../../context/storeSettingsContext'
+import { useStoreProfile } from '../../hooks/useStoreProfile'
 import { productImageUrl } from '../../utils/cloudinaryImage'
 import '../Styles/checkout-page.css'
 
@@ -107,6 +108,8 @@ function CheckoutField({
 function CheckOut() {
   const navigate = useNavigate()
   const { items, totals, clearCart } = useCart()
+  const { codEnabled } = useStoreSettings()
+  const { whatsappUrl } = useStoreProfile()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -132,16 +135,19 @@ function CheckOut() {
       if (!active) return
       const enabled = Boolean(cfg?.enabled)
       setRazorpayEnabled(enabled)
-      if (enabled) {
-        setFormData((prev) =>
-          prev.paymentMethod === PAYMENT_COD ? { ...prev, paymentMethod: PAYMENT_RAZORPAY } : prev
-        )
-      }
+      setFormData((prev) => {
+        if (!codEnabled && enabled) return { ...prev, paymentMethod: PAYMENT_RAZORPAY }
+        if (!codEnabled && !enabled) return prev
+        if (enabled && prev.paymentMethod === PAYMENT_COD) {
+          return { ...prev, paymentMethod: PAYMENT_RAZORPAY }
+        }
+        return prev
+      })
     })
     return () => {
       active = false
     }
-  }, [])
+  }, [codEnabled])
 
   useEffect(() => {
     if (!isCustomerLoggedIn()) {
@@ -605,7 +611,7 @@ function CheckOut() {
                         formData.paymentMethod === PAYMENT_COD
                           ? ' checkout-page__payment-option--selected'
                           : ''
-                      }`}
+                      }${!codEnabled ? ' checkout-page__payment-option--disabled' : ''}`}
                     >
                       <input
                         type="radio"
@@ -613,13 +619,14 @@ function CheckOut() {
                         value={PAYMENT_COD}
                         checked={formData.paymentMethod === PAYMENT_COD}
                         onChange={handleChange}
+                        disabled={!codEnabled}
                       />
                       <span className="checkout-page__payment-icon" aria-hidden>
                         <i className="fa-solid fa-money-bill-wave" />
                       </span>
                       <span className="font-playfair font-semibold text-ink">Cash on delivery</span>
                       <span className="mt-1 block text-xs leading-relaxed text-muted">
-                        Pay when your order arrives
+                        {codEnabled ? 'Pay when your order arrives' : 'Currently unavailable'}
                       </span>
                     </label>
                   </div>

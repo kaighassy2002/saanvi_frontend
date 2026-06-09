@@ -5,19 +5,29 @@ import { useNewArrivals } from '../../../hooks/useNewArrivals'
 import { useWishlist } from '../../../hooks/useWishlist'
 import { useFeaturedProducts } from '../../../hooks/useFeaturedProducts'
 import { useReviewSummaries } from '../../../hooks/useReviewSummaries'
+import { useHomeContent } from '../../../hooks/useHomeContent'
+import { mobileTrendingViewAllHref } from '../../../services/homeMerchandising'
 import { getProductPrimaryImage } from '../../utils/productImages'
 import HomeProductCard from '../HomeProductCard'
-
-const TABS = [
-  { id: 'featured', label: 'Featured' },
-  { id: 'new', label: 'New' },
-  { id: 'bestseller', label: 'Best deals' },
-]
 
 const GRID_SIZE = 8
 
 function HomeMobileTrending() {
-  const [activeTab, setActiveTab] = useState('featured')
+  const { homeSections } = useHomeContent()
+  const trending = homeSections.trending || {}
+  const mobileCopy = homeSections.mobileTrending || {}
+  const tabs = useMemo(
+    () =>
+      Array.isArray(trending.tabs) && trending.tabs.length
+        ? trending.tabs
+        : [
+            { id: 'featured', label: 'Featured' },
+            { id: 'new', label: 'New' },
+            { id: 'bestseller', label: 'Best deals' },
+          ],
+    [trending.tabs]
+  )
+  const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'featured')
   const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
   const { products: featured, loading: featuredLoading } = useFeaturedProducts(GRID_SIZE)
@@ -56,26 +66,24 @@ function HomeMobileTrending() {
         ? featuredLoading
         : catalogLoading) && displayProducts.length === 0
 
-  const viewAllHref =
-    activeTab === 'new'
-      ? '/collections?sort=latest'
-      : activeTab === 'bestseller'
-        ? '/collections?sort=price-high'
-        : '/collections'
-
+  const viewAllHref = mobileTrendingViewAllHref(activeTab)
   const reviewSummaries = useReviewSummaries(displayProducts.map((p) => p.id))
 
   return (
     <section className="home-mobile-section" aria-label="Trending products">
       <div className="home-mobile-section__head">
-        <h2 className="home-mobile-section__title">Trending now</h2>
-        <Link to={viewAllHref} className="home-mobile-section__link">
-          View all
-        </Link>
+        {mobileCopy.title ? (
+          <h2 className="home-mobile-section__title">{mobileCopy.title}</h2>
+        ) : null}
+        {mobileCopy.linkLabel ? (
+          <Link to={viewAllHref} className="home-mobile-section__link">
+            {mobileCopy.linkLabel}
+          </Link>
+        ) : null}
       </div>
 
       <div className="home-mobile-tabs" role="tablist">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"

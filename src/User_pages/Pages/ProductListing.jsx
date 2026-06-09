@@ -27,7 +27,9 @@ import {
   productMatchesColorFacet,
   productMatchesFacet,
 } from '../../services/collectionProductAttributes'
+import { buildCollectionListing } from '../../services/collectionListingSort'
 import { productIsInStock } from '../../services/productVariants'
+import { useStoreSettings } from '../../context/storeSettingsContext'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { STORE_NAME } from '../../services/storefrontConstants'
 import '../Styles/collection.css'
@@ -38,6 +40,7 @@ const PRODUCTS_PER_PAGE = 16
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Featured' },
   { value: 'latest', label: 'Newest first' },
+  { value: 'discount', label: 'Best deals' },
   { value: 'price-low', label: 'Price: low to high' },
   { value: 'price-high', label: 'Price: high to low' },
   { value: 'name', label: 'Name A–Z' },
@@ -59,6 +62,7 @@ function ProductSkeleton({ compact = false }) {
 
 function ProductListing() {
   const { products, loading, error } = useCatalog()
+  const { featuredProductIds } = useStoreSettings()
   const { toggle, isInWishlist } = useWishlist()
   const [categories, setCategories] = useState(['All'])
   const [searchParams, setSearchParams] = useSearchParams()
@@ -201,23 +205,22 @@ function ProductListing() {
     ]
   )
 
-  const sortedProducts = useMemo(() => {
-    const copy = [...filteredProducts]
-    if (sortBy === 'price-low') return copy.sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
-    if (sortBy === 'price-high') return copy.sort((a, b) => Number(b.price || 0) - Number(a.price || 0))
-    if (sortBy === 'name') return copy.sort((a, b) => a.name.localeCompare(b.name))
-    if (sortBy === 'latest') return copy.sort((a, b) => Number(b.id || 0) - Number(a.id || 0))
-    return copy
-  }, [filteredProducts, sortBy])
-
-  const visibleProducts = useMemo(
-    () => sortedProducts.slice(0, visibleCount),
-    [sortedProducts, visibleCount]
+  const listingEntries = useMemo(
+    () =>
+      buildCollectionListing(filteredProducts, sortBy, {
+        featuredProductIds,
+      }),
+    [filteredProducts, sortBy, featuredProductIds]
   )
 
-  const reviewSummaries = useReviewSummaries(visibleProducts.map((p) => p.id))
+  const visibleListings = useMemo(
+    () => listingEntries.slice(0, visibleCount),
+    [listingEntries, visibleCount]
+  )
 
-  const hasMore = visibleCount < sortedProducts.length
+  const reviewSummaries = useReviewSummaries(visibleListings.map((entry) => entry.productId))
+
+  const hasMore = visibleCount < listingEntries.length
 
   const activeFilterCount = [
     selectedCategory !== 'All',
@@ -287,10 +290,10 @@ function ProductListing() {
     if (!hasMore || loadingMore) return
     setLoadingMore(true)
     requestAnimationFrame(() => {
-      setVisibleCount((count) => Math.min(count + PRODUCTS_PER_PAGE, sortedProducts.length))
+      setVisibleCount((count) => Math.min(count + PRODUCTS_PER_PAGE, listingEntries.length))
       setLoadingMore(false)
     })
-  }, [hasMore, loadingMore, sortedProducts.length])
+  }, [hasMore, loadingMore, listingEntries.length])
 
   const sentinelRef = useInfiniteScroll({
     onLoadMore: loadMore,
@@ -468,7 +471,7 @@ function ProductListing() {
         <ProductSkeleton key={i} compact={compactCards} />
       ))}
     </div>
-  ) : sortedProducts.length === 0 ? (
+  ) : filteredProducts.length === 0 ? (
     <div className="lux-card px-6 py-14 text-center sm:py-20">
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5ead7] text-2xl text-[#7a2c3a]">
         <i className="fa-regular fa-gem" aria-hidden />
@@ -482,19 +485,21 @@ function ProductListing() {
   ) : (
     <>
       <div className="collection-products-grid">
-        {visibleProducts.map((product) => (
+        {visibleListings.map((entry) => (
           <CollectionProductCard
-            key={product.id}
-            product={product}
-            reviewSummary={reviewSummaries[String(product.id)]}
-            saved={isInWishlist(product.id)}
+            key={entry.key}
+            product={entry.displayProduct}
+            colorLabel={entry.colorLabel}
+            productHref={entry.href}
+            reviewSummary={reviewSummaries[String(entry.productId)]}
+            saved={isInWishlist(entry.productId)}
             compact={compactCards}
             onToggleWishlist={() =>
               toggle({
-                productId: product.id,
-                name: product.name,
-                image: product.image,
-                price: product.price,
+                productId: entry.productId,
+                name: entry.displayProduct.name,
+                image: entry.displayProduct.image,
+                price: entry.displayProduct.price,
               })
             }
           />
@@ -511,9 +516,9 @@ function ProductListing() {
         </div>
       )}
 
-      {!hasMore && sortedProducts.length > PRODUCTS_PER_PAGE ? (
+      {!hasMore && listingEntries.length > PRODUCTS_PER_PAGE ? (
         <p className="mt-6 text-center font-playfair text-xs text-muted">
-          You&apos;ve seen all {sortedProducts.length} products
+          You&apos;ve seen all {listingEntries.length} products
         </p>
       ) : null}
     </>
@@ -629,7 +634,7 @@ function ProductListing() {
           <h1 className="collection-myntra__title">
             {pageTitle}
             <span className="collection-myntra__count">
-              {loading ? '' : ` - ${sortedProducts.length} items`}
+              {loading ? '' : ` - ${listingEntries.length} items`}
             </span>
           </h1>
         </header>
@@ -700,7 +705,7 @@ function ProductListing() {
 
             <CollectionPageHeader
               title={pageTitle}
-              productCount={sortedProducts.length}
+              productCount={listingEntries.length}
               loading={loading}
               selectedCategory={selectedCategory}
             />
@@ -798,7 +803,7 @@ function ProductListing() {
             </div>
             <div className="border-t border-[#eadfc9] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button type="button" onClick={() => setFiltersOpen(false)} className="lux-button w-full">
-                Show {sortedProducts.length} products
+                Show {listingEntries.length} products
               </button>
             </div>
           </div>

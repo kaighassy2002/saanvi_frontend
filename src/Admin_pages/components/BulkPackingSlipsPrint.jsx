@@ -22,16 +22,16 @@ function lineTotal(item) {
   return price * qty
 }
 
-export default function PackingSlipPrint({ order, shipping, items }) {
+function SingleSlip({ order }) {
   const { storeName, storeLocation, supportEmail, supportPhone } = useStoreProfile()
+  const shipping = order.shipping || {}
+  const items = Array.isArray(order.items) ? order.items : []
   const recipientName =
     [shipping.firstName, shipping.lastName].filter(Boolean).join(' ') || order.customerName || '—'
-
   const addressLine = shipping.address || shipping.line1 || ''
   const cityLine = [shipping.city, shipping.state, shipping.pincode || shipping.zip]
     .filter(Boolean)
     .join(', ')
-
   const itemCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0)
   const subtotal =
     order.subtotal != null
@@ -40,13 +40,8 @@ export default function PackingSlipPrint({ order, shipping, items }) {
   const shippingFee = Number(order.shippingFee) || 0
   const total = Number(order.total) || subtotal + shippingFee
 
-  const printedAt = new Date().toLocaleString('en-IN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-
-  const slip = (
-    <div id="order-print-slip" className="packing-slip hidden print:block">
+  return (
+    <div className="packing-slip hidden print:block print:break-after-page mb-8">
       <header className="packing-slip__header">
         <div className="packing-slip__brand">
           <img src={BRAND_LOGO_SRC} alt="" className="packing-slip__logo" />
@@ -60,7 +55,6 @@ export default function PackingSlipPrint({ order, shipping, items }) {
           <p className="packing-slip__order-id">{order.id}</p>
         </div>
       </header>
-
       <div className="packing-slip__meta-grid">
         <section className="packing-slip__panel">
           <h2 className="packing-slip__panel-heading">Ship to</h2>
@@ -68,11 +62,7 @@ export default function PackingSlipPrint({ order, shipping, items }) {
           {addressLine ? <p>{addressLine}</p> : null}
           {cityLine ? <p>{cityLine}</p> : null}
           {shipping.phone ? <p className="packing-slip__phone">Phone: {shipping.phone}</p> : null}
-          {order.customerEmail ? (
-            <p className="packing-slip__email">{order.customerEmail}</p>
-          ) : null}
         </section>
-
         <section className="packing-slip__panel">
           <h2 className="packing-slip__panel-heading">Order details</h2>
           <dl className="packing-slip__details">
@@ -82,9 +72,7 @@ export default function PackingSlipPrint({ order, shipping, items }) {
             </div>
             <div>
               <dt>Items</dt>
-              <dd>
-                {itemCount} {itemCount === 1 ? 'piece' : 'pieces'}
-              </dd>
+              <dd>{itemCount}</dd>
             </div>
             <div>
               <dt>Payment</dt>
@@ -93,90 +81,55 @@ export default function PackingSlipPrint({ order, shipping, items }) {
             {order.trackingNumber ? (
               <div>
                 <dt>Tracking</dt>
-                <dd className="packing-slip__tracking">{order.trackingNumber}</dd>
+                <dd>{order.trackingNumber}</dd>
               </div>
             ) : null}
-            <div>
-              <dt>Printed</dt>
-              <dd>{printedAt}</dd>
-            </div>
           </dl>
         </section>
       </div>
-
       <table className="packing-slip__table">
         <thead>
           <tr>
-            <th scope="col">#</th>
-            <th scope="col">Item</th>
-            <th scope="col" className="packing-slip__col-qty">
-              Qty
-            </th>
-            <th scope="col" className="packing-slip__col-money">
-              Unit price
-            </th>
-            <th scope="col" className="packing-slip__col-money">
-              Amount
-            </th>
+            <th>#</th>
+            <th>Item</th>
+            <th className="packing-slip__col-qty">Qty</th>
+            <th className="packing-slip__col-money">Amount</th>
           </tr>
         </thead>
         <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="packing-slip__empty">
-                No items recorded.
-              </td>
+          {items.map((item, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
+              <td>{item.name || item.title || 'Item'}</td>
+              <td className="packing-slip__col-qty">{item.quantity || 1}</td>
+              <td className="packing-slip__col-money">{formatPrice(lineTotal(item))}</td>
             </tr>
-          ) : (
-            items.map((item, index) => {
-              const qty = item.quantity || 1
-              const name = item.name || item.title || 'Item'
-              const variant = item.variantName || item.variantLabel
-              return (
-                <tr key={index}>
-                  <td className="packing-slip__row-num">{index + 1}</td>
-                  <td>
-                    <span className="packing-slip__item-name">{name}</span>
-                    {variant ? <span className="packing-slip__variant">{variant}</span> : null}
-                  </td>
-                  <td className="packing-slip__col-qty">{qty}</td>
-                  <td className="packing-slip__col-money">{formatPrice(item.price)}</td>
-                  <td className="packing-slip__col-money">{formatPrice(lineTotal(item))}</td>
-                </tr>
-              )
-            })
-          )}
+          ))}
         </tbody>
       </table>
-
       <div className="packing-slip__totals">
         <dl>
-          <div>
-            <dt>Subtotal</dt>
-            <dd>{formatPrice(subtotal)}</dd>
-          </div>
-          <div>
-            <dt>Shipping</dt>
-            <dd>{shippingFee > 0 ? formatPrice(shippingFee) : 'Free'}</dd>
-          </div>
           <div className="packing-slip__total-row">
             <dt>Order total</dt>
             <dd>{formatPrice(total)}</dd>
           </div>
         </dl>
       </div>
-
       <footer className="packing-slip__footer">
-        <p>Thank you for shopping with {storeName}.</p>
-        <p>
-          Questions? {supportEmail} · {supportPhone}
-        </p>
-        <p className="packing-slip__note">
-          This document is a packing slip for fulfilment — not a tax invoice.
-        </p>
+        <p>Thank you for shopping with {storeName}. · {supportEmail} · {supportPhone}</p>
       </footer>
     </div>
   )
+}
 
-  return createPortal(slip, document.body)
+export default function BulkPackingSlipsPrint({ orders }) {
+  if (!orders?.length) return null
+  return createPortal(
+    <div id="bulk-packing-slips">
+      {orders.map((order) => (
+        <SingleSlip key={order.id} order={order} />
+      ))}
+    </div>,
+    document.body
+  )
 }

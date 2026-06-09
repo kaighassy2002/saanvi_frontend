@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { PaymentSplitChart } from './AdminDashboardCharts'
 
 function formatPrice(n) {
@@ -41,6 +42,9 @@ function AdminDashboardPaymentSplit({ paymentSplit, formatPrice: formatFn = form
             {codAtRisk.orders} COD order{codAtRisk.orders === 1 ? '' : 's'} in Placed or Confirmed status.
             Confirm quickly or follow up to reduce RTO.
           </p>
+          <Link to="/admin/orders?codPending=1" className="admin-panel-link text-xs inline-block mt-2">
+            Open COD queue →
+          </Link>
         </div>
       ) : null}
     </div>

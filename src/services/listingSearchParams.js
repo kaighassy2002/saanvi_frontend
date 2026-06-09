@@ -1,4 +1,4 @@
-export const SORT_VALUES = ['featured', 'latest', 'price-low', 'price-high', 'name']
+export const SORT_VALUES = ['featured', 'latest', 'discount', 'price-low', 'price-high', 'name']
 export const STOCK_VALUES = ['all', 'in-stock', 'out-stock']
 
 export function productMatchesSearch(product, term) {

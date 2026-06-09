@@ -263,6 +263,54 @@ export function formatCartItemName(productName, variantLabel) {
   return extra ? `${base} — ${extra}` : base
 }
 
+/**
+ * Expand catalog products into collection listing entries — one full card per colour variant.
+ */
+export function expandProductsForCollectionListing(products) {
+  if (!Array.isArray(products)) return []
+
+  return products.flatMap((product) => {
+    const colorOptions = getColorVariantOptions(product).sort((a, b) =>
+      String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' })
+    )
+    if (colorOptions.length <= 1) {
+      return [
+        {
+          key: String(product.id),
+          productId: product.id,
+          displayProduct: product,
+          colorLabel: '',
+          href: `/product/${product.id}`,
+        },
+      ]
+    }
+
+    return colorOptions.map((option) => {
+      const line = resolveProductLine(product, option.color, '')
+      const variantImages =
+        Array.isArray(option.images) && option.images.length > 0 ? option.images : product.images
+      const image = option.image || variantImages?.[0] || product.image
+      const color = option.color || option.variantName
+      const params = new URLSearchParams({ color })
+
+      return {
+        key: `${product.id}::${option.variantName}`,
+        productId: product.id,
+        displayProduct: {
+          ...product,
+          variants: [],
+          image,
+          images: Array.isArray(variantImages) ? variantImages : product.images,
+          price: line.price,
+          stock: option.stock,
+        },
+        colorLabel: option.label,
+        href: `/product/${product.id}?${params.toString()}`,
+      }
+    })
+  })
+}
+
 /** @deprecated Use resolveProductLine(product, color, size) */
 export function findVariantByName(product, variantName) {
   return findVariant(product, ...Object.values(parseVariantKey(variantName)))

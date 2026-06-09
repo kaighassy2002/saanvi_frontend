@@ -51,15 +51,6 @@ export function IconCategories() {
   )
 }
 
-export function IconCollections() {
-  return (
-    <svg {...iconProps}>
-      <rect x="3" y="5" width="7" height="14" rx="1" />
-      <rect x="14" y="5" width="7" height="14" rx="1" />
-    </svg>
-  )
-}
-
 export function IconInventory() {
   return (
     <svg {...iconProps}>
@@ -129,7 +120,6 @@ const ICON_MAP = {
   orders: IconOrders,
   products: IconProducts,
   categories: IconCategories,
-  collections: IconCollections,
   inventory: IconInventory,
   customers: IconCustomers,
   merchandising: IconMerchandising,

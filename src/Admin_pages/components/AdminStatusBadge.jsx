@@ -41,6 +41,6 @@ export const ORDER_STATUS_OPTIONS = [
   'Returned',
 ]
 
-export const PAYMENT_STATUS_OPTIONS = ['pending', 'paid', 'failed', 'refunded']
+export const PAYMENT_STATUS_OPTIONS = ['pending', 'paid', 'failed', 'refunded', 'partially_refunded']
 
 export default AdminStatusBadge

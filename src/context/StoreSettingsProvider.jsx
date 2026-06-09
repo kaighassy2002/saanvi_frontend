@@ -1,38 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { USE_LOCAL_API } from '../services/config'
 import { fetchStoreSettings } from '../services/jewelleryApi'
+import { normalizeStoreSettings } from '../services/storeSettingsNormalize'
 import {
-  DEFAULT_FREE_SHIPPING_THRESHOLD,
-  DEFAULT_SHIPPING_FEE,
-} from '../services/storefrontConstants'
-import { HOME_HERO_SLIDES } from '../User_pages/data/homeContent'
+  HOME_HERO_SLIDES,
+  HOME_PROMO_BANNERS,
+  HOME_SERVICES,
+  DEFAULT_HOME_SECTIONS,
+} from '../User_pages/data/homeContent'
 import { defaultStoreSettings, StoreSettingsContext } from './storeSettingsContext'
 
-function normalizeStoreSettings(data) {
-  const shipping = data?.shipping ?? {}
-  const fee = Number(shipping.shippingFee)
-  const threshold = Number(shipping.freeShippingThreshold)
-  const heroSlides = Array.isArray(data?.heroSlides) ? data.heroSlides : []
-  const featuredProductIds = Array.isArray(data?.featuredProductIds)
-    ? data.featuredProductIds.map(String).filter(Boolean)
-    : []
-  const homeCategoryImages = Array.isArray(data?.homeCategoryImages) ? data.homeCategoryImages : []
-
-  return {
-    shippingFee:
-      Number.isFinite(fee) && fee >= 0 ? fee : DEFAULT_SHIPPING_FEE,
-    freeShippingThreshold:
-      Number.isFinite(threshold) && threshold >= 0
-        ? threshold
-        : DEFAULT_FREE_SHIPPING_THRESHOLD,
-    heroSlides,
-    featuredProductIds,
-    homeCategoryImages,
-  }
-}
-
 function localDemoSettings() {
-  return {
+  return normalizeStoreSettings({
     ...defaultStoreSettings,
     heroSlides: HOME_HERO_SLIDES.map(({ tag, title, subtitle, image, link }) => ({
       image: image || '',
@@ -42,7 +21,10 @@ function localDemoSettings() {
       link: link || '/collections',
     })),
     featuredProductIds: [],
-  }
+    promoBanners: HOME_PROMO_BANNERS,
+    homeServices: HOME_SERVICES,
+    homeSections: DEFAULT_HOME_SECTIONS,
+  })
 }
 
 function StoreSettingsProvider({ children }) {
@@ -73,11 +55,7 @@ function StoreSettingsProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      shippingFee: settings.shippingFee,
-      freeShippingThreshold: settings.freeShippingThreshold,
-      heroSlides: settings.heroSlides,
-      featuredProductIds: settings.featuredProductIds,
-      homeCategoryImages: settings.homeCategoryImages,
+      ...settings,
       ready,
       refresh,
     }),

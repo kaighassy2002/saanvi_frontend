@@ -12,6 +12,7 @@ const PREVIEW_PRESET = {
   product: 'adminPreview',
   hero: 'hero',
   category: 'category',
+  promo: 'promo',
 }
 
 function isAllowedFile(file) {
@@ -26,7 +27,7 @@ function isAllowedFile(file) {
  *   imageUrl: string,
  *   onChange: (url: string) => void,
  *   authFetch: Function,
- *   purpose?: 'product' | 'hero' | 'category',
+ *   purpose?: 'product' | 'hero' | 'category' | 'promo',
  *   label?: string,
  *   hint?: string,
  *   allowUrl?: boolean,

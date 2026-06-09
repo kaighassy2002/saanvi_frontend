@@ -22,7 +22,6 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/products', label: 'Products', icon: 'products' },
       { to: '/admin/categories', label: 'Categories', icon: 'categories' },
-      { to: '/admin/collections', label: 'Collections', icon: 'collections' },
       { to: '/admin/inventory', label: 'Inventory', icon: 'inventory', badgeKey: 'lowStock' },
     ],
   },
@@ -67,7 +66,6 @@ function AdminLayoutInner() {
       '/admin/products/new': 'New product',
       '/admin/orders': 'Orders',
       '/admin/categories': 'Categories',
-      '/admin/collections': 'Collections',
       '/admin/inventory': 'Inventory',
       '/admin/customers': 'Customers',
       '/admin/merchandising': 'Merchandising',

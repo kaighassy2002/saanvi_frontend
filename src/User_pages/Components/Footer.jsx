@@ -1,19 +1,23 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import {
-  SUPPORT_EMAIL,
-  SUPPORT_PHONE,
-  SUPPORT_PHONE_TEL,
-  STORE_LOCATION,
-  whatsappUrl,
-} from '../../services/storefrontConstants'
+import { useStoreProfile } from '../../hooks/useStoreProfile'
 import BrandLogo from './BrandLogo'
 import '../Styles/footer-brand.css'
 
 const paymentIcons = ['cc-visa', 'cc-mastercard', 'google-pay', 'amazon-pay']
 
 function Footer() {
-  const whatsappHref = whatsappUrl('Hi, I have a question about Aashmika Designs.')
+  const {
+    storeName,
+    supportEmail,
+    supportPhone,
+    supportPhoneTel,
+    storeLocation,
+    whatsappUrl,
+    instagramUrl,
+    codEnabled,
+  } = useStoreProfile()
+  const whatsappHref = whatsappUrl(`Hi, I have a question about ${storeName}.`)
 
   return (
     <footer className="mt-12 border-t border-[#d9c3a1] bg-[#2a1116] text-[#f9f0e5] sm:mt-16">
@@ -38,7 +42,11 @@ function Footer() {
                 </span>
               ))}
             </div>
-            <p className="mt-2 text-xs text-beige-dark/90">COD and UPI on order confirmation — no instant online charge.</p>
+            <p className="mt-2 text-xs text-beige-dark/90">
+              {codEnabled
+                ? 'COD and UPI on order confirmation — no instant online charge.'
+                : 'Secure online payment via UPI and cards.'}
+            </p>
           </div>
           <div className="mt-5 flex gap-3">
             <a
@@ -50,6 +58,17 @@ function Footer() {
             >
               <i className="fab fa-whatsapp" aria-hidden />
             </a>
+            {instagramUrl ? (
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 touch-target items-center justify-center rounded-full border border-gold/40 text-sm transition hover:bg-gold hover:text-ink"
+                aria-label="Instagram"
+              >
+                <i className="fab fa-instagram" aria-hidden />
+              </a>
+            ) : null}
           </div>
         </div>
 
@@ -125,19 +144,19 @@ function Footer() {
           <ul className="mt-4 space-y-3 text-sm text-beige-dark">
             <li className="flex items-start gap-2">
               <i className="fa-regular fa-envelope mt-0.5 text-gold" aria-hidden />
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="transition hover:text-gold">
-                {SUPPORT_EMAIL}
+              <a href={`mailto:${supportEmail}`} className="transition hover:text-gold">
+                {supportEmail}
               </a>
             </li>
             <li className="flex items-start gap-2">
               <i className="fa-solid fa-phone mt-0.5 text-gold" aria-hidden />
-              <a href={`tel:${SUPPORT_PHONE_TEL}`} className="transition hover:text-gold">
-                {SUPPORT_PHONE}
+              <a href={`tel:${supportPhoneTel}`} className="transition hover:text-gold">
+                {supportPhone}
               </a>
             </li>
             <li className="flex items-start gap-2">
               <i className="fa-solid fa-location-dot mt-0.5 text-gold" aria-hidden />
-              {STORE_LOCATION}
+              {storeLocation}
             </li>
           </ul>
         </div>
@@ -145,7 +164,7 @@ function Footer() {
 
       <div className="border-t border-gold/20 px-4 py-5 text-center text-xs text-[#ceb9b2] sm:text-sm">
         <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-          <span>© 2026 Aashmika Designs. All rights reserved.</span>
+          <span>© 2026 {storeName}. All rights reserved.</span>
           <span className="hidden sm:inline opacity-40" aria-hidden>
             |
           </span>

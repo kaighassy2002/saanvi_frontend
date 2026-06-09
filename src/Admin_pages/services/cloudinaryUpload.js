@@ -4,7 +4,7 @@
 
 /**
  * @param {Function} authFetch
- * @param {'product' | 'hero' | 'category'} [purpose]
+ * @param {'product' | 'hero' | 'category' | 'promo'} [purpose]
  */
 export async function getCloudinaryUploadParams(authFetch, purpose = 'product') {
   const q =

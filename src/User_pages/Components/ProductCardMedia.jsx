@@ -10,8 +10,10 @@ export default function ProductCardMedia({
   className = '',
   imageClassName = 'store-product-card__media-img p-3 sm:p-4 transition duration-500 group-hover:scale-[1.03]',
   compact = false,
+  singleImage = false,
 }) {
-  const images = getProductDisplayImages(product, 'card')
+  const allImages = getProductDisplayImages(product, 'card')
+  const images = singleImage ? allImages.slice(0, 1) : allImages
   const [index, setIndex] = useState(0)
   const [hovering, setHovering] = useState(false)
   const [touching, setTouching] = useState(false)

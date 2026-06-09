@@ -4,14 +4,7 @@ import Breadcrumbs from '../Components/Breadcrumbs'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
 import { usePageMeta } from '../../hooks/usePageMeta'
-import {
-  STORE_NAME,
-  SUPPORT_EMAIL,
-  SUPPORT_PHONE,
-  SUPPORT_PHONE_TEL,
-  STORE_LOCATION,
-  whatsappUrl,
-} from '../../services/storefrontConstants'
+import { useStoreProfile } from '../../hooks/useStoreProfile'
 import '../Styles/contact-page.css'
 
 function ContactCard({ icon, label, hint, href, children, featured, wide, external }) {
@@ -43,11 +36,19 @@ function ContactCard({ icon, label, hint, href, children, featured, wide, extern
 }
 
 function Contact() {
-  const whatsappHref = whatsappUrl('Hi, I would like help with Aashmika Designs.')
+  const {
+    storeName,
+    supportEmail,
+    supportPhone,
+    supportPhoneTel,
+    storeLocation,
+    whatsappUrl,
+  } = useStoreProfile()
+  const whatsappHref = whatsappUrl(`Hi, I would like help with ${storeName}.`)
 
   usePageMeta({
     title: 'Contact',
-    description: `Contact ${STORE_NAME} for orders, sizing, shipping, and returns. Email, phone, and WhatsApp support.`,
+    description: `Contact ${storeName} for orders, sizing, shipping, and returns. Email, phone, and WhatsApp support.`,
   })
 
   return (
@@ -66,7 +67,7 @@ function Contact() {
             <p className="contact-page__eyebrow mt-4">Customer care</p>
             <h1 className="contact-page__title">We&apos;re here to help</h1>
             <p className="contact-page__subtitle">
-              Reach {STORE_NAME} for orders, sizing, shipping, returns, and styling advice. We aim to
+              Reach {storeName} for orders, sizing, shipping, returns, and styling advice. We aim to
               respond within one business day.
             </p>
           </div>
@@ -78,18 +79,18 @@ function Contact() {
               icon="fa-regular fa-envelope"
               label="Email"
               hint="Order updates, product questions, and returns"
-              href={`mailto:${SUPPORT_EMAIL}`}
+              href={`mailto:${supportEmail}`}
             >
-              <span className="contact-card__action">{SUPPORT_EMAIL}</span>
+              <span className="contact-card__action">{supportEmail}</span>
             </ContactCard>
 
             <ContactCard
               icon="fa-solid fa-phone"
               label="Phone"
               hint="Mon–Sat, 10:00 AM – 7:00 PM IST"
-              href={`tel:${SUPPORT_PHONE_TEL}`}
+              href={`tel:${supportPhoneTel}`}
             >
-              <span className="contact-card__action">{SUPPORT_PHONE}</span>
+              <span className="contact-card__action">{supportPhone}</span>
             </ContactCard>
 
             <ContactCard
@@ -113,7 +114,7 @@ function Contact() {
               hint="Visits by appointment — message us before you travel"
               wide
             >
-              <span className="contact-card__action mt-2">{STORE_LOCATION}</span>
+              <span className="contact-card__action mt-2">{storeLocation}</span>
             </ContactCard>
           </div>
 
