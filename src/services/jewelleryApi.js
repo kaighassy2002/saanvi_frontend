@@ -85,18 +85,10 @@ export async function fetchBackendNewArrivalIds() {
   return Array.isArray(data?.ids) ? data.ids.map(String) : []
 }
 
-/** New arrivals: configured ids, else six newest published products. */
+/** New arrivals: configured ids (server-resolved), else six newest published products. */
 export async function fetchBackendNewArrivalProducts() {
-  const [ids, products] = await Promise.all([
-    fetchBackendNewArrivalIds(),
-    fetchBackendProducts(),
-  ])
-  if (ids.length > 0) {
-    const byId = new Map(products.map((p) => [String(p.id), p]))
-    const picked = ids.map((id) => byId.get(id)).filter(Boolean)
-    if (picked.length > 0) return picked.slice(0, 12)
-  }
-  return products.slice(0, 6)
+  const data = await jewelleryFetch('/api/merchandising/new-arrivals/products')
+  return Array.isArray(data?.products) ? data.products : []
 }
 
 // --- Customer auth ---
@@ -107,6 +99,10 @@ export async function customerRegister(body) {
 
 export async function customerLogin(body) {
   return jewelleryFetch('/api/auth/login', { method: 'POST', body, auth: false })
+}
+
+export async function customerGoogleLogin(body) {
+  return jewelleryFetch('/api/auth/google', { method: 'POST', body, auth: false })
 }
 
 export async function customerGetMe() {

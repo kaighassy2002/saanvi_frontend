@@ -9,6 +9,7 @@ import React, {
 } from 'react'
 import { CUSTOMER_SESSION_CHANGED_EVENT, STORAGE_KEYS, USE_LOCAL_API } from '../services/config'
 import {
+  clearExpiredCustomerSession,
   getCustomerStorageScope,
   scopedWishlistKey,
 } from '../services/customerStorageScope'
@@ -132,7 +133,8 @@ export function WishlistProvider({ children }) {
         writeWishlist(storageScope, merged)
         if (guestItems.length > 0) writeWishlist('guest', [])
         await customerPutWishlist(merged)
-      } catch {
+      } catch (err) {
+        if (clearExpiredCustomerSession(err)) return
         // Keep local wishlist when sync fails.
       } finally {
         if (!cancelled) persistence.endServerSync()
@@ -149,8 +151,8 @@ export function WishlistProvider({ children }) {
     async function syncToServer() {
       try {
         await customerPutWishlist(items)
-      } catch {
-        // Best-effort sync.
+      } catch (err) {
+        clearExpiredCustomerSession(err)
       }
     }
     syncToServer()

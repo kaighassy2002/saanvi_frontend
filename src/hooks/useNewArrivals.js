@@ -1,102 +1,55 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-
 import { CATALOG_UPDATED_EVENT, USE_LOCAL_API } from '../services/config'
-
 import { fetchBackendNewArrivalProducts } from '../services/jewelleryApi'
+import { useCatalog } from './useCatalog'
 
-import { getPublicProductsLocal } from '../services/localCatalog'
-
-
-
-export function useNewArrivals() {
-
-  const [products, setProducts] = useState([])
-
-  const [loading, setLoading] = useState(true)
-
-
-
-  const load = useCallback(async () => {
-
-    setLoading(true)
-
-    try {
-
-      let items
-
-      if (USE_LOCAL_API) {
-
-        const all = await getPublicProductsLocal()
-
-        items = all.slice(0, 6)
-
-      } else {
-
-        items = await fetchBackendNewArrivalProducts()
-
-      }
-
-      setProducts(items)
-
-    } catch {
-
-      setProducts([])
-
-    } finally {
-
-      setLoading(false)
-
-    }
-
-  }, [])
-
-
-
-  useEffect(() => {
-
-    load()
-
-  }, [load])
-
-
-
-  useEffect(() => {
-
-    const h = () => load()
-
-    window.addEventListener(CATALOG_UPDATED_EVENT, h)
-
-    return () => window.removeEventListener(CATALOG_UPDATED_EVENT, h)
-
-  }, [load])
-
-
-
-  const withDiscount = useMemo(
-
-    () =>
-
-      products.map((p) => {
-
-        const off =
-
-          p.originalPrice > 0
-
-            ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
-
-            : 0
-
-        return { ...p, discount: off }
-
-      }),
-
-    [products]
-
-  )
-
-
-
-  return { products: withDiscount, loading, refresh: load }
-
+function withDiscount(products) {
+  return products.map((p) => {
+    const off =
+      p.originalPrice > 0
+        ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+        : 0
+    return { ...p, discount: off }
+  })
 }
 
+export function useNewArrivals() {
+  const { products: catalogProducts, loading: catalogLoading } = useCatalog()
+  const [fetchedProducts, setFetchedProducts] = useState([])
+  const [loading, setLoading] = useState(!USE_LOCAL_API)
+
+  const load = useCallback(async () => {
+    if (USE_LOCAL_API) return
+    setLoading(true)
+    try {
+      const items = await fetchBackendNewArrivalProducts()
+      setFetchedProducts(items)
+    } catch {
+      setFetchedProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useEffect(() => {
+    if (USE_LOCAL_API) return undefined
+    const onUpdate = () => load()
+    window.addEventListener(CATALOG_UPDATED_EVENT, onUpdate)
+    return () => window.removeEventListener(CATALOG_UPDATED_EVENT, onUpdate)
+  }, [load])
+
+  const sourceProducts = useMemo(
+    () => (USE_LOCAL_API ? catalogProducts.slice(0, 6) : fetchedProducts),
+    [catalogProducts, fetchedProducts]
+  )
+
+  const products = useMemo(() => withDiscount(sourceProducts), [sourceProducts])
+
+  const isLoading = USE_LOCAL_API ? catalogLoading && products.length === 0 : loading
+
+  return { products, loading: isLoading, refresh: load }
+}

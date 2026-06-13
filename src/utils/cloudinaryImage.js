@@ -20,6 +20,29 @@ const PRESETS = {
   promo: { width: 800, height: 533, mode: 'fill' },
 }
 
+/** Responsive widths per preset (px) for srcset generation. */
+const SRCSET_WIDTHS = {
+  card: [320, 480, 640],
+  gallery: [480, 800, 1200],
+  lightbox: [800, 1200, 1600],
+  thumb: [80, 120],
+  adminPreview: [200, 400],
+  hero: [640, 960, 1200],
+  category: [200, 400],
+  promo: [400, 800],
+}
+
+const SIZES_BY_PRESET = {
+  card: '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px',
+  gallery: '(max-width: 1024px) 100vw, 50vw',
+  lightbox: '100vw',
+  thumb: '80px',
+  adminPreview: '200px',
+  hero: '(max-width: 1024px) 100vw, 480px',
+  category: '(max-width: 640px) 45vw, 200px',
+  promo: '(max-width: 768px) 100vw, 400px',
+}
+
 const UPLOAD_MARKER = '/image/upload/'
 
 function buildTransform({ width, height, mode = 'pad' }) {
@@ -27,6 +50,17 @@ function buildTransform({ width, height, mode = 'pad' }) {
     return `c_fill,w_${width},h_${height},g_auto,f_auto,q_auto`
   }
   return `c_pad,w_${width},h_${height},b_rgb:${PAD_BG},f_auto,q_auto`
+}
+
+function heightForWidth(width, preset) {
+  const base = PRESETS[preset] || PRESETS.card
+  if (base.mode === 'fill' && preset === 'category') {
+    return width
+  }
+  if (base.mode === 'fill' && preset === 'promo') {
+    return Math.round(width * (533 / 800))
+  }
+  return Math.round(width / PRODUCT_IMAGE_ASPECT)
 }
 
 function isCloudinaryImageUrl(url) {
@@ -68,7 +102,7 @@ function insertCloudinaryTransform(url, transform) {
 
 /**
  * @param {string} url
- * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview' | 'hero' | 'category'} [preset]
+ * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview' | 'hero' | 'category' | 'promo'} [preset]
  * @returns {string}
  */
 export function productImageUrl(url, preset = 'card') {
@@ -78,6 +112,47 @@ export function productImageUrl(url, preset = 'card') {
 
   const dims = PRESETS[preset] || PRESETS.card
   return insertCloudinaryTransform(trimmed, buildTransform(dims))
+}
+
+/**
+ * @param {string} url
+ * @param {'card' | 'gallery' | 'lightbox' | 'thumb' | 'adminPreview' | 'hero' | 'category' | 'promo'} [preset]
+ * @param {{ sizes?: string }} [options]
+ * @returns {{ src: string, srcSet?: string, sizes?: string }}
+ */
+export function productImageAttrs(url, preset = 'card', options = {}) {
+  const trimmed = String(url || '').trim()
+  if (!trimmed) return { src: '' }
+
+  if (!isCloudinaryImageUrl(trimmed)) {
+    return { src: trimmed }
+  }
+
+  const base = PRESETS[preset] || PRESETS.card
+  const widths = SRCSET_WIDTHS[preset] || SRCSET_WIDTHS.card
+  const srcSet = widths
+    .map((w) => {
+      const h = heightForWidth(w, preset)
+      const transformed = insertCloudinaryTransform(trimmed, buildTransform({ width: w, height: h, mode: base.mode }))
+      return `${transformed} ${w}w`
+    })
+    .join(', ')
+
+  const defaultWidth = widths[widths.length - 1] || base.width
+  const src = insertCloudinaryTransform(
+    trimmed,
+    buildTransform({
+      width: defaultWidth,
+      height: heightForWidth(defaultWidth, preset),
+      mode: base.mode,
+    })
+  )
+
+  return {
+    src,
+    srcSet,
+    sizes: options.sizes || SIZES_BY_PRESET[preset] || SIZES_BY_PRESET.card,
+  }
 }
 
 /** Transform string included in signed Cloudinary uploads (master asset). */

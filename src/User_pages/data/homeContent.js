@@ -48,7 +48,7 @@ export const HOME_PROMO_BANNERS = [
 
 export const HOME_SERVICES = [
   { icon: 'fa-paper-plane', title: 'Free Shipping', text: 'On orders over {{threshold}}' },
-  { icon: 'fa-rotate-left', title: 'Easy Returns', text: '7-day returns' },
+  { icon: 'fa-arrow-rotate-left', title: 'Easy Returns', text: '7-day returns' },
   { icon: 'fa-wallet', title: 'Secure Pay', text: 'COD available' },
   { icon: 'fa-headset', title: 'Support', text: 'WhatsApp help' },
 ]

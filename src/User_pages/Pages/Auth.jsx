@@ -3,10 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import BrandLogo from '../Components/BrandLogo'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
-import { STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
+import { GoogleLogin } from '@react-oauth/google'
+import { GOOGLE_CLIENT_ID, STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
 import {
   customerLogin,
+  customerGoogleLogin,
   customerRegister,
   customerForgotPasswordRequest,
   customerForgotPasswordVerifyOtp,
@@ -101,6 +103,18 @@ function Auth() {
     setMessageTone(tone)
   }
 
+  const promptRegistration = (err, profile = {}) => {
+    if (err?.status !== 404 || err?.data?.code !== 'REGISTRATION_REQUIRED') return false
+    switchMode('register')
+    if (profile.email || err.data?.email) setEmail(profile.email || err.data.email)
+    if (profile.firstName || err.data?.firstName) {
+      setFirstName(profile.firstName || err.data.firstName)
+    }
+    if (profile.lastName || err.data?.lastName) setLastName(profile.lastName || err.data.lastName)
+    showMessage(err.message || 'Please register to continue.')
+    return true
+  }
+
   const handleLocalDemoSignIn = () => {
     const trimmedEmail = email.trim().toLowerCase()
     if (!trimmedEmail || !password) {
@@ -118,6 +132,36 @@ function Auth() {
     persistSession('local-demo-token', user)
     showMessage('Signed in (demo mode).', 'success')
     navigate(redirectTarget())
+  }
+
+  const googleSignInEnabled = !USE_LOCAL_API && Boolean(GOOGLE_CLIENT_ID)
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const credential = credentialResponse?.credential
+    if (!credential) {
+      showMessage('Google sign-in failed')
+      return
+    }
+    setLoading(true)
+    setMessage('')
+    try {
+      const data = await customerGoogleLogin({
+        credential,
+        intent: mode === 'register' ? 'register' : 'login',
+      })
+      persistSession(data.token, data.user)
+      showMessage(
+        mode === 'register' ? 'Account created with Google.' : 'Signed in with Google.',
+        'success',
+      )
+      navigate(redirectTarget())
+    } catch (err) {
+      if (!promptRegistration(err)) {
+        showMessage(err?.message || 'Google sign-in failed')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -157,7 +201,9 @@ function Auth() {
       showMessage('Signed in.', 'success')
       navigate(redirectTarget())
     } catch (err) {
-      showMessage(err?.message || 'Authentication failed')
+      if (!promptRegistration(err)) {
+        showMessage(err?.message || 'Authentication failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -165,6 +211,25 @@ function Auth() {
 
   const isRegister = mode === 'register'
   const redirect = redirectTarget()
+
+  const googleSignInBlock = googleSignInEnabled ? (
+    <div className="auth-page__google-wrap">
+      <div className="auth-page__google">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => showMessage('Google sign-in was cancelled or failed')}
+          theme="outline"
+          size="large"
+          width="360"
+          text={isRegister ? 'signup_with' : 'signin_with'}
+          shape="rectangular"
+        />
+      </div>
+      <div className="auth-page__divider" aria-hidden>
+        <span>or continue with email</span>
+      </div>
+    </div>
+  ) : null
 
   const modeTabs = !USE_LOCAL_API ? (
     <>
@@ -371,6 +436,7 @@ function Auth() {
             </div>
 
             <div className="auth-page__content">
+              <div className="auth-page__stack">
               {redirect === '/checkout' ? (
                 <div className="auth-page__checkout-note" role="status">
                   <i className="fa-solid fa-bag-shopping" aria-hidden />
@@ -380,7 +446,7 @@ function Auth() {
                 </div>
               ) : null}
 
-              {!USE_LOCAL_API ? (
+              {!showForgotPassword && !USE_LOCAL_API ? (
                 <div
                   className="auth-page__tabs auth-page__tabs--desktop hidden lg:flex"
                   role="tablist"
@@ -390,21 +456,24 @@ function Auth() {
                 </div>
               ) : null}
 
-              {message ? (
-                <p
-                  className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
-                  role="status"
-                >
-                  {message}
-                </p>
-              ) : null}
+              {!showForgotPassword ? googleSignInBlock : null}
 
               {!showForgotPassword ? (
-                <form className="auth-page__form" onSubmit={handleSubmit}>
+                <div className="auth-page__email-section">
+                  {message ? (
+                    <p
+                      className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
+                      role="status"
+                    >
+                      {message}
+                    </p>
+                  ) : null}
+
+                  <form className="auth-page__form" onSubmit={handleSubmit}>
                   {(isRegister || USE_LOCAL_API) && (
-                    <>
+                    <div className="auth-page__field-group">
                       <div className="auth-page__row">
-                        <div>
+                        <div className="auth-page__field">
                           <label className="form-label" htmlFor="auth-first">
                             First name
                           </label>
@@ -418,7 +487,7 @@ function Auth() {
                             required={isRegister && !USE_LOCAL_API}
                           />
                         </div>
-                        <div>
+                        <div className="auth-page__field">
                           <label className="form-label" htmlFor="auth-last">
                             Last name
                           </label>
@@ -432,9 +501,9 @@ function Auth() {
                           />
                         </div>
                       </div>
-                      <div>
+                      <div className="auth-page__field">
                         <label className="form-label" htmlFor="auth-phone">
-                          Mobile (optional)
+                          Mobile <span className="auth-page__optional">(optional)</span>
                         </label>
                         <input
                           id="auth-phone"
@@ -446,60 +515,77 @@ function Auth() {
                           onChange={(e) => setPhone(e.target.value)}
                         />
                       </div>
-                    </>
+                    </div>
                   )}
 
-                  <div>
-                    <label className="form-label" htmlFor="auth-email">
-                      Email
-                    </label>
-                    <input
-                      id="auth-email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      className="royal-input"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="form-label" htmlFor="auth-password">
-                      Password
-                    </label>
-                    <input
-                      id="auth-password"
-                      type="password"
-                      autoComplete={isRegister ? 'new-password' : 'current-password'}
-                      required
-                      minLength={8}
-                      className="royal-input"
-                      placeholder={isRegister ? 'At least 8 characters' : 'Your password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-
-                  {!USE_LOCAL_API && mode === 'login' ? (
-                    <div className="flex justify-end text-sm">
-                      <button type="button" className="text-muted hover:text-gold" onClick={openForgotPassword}>
-                        Forgot password?
-                      </button>
+                  <div className="auth-page__credentials">
+                    <div className="auth-page__field">
+                      <label className="form-label" htmlFor="auth-email">
+                        Email
+                      </label>
+                      <input
+                        id="auth-email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        className="royal-input"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
                     </div>
-                  ) : null}
 
-                  <button type="submit" className="lux-button w-full disabled:opacity-60" disabled={loading}>
-                    {loading
-                      ? 'Please wait…'
-                      : USE_LOCAL_API
-                        ? 'Continue (demo)'
-                        : isRegister
-                          ? 'Create account'
-                          : 'Sign in'}
-                  </button>
+                    <div className="auth-page__field">
+                      <div className="auth-page__label-row">
+                        <label className="form-label auth-page__label-row-label" htmlFor="auth-password">
+                          Password
+                        </label>
+                        {!USE_LOCAL_API && mode === 'login' ? (
+                          <button
+                            type="button"
+                            className="auth-page__forgot-link"
+                            onClick={openForgotPassword}
+                          >
+                            Forgot password?
+                          </button>
+                        ) : null}
+                      </div>
+                      <input
+                        id="auth-password"
+                        type="password"
+                        autoComplete={isRegister ? 'new-password' : 'current-password'}
+                        required
+                        minLength={8}
+                        className="royal-input"
+                        placeholder={isRegister ? 'At least 8 characters' : 'Your password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-page__submit">
+                    <button type="submit" className="lux-button w-full disabled:opacity-60" disabled={loading}>
+                      {loading
+                        ? 'Please wait…'
+                        : USE_LOCAL_API
+                          ? 'Continue (demo)'
+                          : isRegister
+                            ? 'Create account'
+                            : 'Sign in'}
+                    </button>
+                  </div>
                 </form>
+                </div>
+              ) : null}
+
+              {message && showForgotPassword ? (
+                <p
+                  className={`auth-page__alert auth-page__alert--${messageTone === 'success' ? 'success' : 'error'}`}
+                  role="status"
+                >
+                  {message}
+                </p>
               ) : null}
 
               {!USE_LOCAL_API && showForgotPassword ? (
@@ -641,6 +727,7 @@ function Auth() {
                   </>
                 )}
               </p>
+              </div>
             </div>
           </div>
         </div>

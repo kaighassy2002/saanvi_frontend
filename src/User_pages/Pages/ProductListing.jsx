@@ -7,28 +7,17 @@ import CollectionFilters from '../Components/CollectionFilters'
 import CollectionSortFilterBar from '../Components/CollectionSortFilterBar'
 import CollectionCategoryChips from '../Components/CollectionCategoryChips'
 import CollectionPageHeader from '../Components/CollectionPageHeader'
-import { useCatalog } from '../../hooks/useCatalog'
 import {
   buildListingSearchParams,
   listingParamsToHref,
   parseListingState,
-  productMatchesSearch,
 } from '../../services/listingSearchParams'
 import { pushRecentSearch } from '../../services/recentSearches'
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
 import { useCollectionScrollPin } from '../../hooks/useCollectionScrollPin'
 import { useWishlist } from '../../hooks/useWishlist'
 import { useReviewSummaries } from '../../hooks/useReviewSummaries'
-import { fetchPublicCategoryTabs } from '../../services/catalogService'
-import {
-  buildBasicMaterialFacetOptions,
-  buildColorFacetOptions,
-  getProductMaterial,
-  productMatchesColorFacet,
-  productMatchesFacet,
-} from '../../services/collectionProductAttributes'
-import { buildCollectionListing } from '../../services/collectionListingSort'
-import { productIsInStock } from '../../services/productVariants'
+import { useProductListing } from '../../hooks/useProductListing'
 import { useStoreSettings } from '../../context/storeSettingsContext'
 import { usePageMeta } from '../../hooks/usePageMeta'
 import { STORE_NAME } from '../../services/storefrontConstants'
@@ -61,18 +50,32 @@ function ProductSkeleton({ compact = false }) {
 }
 
 function ProductListing() {
-  const { products, loading, error } = useCatalog()
   const { featuredProductIds } = useStoreSettings()
   const { toggle, isInWishlist } = useWishlist()
-  const [categories, setCategories] = useState(['All'])
   const [searchParams, setSearchParams] = useSearchParams()
+  const {
+    entries: visibleListings,
+    total: listingTotal,
+    categories,
+    priceBounds,
+    categoryCounts,
+    inStockCount,
+    outOfStockCount,
+    colorOptions,
+    materialOptions,
+    productsCount,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loadMore,
+    filteredCount,
+  } = useProductListing(searchParams, { featuredProductIds, pageSize: PRODUCTS_PER_PAGE })
   const [localSearch, setLocalSearch] = useState(() => searchParams.get('search') || '')
   const [availability, setAvailability] = useState('all')
   const [sortBy, setSortBy] = useState('featured')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [compactCards, setCompactCards] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
   )
@@ -105,37 +108,20 @@ function ProductListing() {
   }, [searchTerm, selectedCategory])
 
   usePageMeta(listingMeta)
-  const searchTermLower = searchTerm.toLowerCase()
-
-  const priceBounds = useMemo(() => {
-    if (!products.length) return { min: 0, max: 0 }
-    const prices = products.map((product) => Number(product.price) || 0)
-    return { min: Math.min(...prices), max: Math.max(...prices) }
-  }, [products])
 
   const [priceRange, setPriceRange] = useState({ min: 0, max: 0 })
   const [selectedColors, setSelectedColors] = useState([])
   const [selectedMaterials, setSelectedMaterials] = useState([])
 
   useEffect(() => {
-    let cancelled = false
-    fetchPublicCategoryTabs(products).then((tabs) => {
-      if (!cancelled) setCategories(tabs.length ? tabs : ['All'])
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [products])
-
-  useEffect(() => {
-    if (priceBounds.max <= priceBounds.min && products.length === 0) return
+    if (priceBounds.max <= priceBounds.min && productsCount === 0) return
     const parsed = parseListingState(searchParams, priceBounds)
     setSortBy(parsed.sortBy)
     setAvailability(parsed.availability)
     setPriceRange(parsed.priceRange)
     setSelectedColors(parsed.selectedColors)
     setSelectedMaterials(parsed.selectedMaterials)
-  }, [searchParams, priceBounds.min, priceBounds.max, products.length])
+  }, [searchParams, priceBounds.min, priceBounds.max, productsCount])
 
   useEffect(() => {
     const lock = filtersOpen || sortOpen
@@ -149,78 +135,7 @@ function ProductListing() {
     }
   }, [filtersOpen, sortOpen])
 
-  const categoryCounts = useMemo(
-    () =>
-      products.reduce(
-        (acc, product) => {
-          const key = product.category || 'Uncategorized'
-          acc[key] = (acc[key] || 0) + 1
-          return acc
-        },
-        { All: products.length }
-      ),
-    [products]
-  )
-
-  const inStockCount = useMemo(
-    () => products.filter((product) => productIsInStock(product)).length,
-    [products]
-  )
-  const outOfStockCount = products.length - inStockCount
-
-  const colorOptions = useMemo(() => buildColorFacetOptions(products), [products])
-
-  const materialOptions = useMemo(() => buildBasicMaterialFacetOptions(products), [products])
-
-  const filteredProducts = useMemo(
-    () =>
-      products.filter((product) => {
-        const categoryMatch = selectedCategory === 'All' || product.category === selectedCategory
-        const searchMatch = productMatchesSearch(product, searchTerm)
-        const inStock = productIsInStock(product)
-        const availabilityMatch =
-          availability === 'all' || (availability === 'in-stock' ? inStock : !inStock)
-        const price = Number(product.price) || 0
-        const colorMatch = productMatchesColorFacet(product, selectedColors)
-        const materialMatch = productMatchesFacet(selectedMaterials, getProductMaterial(product))
-        return (
-          categoryMatch &&
-          searchMatch &&
-          availabilityMatch &&
-          colorMatch &&
-          materialMatch &&
-          price >= priceRange.min &&
-          price <= priceRange.max
-        )
-      }),
-    [
-      availability,
-      priceRange.max,
-      priceRange.min,
-      products,
-      searchTermLower,
-      selectedCategory,
-      selectedColors,
-      selectedMaterials,
-    ]
-  )
-
-  const listingEntries = useMemo(
-    () =>
-      buildCollectionListing(filteredProducts, sortBy, {
-        featuredProductIds,
-      }),
-    [filteredProducts, sortBy, featuredProductIds]
-  )
-
-  const visibleListings = useMemo(
-    () => listingEntries.slice(0, visibleCount),
-    [listingEntries, visibleCount]
-  )
-
   const reviewSummaries = useReviewSummaries(visibleListings.map((entry) => entry.productId))
-
-  const hasMore = visibleCount < listingEntries.length
 
   const activeFilterCount = [
     selectedCategory !== 'All',
@@ -232,19 +147,6 @@ function ProductListing() {
   ].filter(Boolean).length
 
   const hasActiveFilters = activeFilterCount > 0
-
-  useEffect(() => {
-    setVisibleCount(PRODUCTS_PER_PAGE)
-  }, [
-    selectedCategory,
-    searchTerm,
-    availability,
-    priceRange.min,
-    priceRange.max,
-    sortBy,
-    selectedColors,
-    selectedMaterials,
-  ])
 
   useEffect(() => {
     setLocalSearch(searchParams.get('search') || '')
@@ -285,15 +187,6 @@ function ProductListing() {
     ro.observe(node)
     return () => ro.disconnect()
   }, [hasActiveFilters, activeFilterCount, setCompactBarHeight])
-
-  const loadMore = useCallback(() => {
-    if (!hasMore || loadingMore) return
-    setLoadingMore(true)
-    requestAnimationFrame(() => {
-      setVisibleCount((count) => Math.min(count + PRODUCTS_PER_PAGE, listingEntries.length))
-      setLoadingMore(false)
-    })
-  }, [hasMore, loadingMore, listingEntries.length])
 
   const sentinelRef = useInfiniteScroll({
     onLoadMore: loadMore,
@@ -375,7 +268,7 @@ function ProductListing() {
   const filterPanelProps = {
     availability,
     setAvailability: handleAvailabilityChange,
-    productsCount: products.length,
+    productsCount,
     inStockCount,
     outOfStockCount,
     priceBounds,
@@ -471,7 +364,7 @@ function ProductListing() {
         <ProductSkeleton key={i} compact={compactCards} />
       ))}
     </div>
-  ) : filteredProducts.length === 0 ? (
+  ) : filteredCount === 0 ? (
     <div className="lux-card px-6 py-14 text-center sm:py-20">
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#f5ead7] text-2xl text-[#7a2c3a]">
         <i className="fa-regular fa-gem" aria-hidden />
@@ -516,9 +409,9 @@ function ProductListing() {
         </div>
       )}
 
-      {!hasMore && listingEntries.length > PRODUCTS_PER_PAGE ? (
+      {!hasMore && listingTotal > PRODUCTS_PER_PAGE ? (
         <p className="mt-6 text-center font-playfair text-xs text-muted">
-          You&apos;ve seen all {listingEntries.length} products
+          You&apos;ve seen all {listingTotal} products
         </p>
       ) : null}
     </>
@@ -634,7 +527,7 @@ function ProductListing() {
           <h1 className="collection-myntra__title">
             {pageTitle}
             <span className="collection-myntra__count">
-              {loading ? '' : ` - ${listingEntries.length} items`}
+              {loading ? '' : ` - ${listingTotal} items`}
             </span>
           </h1>
         </header>
@@ -705,7 +598,7 @@ function ProductListing() {
 
             <CollectionPageHeader
               title={pageTitle}
-              productCount={listingEntries.length}
+              productCount={listingTotal}
               loading={loading}
               selectedCategory={selectedCategory}
             />
@@ -803,7 +696,7 @@ function ProductListing() {
             </div>
             <div className="border-t border-[#eadfc9] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button type="button" onClick={() => setFiltersOpen(false)} className="lux-button w-full">
-                Show {listingEntries.length} products
+                Show {listingTotal} products
               </button>
             </div>
           </div>

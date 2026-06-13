@@ -4,7 +4,7 @@ const DEFAULT_ITEMS = [
   { icon: 'fa-shield-halved', label: 'Secure checkout' },
   { icon: 'fa-certificate', label: 'Quality assured' },
   { icon: 'fa-truck-fast', label: 'Fast delivery' },
-  { icon: 'fa-rotate-left', label: 'Easy returns' },
+  { icon: 'fa-arrow-rotate-left', label: 'Easy returns' },
 ]
 
 function TrustStrip({ items = DEFAULT_ITEMS, className = '' }) {

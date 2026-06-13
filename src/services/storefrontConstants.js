@@ -15,6 +15,12 @@ export const SUPPORT_PHONE_TEL = SUPPORT_PHONE.replace(/\s/g, '')
 export const STORE_LOCATION = 'Chennai, India'
 export const STORE_NAME = 'Aashmika Designs'
 
+/** Public storefront origin for canonical URLs and JSON-LD (no trailing slash). */
+export const SITE_URL = String(import.meta.env.VITE_SITE_URL || 'https://www.aashmikadesigns.com').replace(
+  /\/$/,
+  ''
+)
+
 /** Brand mark: jewellery_frontend/public/icon/Aashmika-logo.png */
 export const BRAND_LOGO_SRC = '/icon/Aashmika-logo.png'
 

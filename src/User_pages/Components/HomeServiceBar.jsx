@@ -1,6 +1,7 @@
 import React from 'react'
 import { useHomeContent } from '../../hooks/useHomeContent'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import { formatFontAwesomeIcon } from '../../utils/fontAwesomeIcon'
 
 function HomeServiceBar() {
   const ref = useScrollReveal()
@@ -17,7 +18,7 @@ function HomeServiceBar() {
         {homeServices.map((item, index) => (
           <div key={`${item.title}-${index}`} className="jewelsium-service-card">
             <span className="jewelsium-service-card__icon">
-              <i className={`fa-regular ${item.icon}`} aria-hidden />
+              <i className={formatFontAwesomeIcon(item.icon)} aria-hidden />
             </span>
             <h2 className="jewelsium-service-card__title">{item.title}</h2>
             <p className="jewelsium-service-card__text">{item.text}</p>

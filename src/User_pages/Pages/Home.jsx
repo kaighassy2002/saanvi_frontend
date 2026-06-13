@@ -1,5 +1,6 @@
 import React from 'react'
 import { usePageMeta } from '../../hooks/usePageMeta'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { STORE_NAME } from '../../services/storefrontConstants'
 import SiteHeader from '../Components/SiteHeader'
 import Footer from '../Components/Footer'
@@ -14,6 +15,8 @@ import '../Styles/home-jewelsium.css'
 import '../Styles/home-mobile.css'
 
 function Home() {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
   usePageMeta({
     title: STORE_NAME,
     description:
@@ -24,15 +27,17 @@ function Home() {
     <div id="main-content" className="page-shell page-shell--jewelsium" tabIndex={-1}>
       <SiteHeader showSearch showAnnouncement />
 
-      <HomeMobileView />
-
-      <div className="home-view--desktop">
-        <HomeHeroSlider />
-        <HomeServiceBar />
-        <HomePromoBanners />
-        <HomeTrendingProducts />
-        <HomePopularCategories />
-      </div>
+      {isDesktop ? (
+        <div className="home-view--desktop">
+          <HomeHeroSlider />
+          <HomeServiceBar />
+          <HomePromoBanners />
+          <HomeTrendingProducts />
+          <HomePopularCategories />
+        </div>
+      ) : (
+        <HomeMobileView />
+      )}
 
       <Footer />
     </div>

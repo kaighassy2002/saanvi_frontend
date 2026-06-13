@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react'
 import { Link } from 'react-router-dom'
 import ProductCardMedia from './ProductCardMedia'
 import { StarRatingCompact } from './StarRating'
@@ -9,6 +9,23 @@ import { productIsInStock } from '../../services/productVariants'
  * Unified storefront product card.
  * @param {'home' | 'grid' | 'compact'} variant
  */
+function storeProductCardPropsAreEqual(prev, next) {
+  return (
+    prev.product?.id === next.product?.id &&
+    prev.product?.price === next.product?.price &&
+    prev.product?.originalPrice === next.product?.originalPrice &&
+    prev.product?.image === next.product?.image &&
+    prev.product?.name === next.product?.name &&
+    prev.product?.stock === next.product?.stock &&
+    prev.saved === next.saved &&
+    prev.colorLabel === next.colorLabel &&
+    prev.productHref === next.productHref &&
+    prev.variant === next.variant &&
+    prev.reviewSummary?.count === next.reviewSummary?.count &&
+    prev.reviewSummary?.average === next.reviewSummary?.average
+  )
+}
+
 function StoreProductCard({
   product,
   saved,
@@ -151,4 +168,4 @@ function StoreProductCard({
   )
 }
 
-export default StoreProductCard
+export default memo(StoreProductCard, storeProductCardPropsAreEqual)

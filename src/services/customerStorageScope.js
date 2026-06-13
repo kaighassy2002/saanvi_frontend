@@ -36,3 +36,14 @@ export function notifyCustomerSessionChanged() {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new Event(CUSTOMER_SESSION_CHANGED_EVENT))
 }
+
+/** Drop stale JWT after 401 so guest local cart/wishlist is used without repeat API errors. */
+export function clearExpiredCustomerSession(err) {
+  const status = err?.status ?? err?.statusCode
+  if (status !== 401) return false
+  if (typeof localStorage === 'undefined') return false
+  localStorage.removeItem(STORAGE_KEYS.customerToken)
+  localStorage.removeItem(STORAGE_KEYS.customerProfile)
+  notifyCustomerSessionChanged()
+  return true
+}

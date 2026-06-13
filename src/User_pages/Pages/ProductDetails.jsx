@@ -27,6 +27,7 @@ import {
 } from '../../services/productVariants'
 import { getProductImages } from '../utils/productImages'
 import { usePageMeta } from '../../hooks/usePageMeta'
+import { useProductStructuredData } from '../../hooks/useProductStructuredData'
 import { productImageUrl } from '../../utils/cloudinaryImage'
 import '../Styles/product-detail.css'
 
@@ -121,9 +122,16 @@ function ProductDetailView({ product }) {
     product.shortDescription ||
     product.description?.slice(0, 160) ||
     `Shop ${product.name || 'this piece'} at Aashmika Designs.`
-  const metaImage = product.image ? productImageUrl(product.image, { width: 800 }) : undefined
+  const metaImage = product.image ? productImageUrl(product.image, 'gallery') : undefined
 
-  usePageMeta({ title: metaTitle, description: metaDescription, image: metaImage })
+  usePageMeta({
+    title: metaTitle,
+    description: metaDescription,
+    image: metaImage,
+    canonicalPath: `/product/${product.id}`,
+    ogType: 'product',
+  })
+  useProductStructuredData(product)
 
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()

@@ -42,7 +42,7 @@ function ProductPicker({ items, selectedIds, onToggle, max, label }) {
       {items.length === 0 ? (
         <p className="text-sm text-muted">No published products.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {items.map((item) => {
             const selected = selectedIds.includes(item.id)
             const disabled = !selected && selectedIds.length >= max
@@ -51,7 +51,7 @@ function ProductPicker({ items, selectedIds, onToggle, max, label }) {
                 key={item.id}
                 type="button"
                 onClick={() => !disabled && onToggle(item.id)}
-                className={`lux-card p-3 text-left transition border-2 ${
+                className={`lux-card p-2 text-left transition border-2 ${
                   selected
                     ? 'border-gold bg-[#fdf6ee]'
                     : disabled
@@ -61,14 +61,16 @@ function ProductPicker({ items, selectedIds, onToggle, max, label }) {
               >
                 {item.image ? (
                   <img
-                    src={productImageUrl(item.image, 'adminPreview')}
+                    src={productImageUrl(item.image, 'thumb')}
                     alt={item.name}
-                    className="mb-2 aspect-[4/5] w-full rounded-md bg-[#f8f2e7] object-contain"
+                    className="mb-1.5 aspect-[4/5] w-full max-h-24 rounded-md bg-[#f8f2e7] object-contain"
                   />
                 ) : (
-                  <div className="w-full h-20 bg-[#f4e8db] rounded-md mb-2" />
+                  <div className="mb-1.5 h-16 w-full rounded-md bg-[#f4e8db]" />
                 )}
-                <p className="text-xs font-medium text-ink line-clamp-2">{item.name}</p>
+                <p className="text-[10px] font-medium leading-snug text-ink line-clamp-2 sm:text-xs">
+                  {item.name}
+                </p>
               </button>
             )
           })}

@@ -15,6 +15,9 @@ export const STORE_SLUG = import.meta.env.VITE_STORE_SLUG || 'aashmika-designs'
 /** When empty and not using dev proxy, catalog/orders/users use localStorage. */
 export const USE_LOCAL_API = !useDevProxy && !API_BASE
 
+/** Google OAuth client ID (same as backend GOOGLE_CLIENT_ID). */
+export const GOOGLE_CLIENT_ID = String(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim()
+
 // Keys are prefixed with the tenant slug so multiple client sites on the same
 // browser never share localStorage — no session or cart collisions.
 const _p = STORE_SLUG

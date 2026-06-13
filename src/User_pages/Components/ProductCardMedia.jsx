@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { getProductDisplayImages } from '../utils/productImages'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getProductImages } from '../utils/productImages'
+import { productImageAttrs } from '../../utils/cloudinaryImage'
 
 /**
  * Listing card media — shows first image by default; auto-cycles on hover when multiple images exist.
@@ -12,8 +13,11 @@ export default function ProductCardMedia({
   compact = false,
   singleImage = false,
 }) {
-  const allImages = getProductDisplayImages(product, 'card')
-  const images = singleImage ? allImages.slice(0, 1) : allImages
+  const imageAttrs = useMemo(() => {
+    const raw = getProductImages(product)
+    const list = raw.map((url) => productImageAttrs(url, 'card'))
+    return singleImage ? list.slice(0, 1) : list
+  }, [product, singleImage])
   const [index, setIndex] = useState(0)
   const [hovering, setHovering] = useState(false)
   const [touching, setTouching] = useState(false)
@@ -23,8 +27,8 @@ export default function ProductCardMedia({
   const touchDeltaX = useRef(0)
   const suppressClickRef = useRef(false)
 
-  const hasMultiple = images.length > 1
-  const src = images[index] || images[0] || ''
+  const hasMultiple = imageAttrs.length > 1
+  const activeAttrs = imageAttrs[index] || imageAttrs[0] || { src: '' }
 
   const stopCycle = useCallback(() => {
     if (intervalRef.current) {
@@ -34,16 +38,16 @@ export default function ProductCardMedia({
   }, [])
 
   const startCycle = useCallback(() => {
-    if (!hasMultiple || images.length < 2) return
+    if (!hasMultiple || imageAttrs.length < 2) return
     stopCycle()
     intervalRef.current = setInterval(() => {
-      setIndex((i) => (i + 1) % images.length)
+      setIndex((i) => (i + 1) % imageAttrs.length)
     }, 2600)
-  }, [hasMultiple, images.length, stopCycle])
+  }, [hasMultiple, imageAttrs.length, stopCycle])
 
   useEffect(() => {
     setIndex(0)
-  }, [product?.id, images.join('|')])
+  }, [product?.id, imageAttrs.map((a) => a.src).join('|')])
 
   useEffect(() => stopCycle, [stopCycle])
 
@@ -68,7 +72,7 @@ export default function ProductCardMedia({
 
   const goTo = (nextIndex) => {
     if (!hasMultiple) return
-    const total = images.length
+    const total = imageAttrs.length
     setIndex((nextIndex + total) % total)
   }
 
@@ -109,7 +113,7 @@ export default function ProductCardMedia({
     }, 220)
   }
 
-  if (!src) {
+  if (!activeAttrs.src) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-[#f8f2e7] font-playfair text-xs text-muted">
         No image
@@ -144,15 +148,18 @@ export default function ProductCardMedia({
           transition: touching ? 'none' : 'transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)',
         }}
       >
-        {images.map((imageSrc, i) => (
+        {imageAttrs.map((attrs, i) => (
           <div
-            key={`${imageSrc}-${i}`}
+            key={`${attrs.src}-${i}`}
             className="relative h-full w-full shrink-0 grow-0 basis-full bg-[#f8f2e7]"
           >
             <img
-              src={imageSrc}
+              src={attrs.src}
+              srcSet={attrs.srcSet}
+              sizes={attrs.sizes}
               alt={alt}
               loading="lazy"
+              decoding="async"
               className={imgClass}
             />
           </div>
@@ -166,7 +173,7 @@ export default function ProductCardMedia({
               compact ? 'bottom-1 left-1 text-[9px]' : ''
             }`}
           >
-            {index + 1}/{images.length}
+            {index + 1}/{imageAttrs.length}
           </span>
 
           <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-[1] hidden items-center justify-between px-2 md:flex">
@@ -203,7 +210,7 @@ export default function ProductCardMedia({
             onClick={(e) => e.preventDefault()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            {images.map((_, i) => (
+            {imageAttrs.map((_, i) => (
               <button
                 key={i}
                 type="button"

@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { createEmptyHomeService } from '../../services/homeMerchandising'
+import { formatFontAwesomeIcon } from '../../utils/fontAwesomeIcon'
 
 const inputClass =
   'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
 
 const ICON_OPTIONS = [
   { value: 'fa-paper-plane', label: 'Shipping' },
-  { value: 'fa-rotate-left', label: 'Returns' },
+  { value: 'fa-arrow-rotate-left', label: 'Returns' },
   { value: 'fa-wallet', label: 'Payment' },
   { value: 'fa-headset', label: 'Support' },
   { value: 'fa-shield-halved', label: 'Secure' },
@@ -57,7 +58,7 @@ function HomeServicesEditor({ services, onChange, usingDefaults }) {
             <li key={`service-${index}`} className="lux-card p-4">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f4e8db] text-gold-dark">
-                  <i className={`fa-regular ${service.icon || 'fa-paper-plane'}`} aria-hidden />
+                  <i className={formatFontAwesomeIcon(service.icon || 'fa-paper-plane')} aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-ink">{service.title || 'Untitled'}</p>
