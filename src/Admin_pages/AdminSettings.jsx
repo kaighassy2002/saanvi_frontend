@@ -5,6 +5,10 @@ import { useStoreSettings } from '../context/storeSettingsContext'
 import { fetchRazorpayConfig } from '../services/jewelleryApi'
 import { formatInr } from '../services/storefrontConstants'
 import {
+  DEFAULT_ANNOUNCEMENT_MESSAGE,
+  resolveAnnouncementBar,
+} from '../services/announcementBar'
+import {
   INDIAN_STATES,
   payloadFromSettingsForm,
   settingsFormFromApi,
@@ -122,11 +126,15 @@ function AdminSettings() {
   const shippingPreviewValid =
     Number.isFinite(feeNum) && feeNum >= 0 && Number.isFinite(thresholdNum) && thresholdNum >= 0
 
-  const announcementPreview =
-    form.announcementMessage.trim() ||
-    (shippingPreviewValid
-      ? `Free shipping on orders above ${formatInr(thresholdNum)}`
-      : 'Free shipping on qualifying orders')
+  const announcementPreview = resolveAnnouncementBar({
+    announcementEnabled: form.announcementEnabled,
+    announcementExtraMessage: form.announcementExtraMessage,
+    announcementMessage: form.announcementMessage,
+    announcementLinkLabel: form.announcementLinkLabel,
+    announcementLinkUrl: form.announcementLinkUrl,
+    announcementShowIcon: form.announcementShowIcon,
+    freeShippingThreshold: shippingPreviewValid ? thresholdNum : form.freeShippingThreshold,
+  })
 
   if (loading) {
     return (
@@ -241,10 +249,37 @@ function AdminSettings() {
               </SettingsField>
             </SettingsSection>
 
-            <SettingsSection title="Announcement bar" description="Top banner on every storefront page.">
+            <SettingsSection
+              title="Announcement bar"
+              description="Top banner on every storefront page — message, link, and icon are all editable."
+            >
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.announcementEnabled}
+                  onChange={(e) => setField('announcementEnabled', e.target.checked)}
+                />
+                Show announcement bar
+              </label>
+
               <SettingsField
-                label="Custom message"
-                hint="Leave empty to auto-show free-shipping message from Shipping tab."
+                label="Festival / promo line (optional)"
+                hint="Extra text shown before the main message — e.g. Diwali sale, wedding season. Clear this when the offer ends."
+                htmlFor="announcement-extra"
+              >
+                <input
+                  id="announcement-extra"
+                  className={INPUT_CLASS}
+                  value={form.announcementExtraMessage}
+                  onChange={(e) => setField('announcementExtraMessage', e.target.value)}
+                  placeholder="Diwali festive edit — new temple sets"
+                  disabled={!form.announcementEnabled}
+                />
+              </SettingsField>
+
+              <SettingsField
+                label="Main message"
+                hint={`Use {{threshold}} for the free-shipping amount (from Shipping tab). Leave empty for: "${DEFAULT_ANNOUNCEMENT_MESSAGE}"`}
                 htmlFor="announcement"
               >
                 <input
@@ -252,11 +287,79 @@ function AdminSettings() {
                   className={INPUT_CLASS}
                   value={form.announcementMessage}
                   onChange={(e) => setField('announcementMessage', e.target.value)}
-                  placeholder="Festive sale — flat 10% off temple sets"
+                  placeholder={DEFAULT_ANNOUNCEMENT_MESSAGE}
+                  disabled={!form.announcementEnabled}
                 />
               </SettingsField>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SettingsField
+                  label="Link label"
+                  hint='e.g. "Shop now". Leave empty to hide the link.'
+                  htmlFor="announcement-link-label"
+                >
+                  <input
+                    id="announcement-link-label"
+                    className={INPUT_CLASS}
+                    value={form.announcementLinkLabel}
+                    onChange={(e) => setField('announcementLinkLabel', e.target.value)}
+                    placeholder="Shop now"
+                    disabled={!form.announcementEnabled}
+                  />
+                </SettingsField>
+                <SettingsField
+                  label="Link URL"
+                  hint="Internal path (/collections) or full URL (https://…)"
+                  htmlFor="announcement-link-url"
+                >
+                  <input
+                    id="announcement-link-url"
+                    className={INPUT_CLASS}
+                    value={form.announcementLinkUrl}
+                    onChange={(e) => setField('announcementLinkUrl', e.target.value)}
+                    placeholder="/collections"
+                    disabled={!form.announcementEnabled}
+                  />
+                </SettingsField>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.announcementShowIcon}
+                  onChange={(e) => setField('announcementShowIcon', e.target.checked)}
+                  disabled={!form.announcementEnabled}
+                />
+                Show truck icon before message
+              </label>
+
               <div className="rounded-lg bg-[#2a1116] px-4 py-2 text-center">
-                <p className="text-xs text-[#f5ead7] font-medium">{announcementPreview}</p>
+                {!announcementPreview.enabled ? (
+                  <p className="text-xs text-[#f5ead7]/70 font-medium">Announcement bar hidden</p>
+                ) : (
+                  <p className="text-xs text-[#f5ead7] font-medium">
+                    {announcementPreview.extraMessage ? (
+                      <>
+                        <span className="text-gold">{announcementPreview.extraMessage}</span>
+                        <span className="mx-2 opacity-40" aria-hidden>
+                          ·
+                        </span>
+                      </>
+                    ) : null}
+                    {announcementPreview.showIcon ? (
+                      <i className="fa-solid fa-truck-fast mr-1.5 text-gold" aria-hidden />
+                    ) : null}
+                    {announcementPreview.message}
+                    {announcementPreview.linkLabel ? (
+                      <>
+                        <span className="mx-2 opacity-40" aria-hidden>
+                          |
+                        </span>
+                        <span className="text-gold">{announcementPreview.linkLabel}</span>
+                      </>
+                    ) : null}
+                  </p>
+                )}
               </div>
             </SettingsSection>
           </>
@@ -265,7 +368,7 @@ function AdminSettings() {
         {tab === 'shipping' ? (
           <SettingsSection
             title="Delivery charges"
-            description="Applied at cart and checkout. Also drives the free-shipping announcement."
+            description="Applied at cart and checkout. Use {{threshold}} in the announcement bar message for this amount."
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <SettingsField label="Shipping fee (₹)" error={fieldErrors.shippingFee} htmlFor="ship-fee">

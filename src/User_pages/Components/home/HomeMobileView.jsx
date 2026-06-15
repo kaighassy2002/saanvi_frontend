@@ -5,6 +5,7 @@ import HomeMobileServices from './HomeMobileServices'
 import HomeMobilePromos from './HomeMobilePromos'
 import HomeMobileTrending from './HomeMobileTrending'
 import HomeMobileCategories from './HomeMobileCategories'
+import HomeMobileBestSellers from './HomeMobileBestSellers'
 
 function HomeMobileView() {
   return (
@@ -12,6 +13,7 @@ function HomeMobileView() {
       <HomeMobileHero />
       <HomeMobileQuickShop />
       <HomeMobileServices />
+      <HomeMobileBestSellers />
       <HomeMobilePromos />
       <HomeMobileTrending />
       <HomeMobileCategories />

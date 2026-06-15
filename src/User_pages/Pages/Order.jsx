@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../Components/Footer'
 import SiteHeader from '../Components/SiteHeader'
 import AccountSidebar from '../Components/AccountSidebar'
@@ -14,11 +14,13 @@ import {
 import { whatsappUrl, STORE_NAME } from '../../services/storefrontConstants'
 import { productImageUrl } from '../../utils/cloudinaryImage'
 import { printOrderInvoice } from '../../utils/printOrderInvoice'
-import { fetchMyOrders } from '../../services/storefrontOrderService'
+import { fetchMyOrders, fetchMyOrderById } from '../../services/storefrontOrderService'
+import { isCustomerLoggedIn } from '../../services/customerStorageScope'
 import {
   formatOrderDateTime,
   formatPaymentMethodLabel,
   formatPaymentStatusLabel,
+  getOrderPublicId,
   orderStatusIcon,
   orderStatusNote,
   orderStatusTone,
@@ -42,15 +44,33 @@ function formatOrderId(id) {
   return `${s.slice(0, 10)}…${s.slice(-6)}`
 }
 
+function orderIdsMatch(a, b) {
+  const left = String(a || '').trim()
+  const right = String(b || '').trim()
+  return left.length > 0 && left === right
+}
+
 
 function Order() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const placedId = searchParams.get('placed')
   const orderFromQuery = searchParams.get('order')
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [expandedId, setExpandedId] = useState(() => placedId || orderFromQuery || null)
+  const [expandedId, setExpandedId] = useState(() => {
+    const seed = placedId || orderFromQuery
+    return seed ? String(seed).trim() : null
+  })
+  const [fetchedExpandedOrder, setFetchedExpandedOrder] = useState(null)
+
+  useEffect(() => {
+    if (USE_LOCAL_API) return
+    if (!isCustomerLoggedIn()) {
+      navigate(`/auth?redirect=${encodeURIComponent('/orders')}`, { replace: true })
+    }
+  }, [navigate])
 
   const load = useCallback(async () => {
     setLoadError('')
@@ -106,23 +126,67 @@ function Order() {
     [orders],
   )
 
-  const placedOrder = placedId ? sorted.find((o) => String(o.id) === String(placedId)) : null
-  const expandedOrder = expandedId
-    ? sorted.find((o) => String(o.id) === String(expandedId)) || placedOrder
+  const placedOrder = placedId
+    ? sorted.find((o) => orderIdsMatch(getOrderPublicId(o), placedId))
     : null
+  const listExpandedOrder = expandedId
+    ? sorted.find((o) => orderIdsMatch(getOrderPublicId(o), expandedId))
+    : null
+  const expandedOrder =
+    listExpandedOrder ||
+    (fetchedExpandedOrder && expandedId && orderIdsMatch(getOrderPublicId(fetchedExpandedOrder), expandedId)
+      ? fetchedExpandedOrder
+      : null) ||
+    (expandedId && placedOrder && orderIdsMatch(getOrderPublicId(placedOrder), expandedId) ? placedOrder : null)
   const invoiceOrder = expandedOrder || placedOrder
+  const expandedOrderId = expandedOrder ? getOrderPublicId(expandedOrder) : ''
 
   useEffect(() => {
-    if (placedId) setExpandedId(placedId)
-    else if (orderFromQuery) setExpandedId(orderFromQuery)
+    if (!expandedId) {
+      setFetchedExpandedOrder(null)
+      return undefined
+    }
+    if (listExpandedOrder) {
+      setFetchedExpandedOrder(null)
+      return undefined
+    }
+    let cancelled = false
+    fetchMyOrderById(expandedId)
+      .then((row) => {
+        if (!cancelled) setFetchedExpandedOrder(row)
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedExpandedOrder(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [expandedId, listExpandedOrder])
+
+  useEffect(() => {
+    if (placedId) setExpandedId(String(placedId).trim())
+    else if (orderFromQuery) setExpandedId(String(orderFromQuery).trim())
   }, [placedId, orderFromQuery])
 
+  useEffect(() => {
+    if (!expandedId) return
+    const el = document.getElementById(`order-expand-${expandedId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [expandedId, expandedOrderId])
+
   const handleOrderUpdated = (updated) => {
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+    const id = getOrderPublicId(updated)
+    if (!id) return
+    setOrders((prev) => prev.map((o) => (orderIdsMatch(getOrderPublicId(o), id) ? { ...o, ...updated, id } : o)))
+    if (orderIdsMatch(expandedId, id)) {
+      setFetchedExpandedOrder((prev) => (prev ? { ...prev, ...updated, id } : prev))
+    }
   }
 
   const toggleExpand = (orderId) => {
-    setExpandedId((prev) => (prev === orderId ? null : orderId))
+    const id = String(orderId || '').trim()
+    if (!id) return
+    setExpandedId((prev) => (orderIdsMatch(prev, id) ? null : id))
   }
 
   const hasToken =
@@ -229,6 +293,7 @@ function Order() {
       ) : (
         <ul className="orders-list">
           {sorted.map((order) => {
+            const orderId = getOrderPublicId(order)
             const items = order.items || []
             const status = order.status || 'Placed'
             const tone = orderStatusTone(status)
@@ -236,10 +301,10 @@ function Order() {
             const statusNote = orderStatusNote(status)
             const showReview = status === 'Delivered'
 
-            const isExpanded = expandedId === order.id
+            const isExpanded = orderIdsMatch(expandedId, orderId)
 
             return (
-              <li key={order.id}>
+              <li key={orderId}>
                 <article className={`order-card${isExpanded ? ' order-card--expanded' : ''}`}>
                   <header className="order-card__status">
                     <div className="order-card__status-main">
@@ -256,8 +321,8 @@ function Order() {
                         <p className="order-card__status-date">{formatStatusWhen(order)}</p>
                       </div>
                     </div>
-                    <p className="order-card__order-id" title={order.id}>
-                      Order #{formatOrderId(order.id)}
+                    <p className="order-card__order-id" title={orderId}>
+                      Order #{formatOrderId(orderId)}
                     </p>
                   </header>
 
@@ -291,7 +356,7 @@ function Order() {
                       )
 
                       return (
-                        <div key={`${order.id}-${index}`} className="order-card__item">
+                        <div key={`${orderId}-${index}`} className="order-card__item">
                           {productId ? (
                             <Link to={`/product/${productId}`} className="order-card__product">
                               {productRow}
@@ -342,9 +407,9 @@ function Order() {
                       <button
                         type="button"
                         className={`order-card__foot-link${isExpanded ? ' order-card__foot-link--active' : ''}`}
-                        onClick={() => toggleExpand(order.id)}
+                        onClick={() => toggleExpand(orderId)}
                         aria-expanded={isExpanded}
-                        aria-controls={`order-expand-${order.id}`}
+                        aria-controls={`order-expand-${orderId}`}
                       >
                         {isExpanded ? 'Hide details' : 'View details'}
                       </button>
@@ -354,7 +419,7 @@ function Order() {
                         </Link>
                       ) : (
                         <a
-                          href={whatsappUrl(`Hi, I have a question about order ${order.id}.`)}
+                          href={whatsappUrl(`Hi, I have a question about order ${orderId}.`)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="order-card__foot-link"
@@ -367,7 +432,7 @@ function Order() {
 
                   {isExpanded ? (
                     <OrderDetailPanel
-                      order={order}
+                      order={expandedOrder && orderIdsMatch(getOrderPublicId(expandedOrder), orderId) ? expandedOrder : order}
                       onOrderUpdated={handleOrderUpdated}
                       onClose={() => setExpandedId(null)}
                     />
@@ -378,6 +443,16 @@ function Order() {
           })}
         </ul>
       )}
+
+      {expandedId && !listExpandedOrder && fetchedExpandedOrder && orderIdsMatch(getOrderPublicId(fetchedExpandedOrder), expandedId) ? (
+        <article className="order-card order-card--expanded orders-orphan-detail">
+          <OrderDetailPanel
+            order={fetchedExpandedOrder}
+            onOrderUpdated={handleOrderUpdated}
+            onClose={() => setExpandedId(null)}
+          />
+        </article>
+      ) : null}
     </>
   )
 

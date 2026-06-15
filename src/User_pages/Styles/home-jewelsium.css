@@ -46,16 +46,69 @@
 }
 
 .jewelsium-services__strip {
-  padding: 0.6rem 1rem;
+  position: relative;
+  overflow: hidden;
+  padding: 0.85rem 1.25rem;
   text-align: center;
+  border-bottom: 1px solid rgba(201, 163, 74, 0.22);
+  background: linear-gradient(
+    90deg,
+    var(--color-royal-950) 0%,
+    var(--color-royal-900) 48%,
+    var(--color-royal-950) 100%
+  );
+}
+
+.jewelsium-services__strip-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 85% 120% at 50% -30%,
+    rgba(201, 163, 74, 0.2),
+    transparent 68%
+  );
+}
+
+.jewelsium-services__strip-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 52rem;
+  margin: 0 auto;
   font-family: var(--font-playfair);
-  font-size: 0.72rem;
+  font-size: clamp(0.8125rem, 0.35vw + 0.75rem, 0.9375rem);
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
+  color: #f5ead7;
+  text-transform: none;
+}
+
+.jewelsium-services__strip-lead {
+  color: #faf4ea;
+  font-weight: 500;
+}
+
+.jewelsium-services__strip-separator {
+  margin: 0 0.5rem;
+  color: rgba(230, 200, 131, 0.55);
+  font-weight: 400;
+}
+
+.jewelsium-services__strip-accent {
+  color: var(--color-gold-light);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-royal-700);
-  border-bottom: 1px solid var(--color-border);
-  background: rgba(247, 236, 238, 0.5);
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 640px) {
+  .jewelsium-services__strip {
+    padding: 0.95rem 1.5rem;
+  }
+
+  .jewelsium-services__strip-inner {
+    letter-spacing: 0.04em;
+  }
 }
 
 .jewelsium-service-card {

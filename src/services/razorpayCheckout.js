@@ -49,7 +49,7 @@ export async function payWithRazorpay({
   items,
   total,
   shipping,
-  paymentMethod = PAYMENT_RAZORPAY,
+  couponCode,
   keyId: keyIdOverride,
   storeName = 'Aashmika Designs',
 }) {
@@ -63,7 +63,7 @@ export async function payWithRazorpay({
     throw new Error('Online payment is not available. Choose Cash on Delivery or try later.')
   }
 
-  const rpOrder = await createRazorpayOrder({ items, total })
+  const rpOrder = await createRazorpayOrder({ items, total, couponCode })
   const keyId = keyIdOverride || rpOrder.keyId || config.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || ''
   if (!keyId) {
     throw new Error('Payment gateway key is missing. Contact the store.')
@@ -96,6 +96,7 @@ export async function payWithRazorpay({
             paymentMethod: PAYMENT_RAZORPAY,
             items,
             total,
+            couponCode,
           })
           resolve(order)
         } catch (err) {

@@ -745,7 +745,10 @@ a.order-card__product:hover {
   }
 }
 
-/* Inline expand — same page, no extra route */
+.orders-orphan-detail {
+  margin-top: 1rem;
+}
+
 .order-card--expanded {
   border-color: var(--color-gold);
   box-shadow: 0 8px 28px -12px rgba(122, 44, 58, 0.18);

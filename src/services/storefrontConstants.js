@@ -34,6 +34,20 @@ function digitsOnly(value) {
 export const WHATSAPP_PHONE =
   digitsOnly(import.meta.env.VITE_STORE_WHATSAPP) || DEFAULT_WHATSAPP_DIGITS
 
+/** Instagram profile — full URL. Env: VITE_STORE_INSTAGRAM */
+export const DEFAULT_INSTAGRAM_HANDLE = 'aashmikadesigns'
+export const INSTAGRAM_URL = String(
+  import.meta.env.VITE_STORE_INSTAGRAM || `https://instagram.com/${DEFAULT_INSTAGRAM_HANDLE}`
+).trim()
+
+export function instagramHandleFromUrl(url) {
+  const trimmed = String(url || '').trim()
+  if (!trimmed) return `@${DEFAULT_INSTAGRAM_HANDLE}`
+  const match = trimmed.match(/instagram\.com\/([^/?#]+)/i)
+  const handle = match?.[1]?.replace(/\/$/, '') || DEFAULT_INSTAGRAM_HANDLE
+  return `@${handle}`
+}
+
 export function formatInr(amount) {
   return `₹${Number(amount).toLocaleString('en-IN')}`
 }

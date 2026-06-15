@@ -42,9 +42,9 @@ export function AdminAuthProvider({ children }) {
           ...rest,
         })
       } catch (err) {
-        if (err?.status === 401) {
+        if (err?.status === 401 || err?.status === 403) {
           logout()
-          throw new Error('Session expired')
+          throw new Error(err?.status === 403 ? 'Access denied — please sign in again' : 'Session expired')
         }
         throw err
       }

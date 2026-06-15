@@ -1,4 +1,5 @@
 import React from 'react'
+import { DEFAULT_HOME_SECTIONS } from '../../User_pages/data/homeContent'
 
 const inputClass =
   'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
@@ -71,10 +72,14 @@ function HomeSectionsEditor({ sections, onChange }) {
       </div>
 
       <SectionBlock title="Service bar (desktop)">
-        <Field label="Top strip message">
+        <Field
+          label="Top strip message"
+          hint="Desktop only — below the hero. Use an em dash (—) to split headline and accent, e.g. Celebrate Onam with handcrafted jewellery — Shop the festive edit. Supports {{threshold}}."
+        >
           <input
             className={inputClass}
             value={sections.serviceBarStrip || ''}
+            placeholder={DEFAULT_HOME_SECTIONS.serviceBarStrip}
             onChange={(e) => patch('serviceBarStrip', e.target.value)}
           />
         </Field>
@@ -248,34 +253,6 @@ function HomeSectionsEditor({ sections, onChange }) {
             className={inputClass}
             value={sections.mobileCategories?.linkUrl || ''}
             onChange={(e) => patchNested('mobileCategories', 'linkUrl', e.target.value)}
-          />
-        </Field>
-        <Field label="Bottom CTA title">
-          <input
-            className={inputClass}
-            value={sections.mobileCategories?.ctaTitle || ''}
-            onChange={(e) => patchNested('mobileCategories', 'ctaTitle', e.target.value)}
-          />
-        </Field>
-        <Field label="Bottom CTA text">
-          <input
-            className={inputClass}
-            value={sections.mobileCategories?.ctaText || ''}
-            onChange={(e) => patchNested('mobileCategories', 'ctaText', e.target.value)}
-          />
-        </Field>
-        <Field label="Bottom CTA button">
-          <input
-            className={inputClass}
-            value={sections.mobileCategories?.ctaButtonLabel || ''}
-            onChange={(e) => patchNested('mobileCategories', 'ctaButtonLabel', e.target.value)}
-          />
-        </Field>
-        <Field label="Bottom CTA link">
-          <input
-            className={inputClass}
-            value={sections.mobileCategories?.ctaButtonLink || ''}
-            onChange={(e) => patchNested('mobileCategories', 'ctaButtonLink', e.target.value)}
           />
         </Field>
       </SectionBlock>

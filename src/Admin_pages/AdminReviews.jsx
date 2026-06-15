@@ -7,12 +7,14 @@ import {
   adminPatchReview,
 } from '../services/reviewService'
 import AdminConfirmDialog from './components/AdminConfirmDialog'
+import { useAdminAuth } from '../context/AdminAuthProvider'
 import { useAdminToast } from './shared/AdminToastProvider'
 
 const STATUS_OPTIONS = ['all', 'pending', 'approved', 'rejected']
 
 function AdminReviews() {
   const { toast } = useAdminToast()
+  const { authFetch } = useAdminAuth()
   const [searchParams] = useSearchParams()
   const initialStatus = searchParams.get('status') || 'all'
   const [reviews, setReviews] = useState([])
@@ -29,7 +31,7 @@ function AdminReviews() {
     setError('')
     setLoading(true)
     try {
-      const data = await adminFetchReviews()
+      const data = await adminFetchReviews(authFetch)
       setReviews(Array.isArray(data?.reviews) ? data.reviews : [])
       setSelected(new Set())
     } catch (e) {
@@ -38,7 +40,7 @@ function AdminReviews() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [authFetch])
 
   useEffect(() => {
     load()
@@ -71,7 +73,7 @@ function AdminReviews() {
   const setStatus = async (id, status) => {
     setBusyId(id)
     try {
-      await adminPatchReview(id, status)
+      await adminPatchReview(id, status, authFetch)
       await load()
       toast(`Review ${status}.`)
     } catch (e) {
@@ -86,7 +88,7 @@ function AdminReviews() {
     if (!ids.length) return
     setBusyId('bulk')
     try {
-      await adminBulkReviews(ids, status)
+      await adminBulkReviews(ids, status, authFetch)
       await load()
       toast(`${ids.length} review(s) ${status}.`)
     } catch (e) {
@@ -100,7 +102,7 @@ function AdminReviews() {
     if (!deleteTarget) return
     setBusyId(deleteTarget.id)
     try {
-      await adminDeleteReview(deleteTarget.id)
+      await adminDeleteReview(deleteTarget.id, authFetch)
       setDeleteTarget(null)
       await load()
       toast('Review deleted.')

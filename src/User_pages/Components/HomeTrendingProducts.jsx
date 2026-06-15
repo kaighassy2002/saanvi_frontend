@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useCatalog } from '../../hooks/useCatalog'
 import { useNewArrivals } from '../../hooks/useNewArrivals'
+import { useBestSellers } from '../../hooks/useBestSellers'
 import { useWishlist } from '../../hooks/useWishlist'
 import { useReviewSummaries } from '../../hooks/useReviewSummaries'
 import { useFeaturedProducts } from '../../hooks/useFeaturedProducts'
@@ -39,33 +39,12 @@ function HomeTrendingProducts() {
     [trending.tabs]
   )
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'featured')
-  const { products, loading: catalogLoading } = useCatalog()
   const { products: newArrivals, loading: newLoading } = useNewArrivals()
   const { products: featured, loading: featuredLoading } = useFeaturedProducts(GRID_SIZE)
+  const { products: bestseller, loading: bestsellerLoading } = useBestSellers(GRID_SIZE)
   const { toggle, isInWishlist } = useWishlist()
 
-  const bestseller = useMemo(() => {
-    return [...products]
-      .sort((a, b) => {
-        const da =
-          a.originalPrice > a.price && a.originalPrice > 0
-            ? (a.originalPrice - a.price) / a.originalPrice
-            : 0
-        const db =
-          b.originalPrice > b.price && b.originalPrice > 0
-            ? (b.originalPrice - b.price) / b.originalPrice
-            : 0
-        return db - da
-      })
-      .slice(0, GRID_SIZE)
-  }, [products])
-
-  const newProducts = useMemo(() => {
-    if (newArrivals.length >= GRID_SIZE) return newArrivals.slice(0, GRID_SIZE)
-    const ids = new Set(newArrivals.map((p) => String(p.id)))
-    const extra = products.filter((p) => !ids.has(String(p.id)))
-    return [...newArrivals, ...extra].slice(0, GRID_SIZE)
-  }, [newArrivals, products])
+  const newProducts = useMemo(() => newArrivals.slice(0, GRID_SIZE), [newArrivals])
 
   const displayProducts =
     activeTab === 'new' ? newProducts : activeTab === 'bestseller' ? bestseller : featured
@@ -75,7 +54,7 @@ function HomeTrendingProducts() {
       ? newLoading
       : activeTab === 'featured'
         ? featuredLoading
-        : catalogLoading) && displayProducts.length === 0
+        : bestsellerLoading) && displayProducts.length === 0
 
   const reviewSummaries = useReviewSummaries(displayProducts.map((p) => p.id))
 

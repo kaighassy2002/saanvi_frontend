@@ -382,7 +382,8 @@ function AdminOrderDetail() {
   const computedSubtotal = items.reduce((sum, item) => sum + lineTotal(item), 0)
   const subtotal = order.subtotal != null ? Number(order.subtotal) : computedSubtotal
   const shippingFee = Number(order.shippingFee) || 0
-  const total = Number(order.total) || subtotal + shippingFee
+  const couponDiscount = Number(order.couponDiscount) || 0
+  const total = Number(order.total) || Math.max(0, subtotal - couponDiscount) + shippingFee
 
   const timeline = [...statusHistory]
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
@@ -399,7 +400,10 @@ function AdminOrderDetail() {
   const maxRefund = Math.max(0, total - refundedTotal)
   const trackingLink =
     order.trackingUrl ||
-    (order.courierPartner?.toLowerCase().includes('delhivery') && order.trackingNumber
+    (String(order.courierPartner || '')
+      .toLowerCase()
+      .includes('delhivery') &&
+    order.trackingNumber
       ? `https://www.delhivery.com/track/package/${order.trackingNumber}`
       : order.trackingNumber
         ? `https://shiprocket.co/tracking/${order.trackingNumber}`
@@ -559,6 +563,14 @@ function AdminOrderDetail() {
                   <span className="text-muted">Subtotal</span>
                   <span className="tabular-nums">{formatPrice(subtotal)}</span>
                 </div>
+                {couponDiscount > 0 ? (
+                  <div className="flex justify-between text-sm text-[#7a2c3a]">
+                    <span>
+                      Coupon{order.couponCode ? ` (${order.couponCode})` : ''}
+                    </span>
+                    <span className="tabular-nums">−{formatPrice(couponDiscount)}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Shipping</span>
                   <span className="tabular-nums">{shippingFee ? formatPrice(shippingFee) : 'Free'}</span>

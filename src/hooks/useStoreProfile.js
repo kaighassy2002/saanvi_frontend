@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { useStoreSettings } from '../context/storeSettingsContext'
 import {
+  INSTAGRAM_URL,
   STORE_LOCATION,
   STORE_NAME,
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
   SUPPORT_PHONE_TEL,
   WHATSAPP_PHONE,
+  instagramHandleFromUrl,
   whatsappUrl as buildWhatsappUrl,
 } from '../services/storefrontConstants'
 
@@ -20,7 +22,7 @@ export function useStoreProfile() {
     const supportPhone = settings.supportPhone || SUPPORT_PHONE
     const storeLocation = settings.storeLocation || STORE_LOCATION
     const whatsappPhone = settings.whatsappPhone || WHATSAPP_PHONE
-    const phoneTel = supportPhone.replace(/\s/g, '')
+    const phoneTel = String(supportPhone || '').replace(/\s/g, '')
 
     return {
       storeName,
@@ -29,7 +31,8 @@ export function useStoreProfile() {
       supportPhoneTel: phoneTel || SUPPORT_PHONE_TEL,
       storeLocation,
       whatsappPhone,
-      instagramUrl: settings.instagramUrl || '',
+      instagramUrl: settings.instagramUrl || INSTAGRAM_URL,
+      instagramHandle: instagramHandleFromUrl(settings.instagramUrl || INSTAGRAM_URL),
       announcementMessage: settings.announcementMessage || '',
       codEnabled: settings.codEnabled !== false,
       ready: settings.ready,

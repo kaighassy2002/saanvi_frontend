@@ -76,43 +76,49 @@ export async function fetchReviewSummaries(productIds) {
   return data?.summaries && typeof data.summaries === 'object' ? data.summaries : {}
 }
 
-export async function adminFetchReviews() {
+export async function adminFetchReviews(authFetch = null) {
   if (USE_LOCAL_API) {
     return { reviews: localAdminListReviews() }
+  }
+  if (authFetch) {
+    return authFetch('/api/admin/reviews')
   }
   return jewelleryFetch('/api/admin/reviews', { auth: 'admin' })
 }
 
-export async function adminPatchReview(id, status) {
+export async function adminPatchReview(id, status, authFetch = null) {
   if (USE_LOCAL_API) {
     return localAdminPatchReview(id, status)
   }
-  return jewelleryFetch(`/api/admin/reviews/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    body: { status },
-    auth: 'admin',
-  })
+  const path = `/api/admin/reviews/${encodeURIComponent(id)}`
+  const opts = { method: 'PATCH', body: { status } }
+  if (authFetch) {
+    return authFetch(path, opts)
+  }
+  return jewelleryFetch(path, { ...opts, auth: 'admin' })
 }
 
-export async function adminBulkReviews(ids, status) {
+export async function adminBulkReviews(ids, status, authFetch = null) {
   if (USE_LOCAL_API) {
     ids.forEach((id) => localAdminPatchReview(id, status))
     return { modified: ids.length }
   }
-  return jewelleryFetch('/api/admin/reviews/bulk', {
-    method: 'PATCH',
-    body: { ids, status },
-    auth: 'admin',
-  })
+  const opts = { method: 'PATCH', body: { ids, status } }
+  if (authFetch) {
+    return authFetch('/api/admin/reviews/bulk', opts)
+  }
+  return jewelleryFetch('/api/admin/reviews/bulk', { ...opts, auth: 'admin' })
 }
 
-export async function adminDeleteReview(id) {
+export async function adminDeleteReview(id, authFetch = null) {
   if (USE_LOCAL_API) {
     localAdminDeleteReview(id)
     return null
   }
-  return jewelleryFetch(`/api/admin/reviews/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-    auth: 'admin',
-  })
+  const path = `/api/admin/reviews/${encodeURIComponent(id)}`
+  const opts = { method: 'DELETE' }
+  if (authFetch) {
+    return authFetch(path, opts)
+  }
+  return jewelleryFetch(path, { ...opts, auth: 'admin' })
 }

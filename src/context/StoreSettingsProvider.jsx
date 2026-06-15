@@ -42,7 +42,8 @@ function StoreSettingsProvider({ children }) {
     try {
       const data = await fetchStoreSettings()
       setSettings(normalizeStoreSettings(data))
-    } catch {
+    } catch (err) {
+      console.error('[StoreSettings] Failed to load store settings:', err?.message || err)
       setSettings(defaultStoreSettings)
     } finally {
       setReady(true)

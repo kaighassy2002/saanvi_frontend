@@ -115,6 +115,28 @@ export function IconSizeCharts() {
   )
 }
 
+export function IconCoupons() {
+  return (
+    <svg {...iconProps}>
+      <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      <path d="M9 12h6" />
+      <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function IconCollections() {
+  return (
+    <svg {...iconProps}>
+      <path d="M4 6h16v4H4z" />
+      <path d="M4 14h10v4H4z" />
+      <path d="M18 14h2v4h-2z" />
+    </svg>
+  )
+}
+
 const ICON_MAP = {
   dashboard: IconDashboard,
   orders: IconOrders,
@@ -127,6 +149,8 @@ const ICON_MAP = {
   analytics: IconAnalytics,
   settings: IconSettings,
   'size-charts': IconSizeCharts,
+  coupons: IconCoupons,
+  collections: IconCollections,
 }
 
 export function AdminNavIcon({ name }) {

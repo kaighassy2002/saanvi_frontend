@@ -1,4 +1,5 @@
 import { API_BASE, STORAGE_KEYS } from './config'
+import { reportApiError } from '../monitoring/sentry'
 
 export class ApiError extends Error {
   constructor(message, status, data = null) {
@@ -29,11 +30,17 @@ export async function jewelleryFetch(path, options = {}) {
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  } catch (error) {
+    reportApiError(error, { path, method })
+    throw error
+  }
 
   const text = await res.text()
   let data = null
@@ -48,7 +55,9 @@ export async function jewelleryFetch(path, options = {}) {
   if (!res.ok) {
     const msg =
       typeof data === 'object' && data?.message ? data.message : text || res.statusText
-    throw new ApiError(String(msg), res.status, typeof data === 'object' ? data : null)
+    const apiError = new ApiError(String(msg), res.status, typeof data === 'object' ? data : null)
+    reportApiError(apiError, { path, method, status: res.status })
+    throw apiError
   }
 
   if (res.status === 204) return null
@@ -163,6 +172,10 @@ export async function customerForgotPasswordReset(resetToken, newPassword) {
 
 // --- Storefront orders ---
 
+export async function quoteCheckoutOrder(payload) {
+  return jewelleryFetch('/api/orders/quote', { method: 'POST', body: payload, auth: 'customer' })
+}
+
 export async function placeBackendOrder(payload) {
   return jewelleryFetch('/api/orders', { method: 'POST', body: payload, auth: 'customer' })
 }
@@ -181,6 +194,10 @@ export async function createRazorpayOrder(payload) {
 
 export async function verifyRazorpayPayment(payload) {
   return jewelleryFetch('/api/orders/razorpay-verify', { method: 'POST', body: payload, auth: 'customer' })
+}
+
+export async function quoteCoupon(payload) {
+  return jewelleryFetch('/api/coupons/quote', { method: 'POST', body: payload, auth: 'customer' })
 }
 
 export async function fetchBackendMyOrders() {

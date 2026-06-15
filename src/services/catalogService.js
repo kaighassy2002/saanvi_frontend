@@ -10,6 +10,13 @@ import {
   fetchBackendProductById,
 } from './jewelleryApi'
 
+function normalizePublicProduct(product) {
+  if (!product || typeof product !== 'object') return null
+  const id = String(product.id || product._id || '').trim()
+  if (!id) return null
+  return { ...product, id }
+}
+
 /** Tab labels for collections page: "All" + merged categories */
 export async function fetchPublicCategoryTabs(products) {
   if (USE_LOCAL_API) return categoriesForListing(getLocalCategories(), products)
@@ -31,9 +38,10 @@ export async function fetchPublicProducts() {
 export async function fetchPublicProductById(id) {
   if (USE_LOCAL_API) {
     const p = getProductByIdLocal(id)
-    return p?.published === false ? null : p ?? null
+    return normalizePublicProduct(p?.published === false ? null : p ?? null)
   }
-  return fetchBackendProductById(id)
+  const row = await fetchBackendProductById(id)
+  return normalizePublicProduct(row)
 }
 
 /** Categories shown on storefront: "All" + admin list, merged with product categories */

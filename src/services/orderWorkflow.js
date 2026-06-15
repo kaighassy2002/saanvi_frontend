@@ -142,6 +142,12 @@ export function flowIndex(status) {
   return idx >= 0 ? idx : 0
 }
 
+/** Stable storefront/admin order key (public id). */
+export function getOrderPublicId(order) {
+  if (order == null) return ''
+  return String(order.id || order.publicId || '').trim()
+}
+
 export function formatOrderDateTime(raw) {
   if (!raw) return '—'
   const d = new Date(raw)
@@ -154,6 +160,14 @@ export function formatOrderDateTime(raw) {
     minute: '2-digit',
     hour12: true,
   })
+}
+
+function timelineLabel(entry) {
+  const note = entry?.note
+  const status = entry?.status
+  if (typeof note === 'string' && note.trim()) return note.trim()
+  if (typeof status === 'string' && status.trim()) return status.trim()
+  return 'Update'
 }
 
 export function buildCustomerTimeline(order) {
@@ -171,6 +185,11 @@ export function buildCustomerTimeline(order) {
         },
       ]
   return timeline
+    .map((entry) => ({
+      ...entry,
+      note: timelineLabel(entry),
+      at: entry?.at || placedAt,
+    }))
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
     .slice(-14)
 }

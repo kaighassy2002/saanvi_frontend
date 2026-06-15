@@ -15,6 +15,12 @@ export const STORE_SLUG = import.meta.env.VITE_STORE_SLUG || 'aashmika-designs'
 /** When empty and not using dev proxy, catalog/orders/users use localStorage. */
 export const USE_LOCAL_API = !useDevProxy && !API_BASE
 
+if (import.meta.env.PROD && USE_LOCAL_API) {
+  console.error(
+    '[config] Production build is missing VITE_API_URL — the app will run in offline demo mode.'
+  )
+}
+
 /** Google OAuth client ID (same as backend GOOGLE_CLIENT_ID). */
 export const GOOGLE_CLIENT_ID = String(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim()
 

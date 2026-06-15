@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { whatsappUrl } from '../../services/storefrontConstants'
 import { productImageUrl } from '../../utils/cloudinaryImage'
@@ -10,11 +10,12 @@ import {
   formatOrderDateTime,
   formatPaymentMethodLabel,
   formatPaymentStatusLabel,
+  getOrderPublicId,
   ORDER_STATUS_FLOW,
   orderStatusNote,
   orderStatusTone,
 } from '../../services/orderWorkflow'
-import { cancelMyOrder, returnMyOrder } from '../../services/storefrontOrderService'
+import { cancelMyOrder, fetchMyOrderById, returnMyOrder } from '../../services/storefrontOrderService'
 import { printOrderInvoice } from '../../utils/printOrderInvoice'
 
 function formatPrice(n) {
@@ -49,12 +50,44 @@ function StatusStepper({ status }) {
   )
 }
 
-export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
+export default function OrderDetailPanel({ order: initialOrder, onOrderUpdated, onClose }) {
+  const [order, setOrder] = useState(initialOrder)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
   const [actionBusy, setActionBusy] = useState(false)
   const [actionMsg, setActionMsg] = useState('')
 
+  const orderId = getOrderPublicId(initialOrder)
+
+  useEffect(() => {
+    setOrder(initialOrder)
+  }, [initialOrder])
+
+  useEffect(() => {
+    if (!orderId) return undefined
+    let cancelled = false
+    setDetailLoading(true)
+    setDetailError('')
+    fetchMyOrderById(orderId)
+      .then((full) => {
+        if (cancelled) return
+        if (full) setOrder(full)
+        else setDetailError('Could not load order details.')
+      })
+      .catch((e) => {
+        if (!cancelled) setDetailError(e?.message || 'Could not load order details.')
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [orderId])
+
   if (!order) return null
 
+  const displayId = getOrderPublicId(order)
   const shipping = order.shipping || {}
   const items = Array.isArray(order.items) ? order.items : []
   const timeline = buildCustomerTimeline(order)
@@ -66,7 +99,8 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
       ? Number(order.subtotal)
       : items.reduce((s, i) => s + (Number(i.price) || 0) * (i.quantity || 1), 0)
   const shippingFee = Number(order.shippingFee) || 0
-  const total = Number(order.total) || subtotal + shippingFee
+  const couponDiscount = Number(order.couponDiscount) || 0
+  const total = Number(order.total) || Math.max(0, subtotal - couponDiscount) + shippingFee
 
   const handleCancelRequest = async () => {
     const raw = window.prompt('Reason for cancellation (optional):')
@@ -74,7 +108,8 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
     setActionBusy(true)
     setActionMsg('')
     try {
-      const updated = await cancelMyOrder(order.id, raw.trim() || 'Customer requested cancellation')
+      const updated = await cancelMyOrder(displayId, raw.trim() || 'Customer requested cancellation')
+      setOrder(updated)
       onOrderUpdated?.(updated)
       setActionMsg('Cancellation request submitted.')
     } catch (e) {
@@ -90,7 +125,8 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
     setActionBusy(true)
     setActionMsg('')
     try {
-      const updated = await returnMyOrder(order.id, raw.trim() || 'Customer requested return')
+      const updated = await returnMyOrder(displayId, raw.trim() || 'Customer requested return')
+      setOrder(updated)
       onOrderUpdated?.(updated)
       setActionMsg('Return request submitted.')
     } catch (e) {
@@ -101,11 +137,11 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
   }
 
   return (
-    <div className="order-expand" id={`order-expand-${order.id}`}>
+    <div className="order-expand" id={`order-expand-${displayId}`}>
       <div className="order-expand__head">
         <div>
           <p className="order-expand__kicker">Order details</p>
-          <p className="order-expand__id">{order.id}</p>
+          <p className="order-expand__id">{displayId}</p>
           <p className="order-expand__meta">
             Placed {formatOrderDateTime(order.placedAt || order.date)}
           </p>
@@ -125,6 +161,16 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
         ) : null}
       </div>
 
+      {detailLoading ? (
+        <p className="order-expand__note" aria-live="polite">
+          Loading latest order details…
+        </p>
+      ) : null}
+      {detailError ? (
+        <p className="order-expand__note" role="alert">
+          {detailError}
+        </p>
+      ) : null}
       {statusNote ? <p className="order-expand__note">{statusNote}</p> : null}
       <StatusStepper status={order.status} />
 
@@ -155,6 +201,12 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
               <span>Subtotal</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
+            {couponDiscount > 0 ? (
+              <div>
+                <span>Coupon{order.couponCode ? ` (${order.couponCode})` : ''}</span>
+                <span>−{formatPrice(couponDiscount)}</span>
+              </div>
+            ) : null}
             <div>
               <span>Shipping</span>
               <span>{formatPrice(shippingFee)}</span>
@@ -186,7 +238,7 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
           {order.trackingNumber || order.courierPartner ? (
             <p className="order-expand__tracking">
               <i className="fa-solid fa-truck-fast" aria-hidden />{' '}
-              {order.courierPartner ? `${order.courierPartner} · ` : ''}
+              {order.courierPartner ? `${String(order.courierPartner)} · ` : ''}
               {order.trackingUrl ? (
                 <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="order-expand__tracking-link">
                   Track {order.trackingNumber || 'shipment'}
@@ -204,7 +256,7 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
             {timeline.map((entry, i) => (
               <li key={i}>
                 <span className="order-expand__timeline-when">{formatOrderDateTime(entry.at)}</span>
-                <span className="order-expand__timeline-note">{entry.note || entry.status}</span>
+                <span className="order-expand__timeline-note">{entry.note}</span>
               </li>
             ))}
           </ul>
@@ -213,7 +265,7 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
             <button
               type="button"
               className="order-expand__btn order-expand__btn--primary"
-              onClick={() => printOrderInvoice(order.id)}
+              onClick={() => printOrderInvoice(displayId)}
             >
               <i className="fa-solid fa-file-invoice" aria-hidden />
               Invoice
@@ -239,7 +291,7 @@ export default function OrderDetailPanel({ order, onOrderUpdated, onClose }) {
               </button>
             ) : null}
             <a
-              href={whatsappUrl(`Hi, I need help with order ${order.id}.`)}
+              href={whatsappUrl(`Hi, I need help with order ${displayId}.`)}
               target="_blank"
               rel="noopener noreferrer"
               className="order-expand__btn"

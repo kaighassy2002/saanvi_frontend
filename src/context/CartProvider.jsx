@@ -49,17 +49,28 @@ function writeCart(scope, items) {
   localStorage.setItem(scopedCartKey(scope), JSON.stringify(items))
 }
 
+function isValidCartProductId(id) {
+  const s = String(id || '').trim()
+  return /^[a-f\d]{24}$/i.test(s)
+}
+
 function normalizeCartItems(input) {
   if (!Array.isArray(input)) return []
   return input
     .map((row) => {
-      const productId = row?.productId
+      const productId = String(row?.productId ?? '').trim()
       const variantKey = String(row?.variantKey || row?.variantName || '').trim()
-      const lineKey = String(row?.lineKey || '').trim() || cartLineKey(productId, variantKey)
-      const parsed = parseCartLineKey(lineKey)
+      const parsed = parseCartLineKey(String(row?.lineKey || '').trim() || cartLineKey(productId, variantKey))
+      const resolvedProductId = (() => {
+        const candidate = String(parsed.productId || productId || '').trim()
+        if (candidate && candidate !== 'undefined' && candidate !== 'null') return candidate
+        return productId
+      })()
+      const lineKey = String(row?.lineKey || '').trim() || cartLineKey(resolvedProductId, parsed.variantKey || variantKey)
+      const parsedLine = parseCartLineKey(lineKey)
       return {
         lineKey,
-        productId: parsed.productId || productId,
+        productId: parsedLine.productId || resolvedProductId,
         variantName: parsed.variantKey || variantKey,
         variantKey: parsed.variantKey || variantKey,
         variantLabel: String(row?.variantLabel || '').trim(),
@@ -70,7 +81,7 @@ function normalizeCartItems(input) {
         maxStock: Math.max(1, Number(row?.maxStock) || 9999),
       }
     })
-    .filter((row) => row.productId !== undefined && row.productId !== null && row.lineKey)
+    .filter((row) => isValidCartProductId(row.productId) && row.lineKey)
 }
 
 function mergeCartItems(localItems, serverItems) {

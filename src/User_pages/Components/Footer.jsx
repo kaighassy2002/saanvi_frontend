@@ -15,6 +15,7 @@ function Footer() {
     storeLocation,
     whatsappUrl,
     instagramUrl,
+    instagramHandle,
     codEnabled,
   } = useStoreProfile()
   const whatsappHref = whatsappUrl(`Hi, I have a question about ${storeName}.`)
@@ -58,17 +59,15 @@ function Footer() {
             >
               <i className="fab fa-whatsapp" aria-hidden />
             </a>
-            {instagramUrl ? (
-              <a
-                href={instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 touch-target items-center justify-center rounded-full border border-gold/40 text-sm transition hover:bg-gold hover:text-ink"
-                aria-label="Instagram"
-              >
-                <i className="fab fa-instagram" aria-hidden />
-              </a>
-            ) : null}
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-10 w-10 touch-target items-center justify-center rounded-full border border-gold/40 text-sm transition hover:bg-gold hover:text-ink"
+              aria-label="Instagram"
+            >
+              <i className="fab fa-instagram" aria-hidden />
+            </a>
           </div>
         </div>
 
@@ -152,6 +151,17 @@ function Footer() {
               <i className="fa-solid fa-phone mt-0.5 text-gold" aria-hidden />
               <a href={`tel:${supportPhoneTel}`} className="transition hover:text-gold">
                 {supportPhone}
+              </a>
+            </li>
+            <li className="flex items-start gap-2">
+              <i className="fab fa-instagram mt-0.5 text-gold" aria-hidden />
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-gold"
+              >
+                {instagramHandle}
               </a>
             </li>
             <li className="flex items-start gap-2">

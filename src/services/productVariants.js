@@ -118,7 +118,6 @@ export function getColorVariantOptions(product) {
   for (const variant of variants) {
     const color = getVariantColor(variant)
     if (!color) continue
-    const size = getVariantSize(variant)
     const stock = availableUnits(variant?.stock, variant?.reservedStock)
     const variantImages = Array.isArray(variant?.images) ? variant.images.filter(Boolean) : []
     const productImages = Array.isArray(product?.images) ? product.images.filter(Boolean) : []

@@ -3,8 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
 import { useCartDrawer } from '../../hooks/useCartDrawer'
 import { useWishlist } from '../../hooks/useWishlist'
-import { useCatalog } from '../../hooks/useCatalog'
-import { useProductSearch } from '../../hooks/useProductSearch'
+import { useProductSearchQuery } from '../../hooks/useProductSearchQuery'
 import { CUSTOMER_SESSION_CHANGED_EVENT, STORAGE_KEYS } from '../../services/config'
 import { notifyCustomerSessionChanged } from '../../services/customerStorageScope'
 import { getRecentSearches, pushRecentSearch } from '../../services/recentSearches'
@@ -58,7 +57,6 @@ function SiteHeader({
   const { itemCount: cartItemCount } = useCart()
   const { openDrawer } = useCartDrawer()
   const { itemCount: wishlistItemCount } = useWishlist()
-  const { products } = useCatalog()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -69,9 +67,9 @@ function SiteHeader({
   const searchWrapRef = useRef(null)
   const navigate = useNavigate()
 
-  const { products: suggestionProducts, categories: suggestionCategories } = useProductSearch(
-    products,
+  const { products: suggestionProducts, categories: suggestionCategories } = useProductSearchQuery(
     searchText,
+    { enabled: showSearch && (suggestionsOpen || searchText.trim().length > 0) }
   )
 
   useEffect(() => {

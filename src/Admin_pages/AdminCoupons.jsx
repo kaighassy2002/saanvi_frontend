@@ -106,6 +106,7 @@ function AdminCoupons() {
 
   const inputClass =
     'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
+  const labelClass = 'block text-xs font-medium text-muted mb-1'
 
   return (
     <div className="max-w-3xl">
@@ -124,10 +125,47 @@ function AdminCoupons() {
           <input className={inputClass} type="number" min="0" placeholder="Value" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <input className={inputClass} type="number" min="0" placeholder="Min order (₹)" value={form.minOrder} onChange={(e) => setForm({ ...form, minOrder: e.target.value })} />
-          <input className={inputClass} type="number" min="0" placeholder="Max uses (0 = unlimited)" value={form.maxUses} onChange={(e) => setForm({ ...form, maxUses: e.target.value })} />
+          <div>
+            <label className={labelClass} htmlFor="coupon-min-order">
+              Min order (₹)
+            </label>
+            <input
+              id="coupon-min-order"
+              className={inputClass}
+              type="number"
+              min="0"
+              placeholder="0 = no minimum"
+              value={form.minOrder}
+              onChange={(e) => setForm({ ...form, minOrder: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="coupon-max-uses">
+              Max uses
+            </label>
+            <input
+              id="coupon-max-uses"
+              className={inputClass}
+              type="number"
+              min="0"
+              placeholder="0 = unlimited"
+              value={form.maxUses}
+              onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+            />
+          </div>
         </div>
-        <input className={inputClass} type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
+        <div>
+          <label className={labelClass} htmlFor="coupon-expires">
+            Expires on
+          </label>
+          <input
+            id="coupon-expires"
+            className={inputClass}
+            type="date"
+            value={form.expiresAt}
+            onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+          />
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
           Active

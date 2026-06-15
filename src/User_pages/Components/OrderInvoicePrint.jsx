@@ -52,14 +52,17 @@ export default function OrderInvoicePrint({ order, shipping, items }) {
       ? Number(safeOrder.subtotal)
       : lineItems.reduce((sum, item) => sum + lineTotal(item), 0)
   const shippingFee = Number(safeOrder.shippingFee) || 0
-  const total = Number(safeOrder.total) || subtotal + shippingFee
+  const couponDiscount = Number(safeOrder.couponDiscount) || 0
+  const couponCode = String(safeOrder.couponCode || '').trim()
+  const total =
+    Number(safeOrder.total) || Math.max(0, subtotal - couponDiscount) + shippingFee
 
   const printedAt = new Date().toLocaleString('en-IN', {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
 
-  const orderId = safeOrder.id || '—'
+  const orderId = String(safeOrder.id || safeOrder.publicId || '—')
   const invoiceNo = orderId.startsWith('ORD-') ? orderId.replace('ORD-', 'INV-') : `INV-${orderId}`
 
   const paymentStatus = formatPaymentStatusLabel(safeOrder.paymentStatus)
@@ -190,6 +193,12 @@ export default function OrderInvoicePrint({ order, shipping, items }) {
               <dt>Subtotal</dt>
               <dd>{formatPrice(subtotal)}</dd>
             </div>
+            {couponDiscount > 0 ? (
+              <div>
+                <dt>Coupon{couponCode ? ` (${couponCode})` : ''}</dt>
+                <dd>−{formatPrice(couponDiscount)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>Shipping</dt>
               <dd>{shippingFee > 0 ? formatPrice(shippingFee) : 'Free'}</dd>
@@ -205,7 +214,7 @@ export default function OrderInvoicePrint({ order, shipping, items }) {
       <footer className="order-invoice__footer">
         <p className="order-invoice__thanks">Thank you for choosing {storeName}.</p>
         <p>
-          Questions about this order? {SUPPORT_EMAIL} · {SUPPORT_PHONE}
+          Questions about this order? {supportEmail} · {supportPhone}
         </p>
         <p className="order-invoice__note">
           This invoice confirms your order and payment details. For returns, see our returns policy

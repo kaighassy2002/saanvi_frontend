@@ -81,6 +81,7 @@ function UserProfile() {
   const [pwdSaving, setPwdSaving] = useState(false)
   const [pwdMessage, setPwdMessage] = useState({ tone: '', text: '' })
   const [addressNotice, setAddressNotice] = useState({ tone: '', text: '' })
+  const [hasPassword, setHasPassword] = useState(true)
 
   const applyProfileToStorage = useCallback((user) => {
     if (user && typeof user === 'object') {
@@ -101,6 +102,7 @@ function UserProfile() {
       const data = unwrapCustomerApi(raw)
       const next = mapUserToProfile(data)
       setProfileData(next)
+      setHasPassword(data?.hasPassword !== false)
       applyProfileToStorage(data)
     } catch (err) {
       if (err?.status === 401 || err?.statusCode === 401) {
@@ -768,9 +770,26 @@ function UserProfile() {
                   <div className="account-panel__head">
                     <div>
                       <h2 className="account-panel__title">Security</h2>
-                      <p className="account-panel__desc">Update your password to keep your account safe.</p>
+                      <p className="account-panel__desc">
+                        {hasPassword
+                          ? 'Update your password to keep your account safe.'
+                          : 'Your account uses Google sign-in. Set a password via email reset if you want email login too.'}
+                      </p>
                     </div>
                   </div>
+                  {!hasPassword ? (
+                    <div className="account-security-tip">
+                      <i className="fa-solid fa-envelope account-security-tip__icon" aria-hidden />
+                      <p className="account-security-tip__text">
+                        Use{' '}
+                        <Link to="/auth" className="underline text-[#7a2c3a]">
+                          Forgot password
+                        </Link>{' '}
+                        on the sign-in page with your account email to create a password.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
                   <div className="account-security-tip">
                     <i className="fa-solid fa-shield-halved account-security-tip__icon" aria-hidden />
                     <p className="account-security-tip__text">
@@ -843,6 +862,8 @@ function UserProfile() {
                       {pwdSaving ? 'Updating…' : 'Update password'}
                     </button>
                   </form>
+                    </>
+                  )}
                 </div>
               )}
               </main>

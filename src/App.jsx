@@ -26,6 +26,7 @@ const PrivacyPolicy = lazy(() => import('./User_pages/Pages/PrivacyPolicy'))
 const ShippingPolicy = lazy(() => import('./User_pages/Pages/ShippingPolicy'))
 const ReturnsPolicy = lazy(() => import('./User_pages/Pages/ReturnsPolicy'))
 const Contact = lazy(() => import('./User_pages/Pages/Contact'))
+const NotFound = lazy(() => import('./User_pages/Pages/NotFound'))
 
 const AdminDashboard = lazy(() => import('./Admin_pages/AdminDashboard'))
 const AdminProducts = lazy(() => import('./Admin_pages/AdminProducts'))
@@ -42,6 +43,7 @@ const AdminSettings = lazy(() => import('./Admin_pages/AdminSettings'))
 const AdminAnalytics = lazy(() => import('./Admin_pages/AdminAnalytics'))
 const AdminCoupons = lazy(() => import('./Admin_pages/AdminCoupons'))
 const AdminSizeCharts = lazy(() => import('./Admin_pages/AdminSizeCharts'))
+const AdminCollections = lazy(() => import('./Admin_pages/AdminCollections'))
 
 function LegacyOrderRedirect() {
   const { orderId } = useParams()
@@ -104,7 +106,7 @@ function App() {
                           <Route path="customers" element={<AdminCustomers />} />
                           <Route path="customers/:id" element={<AdminCustomerDetail />} />
                           <Route path="inventory" element={<AdminInventory />} />
-                          <Route path="collections" element={<Navigate to="/admin/products" replace />} />
+                          <Route path="collections" element={<AdminCollections />} />
                           <Route path="analytics" element={<AdminAnalytics />} />
                           <Route path="settings" element={<AdminSettings />} />
                           <Route path="coupons" element={<AdminCoupons />} />
@@ -114,6 +116,7 @@ function App() {
                             element={<Navigate to="/admin/settings?tab=shipping" replace />}
                           />
                         </Route>
+                        <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
                   </CartDrawerProvider>

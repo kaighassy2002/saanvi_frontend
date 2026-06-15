@@ -93,7 +93,7 @@ function AdminMerchandising() {
   const [promoUsingDefaults, setPromoUsingDefaults] = useState(false)
   const [homeServices, setHomeServices] = useState([])
   const [servicesUsingDefaults, setServicesUsingDefaults] = useState(false)
-  const [homeSections, setHomeSections] = useState({})
+  const [homeSections, setHomeSections] = useState(() => normalizeAdminHomeSections({}))
   const [categoryTiles, setCategoryTiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -137,6 +137,7 @@ function AdminMerchandising() {
       setAllItems(products.filter((p) => p.published !== false))
     } catch (err) {
       setError(err?.message || 'Failed to load')
+      setHomeSections(normalizeAdminHomeSections({}))
     } finally {
       setLoading(false)
     }
@@ -245,7 +246,7 @@ function AdminMerchandising() {
       const settings = await getAdminSettings(authFetch)
       await putAdminSettings(authFetch, {
         ...settings,
-        homeSections,
+        homeSections: normalizeAdminHomeSections(homeSections),
       })
       toast('Section copy saved.')
     } catch (err) {

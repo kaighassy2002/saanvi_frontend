@@ -96,15 +96,18 @@ export function useProductListing(searchParams, { featuredProductIds = [], pageS
   const [localCategories, setLocalCategories] = useState(['All'])
   const requestIdRef = useRef(0)
 
-  const priceBoundsFromCatalog = useMemo(() => {
-    if (!catalogProducts.length) return { min: 0, max: 0 }
-    const prices = catalogProducts.map((p) => Number(p.price) || 0)
-    return { min: Math.min(...prices), max: Math.max(...prices) }
-  }, [catalogProducts])
+  const priceBoundsForParse = useMemo(() => {
+    if (USE_LOCAL_API) {
+      if (!catalogProducts.length) return { min: 0, max: 0 }
+      const prices = catalogProducts.map((p) => Number(p.price) || 0)
+      return { min: Math.min(...prices), max: Math.max(...prices) }
+    }
+    return apiFacets.priceBounds || EMPTY_FACETS.priceBounds
+  }, [catalogProducts, apiFacets.priceBounds])
 
   const listingState = useMemo(
-    () => parseListingState(searchParams, priceBoundsFromCatalog),
-    [searchParams, priceBoundsFromCatalog.min, priceBoundsFromCatalog.max]
+    () => parseListingState(searchParams, priceBoundsForParse),
+    [searchParams, priceBoundsForParse.min, priceBoundsForParse.max]
   )
 
   const filterKey = useMemo(

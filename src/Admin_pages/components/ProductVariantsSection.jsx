@@ -75,12 +75,6 @@ export default function ProductVariantsSection({ form, setField, fieldErrors, au
     if (next.length === 0) setField('hasVariants', false)
   }
 
-  const addSizeColumn = (sizeLabel) => {
-    const label = String(sizeLabel || '').trim()
-    if (!label || sizes.includes(label)) return
-    setField('variantSizes', [...sizes, label].join(', '))
-  }
-
   const removeSizeColumn = (sizeLabel) => {
     const nextSizes = sizes.filter((s) => s !== sizeLabel)
     setField(

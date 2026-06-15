@@ -22,7 +22,6 @@ import {
   getColorVariantOptions,
   getProductSizeList,
   getSizeOptionsForColor,
-  productHasVariants,
   resolveProductLine,
 } from '../../services/productVariants'
 import { getProductImages } from '../utils/productImages'
@@ -115,7 +114,8 @@ function PurchaseBlock({
   )
 }
 
-function ProductDetailView({ product }) {
+function ProductDetailView({ product, productId }) {
+  const stableProductId = String(product?.id || productId || '').trim()
   const metaTitle = product.seoTitle || product.name || 'Product'
   const metaDescription =
     product.seoDescription ||
@@ -128,7 +128,7 @@ function ProductDetailView({ product }) {
     title: metaTitle,
     description: metaDescription,
     image: metaImage,
-    canonicalPath: `/product/${product.id}`,
+    canonicalPath: `/product/${stableProductId}`,
     ogType: 'product',
   })
   useProductStructuredData(product)
@@ -144,7 +144,6 @@ function ProductDetailView({ product }) {
   const [selectedSize, setSelectedSize] = useState('')
   const [sizeChartOpen, setSizeChartOpen] = useState(false)
 
-  const hasVariants = productHasVariants(product)
   const colorOptions = useMemo(() => getColorVariantOptions(product), [product])
   const hasColors = colorOptions.length > 0
 
@@ -295,7 +294,7 @@ function ProductDetailView({ product }) {
     if (requiresSize && !selectedSize) return false
     const q = Math.min(Math.max(1, quantity), stock)
     addItem({
-      productId: product.id,
+      productId: stableProductId,
       variantKey: line.variantKey,
       variantName: line.variantKey,
       variantLabel: line.variantLabel,
@@ -322,7 +321,7 @@ function ProductDetailView({ product }) {
 
   function handleWishlistToggle() {
     toggle({
-      productId: product.id,
+      productId: stableProductId,
       name: product.name,
       image: view.images[0] || product.image,
       price: product.price,
@@ -571,7 +570,7 @@ function ProductDetails() {
     )
   }
 
-  return <ProductDetailView key={id} product={loaded} />
+  return <ProductDetailView key={id} product={loaded} productId={id} />
 }
 
 export default ProductDetails

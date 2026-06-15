@@ -1,8 +1,7 @@
 import React from 'react'
-import { useCatalog } from '../../hooks/useCatalog'
+import { useRelatedProducts } from '../../hooks/useRelatedProducts'
+import { useRecentlyViewedProducts } from '../../hooks/useRecentlyViewedProducts'
 import { useWishlist } from '../../hooks/useWishlist'
-import { getRelatedProducts } from '../../services/relatedProducts'
-import { getRecentlyViewedIds } from '../../services/recentlyViewed'
 import CollectionProductCard from './CollectionProductCard'
 import { getProductPrimaryImage } from '../utils/productImages'
 
@@ -36,20 +35,8 @@ function ProductRow({ title, products }) {
 }
 
 function ProductRecommendations({ currentProduct }) {
-  const { products } = useCatalog()
-
-  const related = React.useMemo(
-    () => getRelatedProducts(products, currentProduct, 4),
-    [products, currentProduct]
-  )
-
-  const recentlyViewed = React.useMemo(() => {
-    const ids = getRecentlyViewedIds().filter((id) => String(id) !== String(currentProduct.id))
-    return ids
-      .map((id) => products.find((p) => String(p.id) === id))
-      .filter(Boolean)
-      .slice(0, 4)
-  }, [products, currentProduct.id])
+  const { products: related } = useRelatedProducts(currentProduct?.id, 4)
+  const recentlyViewed = useRecentlyViewedProducts(currentProduct?.id, 4)
 
   if (!related.length && !recentlyViewed.length) return null
 

@@ -5,13 +5,16 @@ import { categoryCollectionHref } from '../../data/shopNav'
 import { useHomeContent } from '../../../hooks/useHomeContent'
 import { applyHomeTemplate } from '../../../services/homeMerchandising'
 import { useStoreSettings } from '../../../context/storeSettingsContext'
+import { productImageUrl } from '../../../utils/cloudinaryImage'
+
+const MAX_QUICK_CATEGORIES = 5
 
 function HomeMobileQuickShop() {
   const { freeShippingThreshold } = useStoreSettings()
   const { homeSections } = useHomeContent()
   const quickShop = homeSections.mobileQuickShop || {}
   const { categories, loading } = useShopCategories()
-  const top = categories.slice(0, 8)
+  const top = categories.slice(0, MAX_QUICK_CATEGORIES)
   const chips = Array.isArray(quickShop.chips) ? quickShop.chips : []
 
   return (
@@ -46,7 +49,12 @@ function HomeMobileQuickShop() {
                 className="home-mobile-chip"
               >
                 {cat.image ? (
-                  <img src={cat.image} alt="" className="home-mobile-chip__thumb" loading="lazy" />
+                  <img
+                    src={productImageUrl(cat.image, 'thumb')}
+                    alt=""
+                    className="home-mobile-chip__thumb"
+                    loading="lazy"
+                  />
                 ) : null}
                 {cat.name}
               </Link>

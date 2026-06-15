@@ -39,7 +39,7 @@ function HomeMobileCategories() {
                 <div className="home-mobile-cat-card__img-wrap">
                   <img
                     src={productImageUrl(category.image, 'category')}
-                    alt=""
+                    alt={category.name}
                     className="home-mobile-cat-card__img"
                     loading="lazy"
                   />
@@ -48,18 +48,6 @@ function HomeMobileCategories() {
               </Link>
             ))}
       </div>
-
-      {copy.ctaTitle || copy.ctaText || copy.ctaButtonLabel ? (
-        <div className="home-mobile-cta">
-          {copy.ctaTitle ? <h3 className="home-mobile-cta__title">{copy.ctaTitle}</h3> : null}
-          {copy.ctaText ? <p className="home-mobile-cta__text">{copy.ctaText}</p> : null}
-          {copy.ctaButtonLabel ? (
-            <Link to={copy.ctaButtonLink || '/collections'} className="home-mobile-cta__btn">
-              {copy.ctaButtonLabel}
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
     </section>
   )
 }

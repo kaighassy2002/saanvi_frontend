@@ -11,7 +11,7 @@ import { STORAGE_KEYS, USE_LOCAL_API } from '../../services/config'
 import { validateCartStockForCheckout } from '../../services/checkoutStock'
 import { placeStorefrontOrder } from '../../services/storefrontOrderService'
 import { fetchSavedAddressesFromServer, readSavedAddresses } from '../../services/savedAddresses'
-import { fetchRazorpayConfig } from '../../services/jewelleryApi'
+import { fetchRazorpayConfig, quoteCheckoutOrder, quoteCoupon } from '../../services/jewelleryApi'
 import { payWithRazorpay } from '../../services/razorpayCheckout'
 import {
   isRazorpayCheckoutMethod,
@@ -127,6 +127,48 @@ function CheckOut() {
   const [savedAddressList, setSavedAddressList] = useState([])
   const [selectedSavedId, setSelectedSavedId] = useState('new')
   const [razorpayEnabled, setRazorpayEnabled] = useState(false)
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponBusy, setCouponBusy] = useState(false)
+  const [couponError, setCouponError] = useState('')
+
+  const orderItems = useMemo(
+    () =>
+      items.map((i) => ({
+        productId: i.productId,
+        variantName: i.variantKey || i.variantName || undefined,
+        variantKey: i.variantKey || i.variantName || undefined,
+        name: i.name,
+        image: i.image,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+    [items]
+  )
+
+  const checkoutTotals = useMemo(() => {
+    if (appliedCoupon?.code) {
+      return {
+        subtotal: appliedCoupon.subtotal ?? totals.subtotal,
+        shipping: appliedCoupon.shippingFee ?? totals.shipping,
+        tax: totals.tax,
+        couponDiscount: appliedCoupon.discount || 0,
+        total: appliedCoupon.total,
+      }
+    }
+    return {
+      subtotal: totals.subtotal,
+      shipping: totals.shipping,
+      tax: totals.tax,
+      couponDiscount: 0,
+      total: totals.total,
+    }
+  }, [totals, appliedCoupon])
+
+  useEffect(() => {
+    setAppliedCoupon(null)
+    setCouponError('')
+  }, [items])
 
   useEffect(() => {
     if (USE_LOCAL_API) return
@@ -137,10 +179,6 @@ function CheckOut() {
       setRazorpayEnabled(enabled)
       setFormData((prev) => {
         if (!codEnabled && enabled) return { ...prev, paymentMethod: PAYMENT_RAZORPAY }
-        if (!codEnabled && !enabled) return prev
-        if (enabled && prev.paymentMethod === PAYMENT_COD) {
-          return { ...prev, paymentMethod: PAYMENT_RAZORPAY }
-        }
         return prev
       })
     })
@@ -148,6 +186,38 @@ function CheckOut() {
       active = false
     }
   }, [codEnabled])
+
+  async function applyCoupon() {
+    const code = couponInput.trim()
+    if (!code) {
+      setCouponError('Enter a coupon code')
+      return
+    }
+    if (USE_LOCAL_API) {
+      setCouponError('Coupons require the live store API')
+      return
+    }
+    setCouponBusy(true)
+    setCouponError('')
+    try {
+      const data = await quoteCoupon({ code, items: orderItems })
+      if (!data?.valid) {
+        throw new Error(data?.message || 'Invalid coupon')
+      }
+      setAppliedCoupon(data)
+    } catch (err) {
+      setAppliedCoupon(null)
+      setCouponError(err?.message || 'Could not apply coupon')
+    } finally {
+      setCouponBusy(false)
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null)
+    setCouponInput('')
+    setCouponError('')
+  }
 
   useEffect(() => {
     if (!isCustomerLoggedIn()) {
@@ -282,25 +352,34 @@ function CheckOut() {
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
       }
-      const orderPayload = {
-        shipping,
-        paymentMethod: formData.paymentMethod,
-        items: items.map((i) => ({
-          productId: i.productId,
-          variantName: i.variantKey || i.variantName || undefined,
-          variantKey: i.variantKey || i.variantName || undefined,
-          name: i.name,
-          image: i.image,
-          quantity: i.quantity,
-          price: i.price,
-        })),
-        total: totals.total,
-      }
       const isOnlinePayment = isRazorpayCheckoutMethod(formData.paymentMethod)
+      if (!USE_LOCAL_API && formData.paymentMethod === PAYMENT_COD && !codEnabled) {
+        throw new Error('Cash on delivery is not available')
+      }
       if (isOnlinePayment && !USE_LOCAL_API && !razorpayEnabled) {
         throw new Error(
           'Online payment is not set up yet. Choose Cash on Delivery or contact the store.'
         )
+      }
+
+      let checkoutTotal = checkoutTotals.total
+      if (!USE_LOCAL_API) {
+        const quote = await quoteCheckoutOrder({
+          items: orderItems,
+          couponCode: appliedCoupon?.code || '',
+        })
+        checkoutTotal = Number(quote?.total)
+        if (!Number.isFinite(checkoutTotal) || checkoutTotal < 0) {
+          throw new Error('Could not verify order total. Please refresh and try again.')
+        }
+      }
+
+      const orderPayload = {
+        shipping,
+        paymentMethod: formData.paymentMethod,
+        items: orderItems,
+        total: checkoutTotal,
+        couponCode: appliedCoupon?.code || undefined,
       }
 
       let order
@@ -310,6 +389,7 @@ function CheckOut() {
           total: orderPayload.total,
           shipping,
           paymentMethod: formData.paymentMethod,
+          couponCode: orderPayload.couponCode,
         })
       } else {
         if (isOnlinePayment && USE_LOCAL_API) {
@@ -380,7 +460,7 @@ function CheckOut() {
         <h1 className="mt-2 font-bodoni text-3xl text-ink sm:text-4xl">Complete your order</h1>
         <p className="mt-2 text-helper">
           {itemCount} {itemCount === 1 ? 'piece' : 'pieces'} · Order total{' '}
-          <strong className="text-ink">₹{totals.total.toLocaleString()}</strong>
+          <strong className="text-ink">₹{checkoutTotals.total.toLocaleString()}</strong>
         </p>
 
         <CheckoutSteps current="checkout" />
@@ -667,20 +747,70 @@ function CheckOut() {
                   <FreeShippingProgress subtotal={totals.subtotal} />
                 </div>
 
+                <div className="mt-4 rounded-xl border border-[#eadfc9] bg-[#faf6ef] p-3">
+                  <p className="font-playfair text-sm font-medium text-ink">Coupon code</p>
+                  {appliedCoupon?.code ? (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="font-playfair text-sm text-[#7a2c3a]">
+                        <i className="fa-solid fa-tag mr-1" aria-hidden />
+                        {appliedCoupon.code} applied
+                      </span>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        className="font-playfair text-xs text-muted underline hover:text-[#7a2c3a]"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        className="royal-input flex-1 uppercase"
+                        aria-label="Coupon code"
+                        disabled={couponBusy || USE_LOCAL_API}
+                      />
+                      <button
+                        type="button"
+                        onClick={applyCoupon}
+                        disabled={couponBusy || USE_LOCAL_API}
+                        className="lux-button shrink-0 px-4 py-2 text-sm disabled:opacity-60"
+                      >
+                        {couponBusy ? '…' : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+                  {couponError ? (
+                    <p className="mt-2 font-playfair text-xs text-red-700" role="alert">
+                      {couponError}
+                    </p>
+                  ) : null}
+                </div>
+
                 <div className="mt-5 space-y-2.5 border-t border-[#eadfc9] pt-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted">Subtotal</span>
-                    <span className="font-playfair text-ink">₹{totals.subtotal.toLocaleString()}</span>
+                    <span className="font-playfair text-ink">₹{checkoutTotals.subtotal.toLocaleString()}</span>
                   </div>
+                  {checkoutTotals.couponDiscount > 0 ? (
+                    <div className="flex justify-between text-[#7a2c3a]">
+                      <span>Coupon discount</span>
+                      <span className="font-playfair">−₹{checkoutTotals.couponDiscount.toLocaleString()}</span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between">
                     <span className="text-muted">Shipping</span>
                     <span className="font-playfair text-ink">
-                      {totals.shipping > 0 ? `₹${totals.shipping.toLocaleString()}` : 'Free'}
+                      {checkoutTotals.shipping > 0 ? `₹${checkoutTotals.shipping.toLocaleString()}` : 'Free'}
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-[#eadfc9] pt-3">
                     <span className="font-playfair text-lg text-ink">Total</span>
-                    <span className="text-price">₹{totals.total.toLocaleString()}</span>
+                    <span className="text-price">₹{checkoutTotals.total.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -703,8 +833,8 @@ function CheckOut() {
                       ? 'Placing order…'
                       : 'Opening Razorpay…'
                     : onlineSelected && razorpayEnabled
-                      ? 'Pay ₹' + totals.total.toLocaleString()
-                      : 'Place order · ₹' + totals.total.toLocaleString()}
+                      ? 'Pay ₹' + checkoutTotals.total.toLocaleString()
+                      : 'Place order · ₹' + checkoutTotals.total.toLocaleString()}
                 </button>
 
                 <p className="mt-3 text-center font-playfair text-xs text-muted">

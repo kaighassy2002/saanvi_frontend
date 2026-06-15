@@ -1,5 +1,19 @@
 import { fetchPublicProductById } from './catalogService'
-import { parseVariantKey, resolveProductLine } from './productVariants'
+import { parseCartLineKey, parseVariantKey, resolveProductLine } from './productVariants'
+import { ApiError } from './jewelleryApi'
+
+function resolveCartProductId(item) {
+  const fromLine = parseCartLineKey(item?.lineKey || '')
+  const raw = String(item?.productId || fromLine.productId || '').trim()
+  if (!raw || raw === 'undefined' || raw === 'null') {
+    return fromLine.productId && fromLine.productId !== 'undefined' ? fromLine.productId : ''
+  }
+  return raw
+}
+
+function isLikelyMongoId(value) {
+  return /^[a-f\d]{24}$/i.test(String(value || '').trim())
+}
 
 /**
  * Re-fetch stock before placing an order.
@@ -15,8 +29,22 @@ export async function validateCartStockForCheckout(cartItems) {
 
   await Promise.all(
     cartItems.map(async (item) => {
-      const product = await fetchPublicProductById(item.productId)
       const label = item.name || 'An item'
+      const productId = resolveCartProductId(item)
+      if (!isLikelyMongoId(productId)) {
+        problems.push(`${label} is no longer available. Remove it from your cart and add it again.`)
+        return
+      }
+      let product
+      try {
+        product = await fetchPublicProductById(productId)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          problems.push(`${label} is no longer available.`)
+          return
+        }
+        throw err
+      }
       if (!product || product.published === false) {
         problems.push(`${label} is no longer available.`)
         return

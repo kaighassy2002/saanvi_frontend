@@ -8,7 +8,7 @@ function HomeMobilePromos() {
   const copy = homeSections.mobilePromos || {}
 
   return (
-    <section className="home-mobile-section" aria-label="Offers">
+    <section className="home-mobile-section home-mobile-section--offers" aria-label="Offers">
       <div className="home-mobile-section__head">
         {copy.title ? <h2 className="home-mobile-section__title">{copy.title}</h2> : null}
         {copy.linkLabel ? (
@@ -22,7 +22,7 @@ function HomeMobilePromos() {
           <Link key={`${banner.title}-${index}`} to={banner.link} className="home-mobile-promo-card">
             <img
               src={productImageUrl(banner.image, 'promo')}
-              alt=""
+              alt={banner.title || 'Promotional offer'}
               className="home-mobile-promo-card__img"
               loading="lazy"
             />

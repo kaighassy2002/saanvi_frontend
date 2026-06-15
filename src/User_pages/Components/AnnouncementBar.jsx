@@ -1,17 +1,37 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useStoreSettings } from '../../context/storeSettingsContext'
-import { formatInr } from '../../services/storefrontConstants'
+import { resolveAnnouncementBar } from '../../services/announcementBar'
+
+function AnnouncementLink({ to, className, children, isHero }) {
+  const href = String(to || '/collections').trim() || '/collections'
+  const linkClass = `underline-offset-2 transition hover:underline ${
+    isHero ? 'text-gold hover:text-[#fff4e6]' : 'text-gold hover:text-white'
+  } ${className || ''}`.trim()
+
+  if (/^https?:\/\//i.test(href)) {
+    return (
+      <a href={href} className={linkClass}>
+        {children}
+      </a>
+    )
+  }
+
+  return (
+    <Link to={href.startsWith('/') ? href : `/${href}`} className={linkClass}>
+      {children}
+    </Link>
+  )
+}
 
 function AnnouncementBar({ variant = 'default' }) {
-  const { freeShippingThreshold, announcementMessage } = useStoreSettings()
+  const settings = useStoreSettings()
   const isHero = variant === 'hero'
+  const bar = resolveAnnouncementBar(settings)
 
-  const message =
-    String(announcementMessage || '').trim() ||
-    `Free shipping on orders above ${formatInr(freeShippingThreshold)}`
+  if (!bar.enabled) return null
 
-  const showShopLink = !String(announcementMessage || '').trim()
+  const { extraMessage, message, linkLabel, linkUrl, showIcon } = bar
 
   return (
     <div
@@ -26,25 +46,26 @@ function AnnouncementBar({ variant = 'default' }) {
           isHero ? 'text-[#f2dfbf]' : 'text-[#f5ead7]'
         }`}
       >
-        {!showShopLink ? (
-          message
-        ) : (
+        {extraMessage ? (
           <>
-            <i className="fa-solid fa-truck-fast mr-1.5 text-gold" aria-hidden />
-            {message}
+            <span className={isHero ? 'text-gold' : 'text-gold'}>{extraMessage}</span>
+            <span className="mx-2 opacity-40" aria-hidden>
+              ·
+            </span>
+          </>
+        ) : null}
+        {showIcon ? <i className="fa-solid fa-truck-fast mr-1.5 text-gold" aria-hidden /> : null}
+        {message}
+        {linkLabel ? (
+          <>
             <span className="mx-2 opacity-40" aria-hidden>
               |
             </span>
-            <Link
-              to="/collections"
-              className={`underline-offset-2 transition hover:underline ${
-                isHero ? 'text-gold hover:text-[#fff4e6]' : 'text-gold hover:text-white'
-              }`}
-            >
-              Shop now
-            </Link>
+            <AnnouncementLink to={linkUrl} isHero={isHero}>
+              {linkLabel}
+            </AnnouncementLink>
           </>
-        )}
+        ) : null}
       </p>
     </div>
   )

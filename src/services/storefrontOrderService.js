@@ -13,6 +13,14 @@ import {
   requestOrderCancellation,
   requestOrderReturn,
 } from './jewelleryApi'
+import { getOrderPublicId } from './orderWorkflow'
+
+function normalizeOrderRow(order) {
+  if (!order || typeof order !== 'object') return null
+  const id = getOrderPublicId(order)
+  if (!id) return null
+  return { ...order, id }
+}
 
 export async function placeStorefrontOrder(payload) {
   const token = localStorage.getItem(STORAGE_KEYS.customerToken)
@@ -22,15 +30,21 @@ export async function placeStorefrontOrder(payload) {
 }
 
 export async function fetchMyOrders() {
-  if (USE_LOCAL_API) return getStorefrontOrdersForCurrentUser()
-  const token = localStorage.getItem(STORAGE_KEYS.customerToken)
-  if (!token) return []
-  return fetchBackendMyOrders()
+  const rows = USE_LOCAL_API
+    ? getStorefrontOrdersForCurrentUser()
+    : await (async () => {
+        const token = localStorage.getItem(STORAGE_KEYS.customerToken)
+        if (!token) return []
+        return fetchBackendMyOrders()
+      })()
+  return rows.map(normalizeOrderRow).filter(Boolean)
 }
 
 export async function fetchMyOrderById(orderId) {
-  if (USE_LOCAL_API) return getLocalOrderById(orderId)
-  return fetchBackendOrderById(orderId)
+  const id = String(orderId || '').trim()
+  if (!id) return null
+  const row = USE_LOCAL_API ? getLocalOrderById(id) : await fetchBackendOrderById(id)
+  return normalizeOrderRow(row)
 }
 
 export async function cancelMyOrder(orderId, note = '') {

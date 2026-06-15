@@ -472,7 +472,7 @@ function PricingSection({ form, setField, fieldErrors, embedded = false }) {
   )
 }
 
-function ProductDetailsSection({ form, setField, fieldErrors }) {
+function ProductDetailsSection({ form, setField }) {
   return (
     <div id="section-details" className={sectionCls}>
       <SectionTitle
@@ -741,7 +741,7 @@ function ShippingSection({ form, setField }) {
   )
 }
 
-function SeoTabSection({ form, setField, fieldErrors }) {
+function SeoTabSection({ form, setField }) {
   const presetFields = getPresetFieldsForCategory(form.category)
   const customAttributes = Array.isArray(form.customAttributes) ? form.customAttributes : []
 
@@ -1108,7 +1108,7 @@ function AdminProductFormPage({ mode = 'new' }) {
                 categories={categories}
                 sizeCharts={sizeCharts}
               />
-              <ProductDetailsSection form={form} setField={setField} fieldErrors={fieldErrors} />
+              <ProductDetailsSection form={form} setField={setField} />
             </>
           ) : null}
 
@@ -1126,7 +1126,7 @@ function AdminProductFormPage({ mode = 'new' }) {
           ) : null}
 
           {activeTab === 'seo' ? (
-            <SeoTabSection form={form} setField={setField} fieldErrors={fieldErrors} />
+            <SeoTabSection form={form} setField={setField} />
           ) : null}
 
           {activeTab === 'publish' ? (

@@ -1,4 +1,8 @@
 import {
+  DEFAULT_ANNOUNCEMENT_LINK_LABEL,
+  DEFAULT_ANNOUNCEMENT_LINK_URL,
+} from './announcementBar'
+import {
   DEFAULT_FREE_SHIPPING_THRESHOLD,
   DEFAULT_SHIPPING_FEE,
   STORE_LOCATION,
@@ -8,7 +12,19 @@ import {
   WHATSAPP_PHONE,
 } from './storefrontConstants'
 
-/** Normalize public store-settings API payload for React context */
+function announcementFromApi(data) {
+  const fields = {
+    announcementEnabled: data?.announcementEnabled !== false,
+    announcementExtraMessage: String(data?.announcementExtraMessage || '').trim(),
+    announcementMessage: String(data?.announcementMessage || '').trim(),
+    announcementLinkUrl: String(data?.announcementLinkUrl || '').trim() || DEFAULT_ANNOUNCEMENT_LINK_URL,
+    announcementShowIcon: data?.announcementShowIcon !== false,
+  }
+  if (Object.prototype.hasOwnProperty.call(data || {}, 'announcementLinkLabel')) {
+    fields.announcementLinkLabel = String(data.announcementLinkLabel || '').trim()
+  }
+  return fields
+}
 export function normalizeStoreSettings(data) {
   const shipping = data?.shipping ?? {}
   const fee = Number(shipping.shippingFee)
@@ -29,7 +45,7 @@ export function normalizeStoreSettings(data) {
     supportPhone: String(data?.supportPhone || '').trim() || SUPPORT_PHONE,
     storeLocation: String(data?.storeLocation || '').trim() || STORE_LOCATION,
     whatsappPhone: String(data?.whatsappPhone || '').replace(/\D/g, '') || WHATSAPP_PHONE,
-    announcementMessage: String(data?.announcementMessage || '').trim(),
+    ...announcementFromApi(data),
     instagramUrl: String(data?.instagramUrl || '').trim(),
     codEnabled: data?.codEnabled !== false,
     shippingFee:
@@ -60,7 +76,14 @@ export function settingsFormFromApi(s) {
     codConfirmThreshold: s.codConfirmThreshold ?? 10000,
     codEnabled: s.codEnabled !== false,
     whatsappPhone: s.whatsappPhone || '',
+    announcementEnabled: s.announcementEnabled !== false,
+    announcementExtraMessage: s.announcementExtraMessage || '',
     announcementMessage: s.announcementMessage || '',
+    announcementLinkLabel: Object.prototype.hasOwnProperty.call(s, 'announcementLinkLabel')
+      ? s.announcementLinkLabel || ''
+      : DEFAULT_ANNOUNCEMENT_LINK_LABEL,
+    announcementLinkUrl: s.announcementLinkUrl || DEFAULT_ANNOUNCEMENT_LINK_URL,
+    announcementShowIcon: s.announcementShowIcon !== false,
     instagramUrl: s.instagramUrl || '',
     shippingFee: s.shipping?.shippingFee ?? DEFAULT_SHIPPING_FEE,
     freeShippingThreshold: s.shipping?.freeShippingThreshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD,
@@ -135,7 +158,12 @@ export function payloadFromSettingsForm(form) {
     codConfirmThreshold: Math.round(Number(form.codConfirmThreshold) || 0),
     codEnabled: !!form.codEnabled,
     whatsappPhone: String(form.whatsappPhone || '').replace(/\D/g, ''),
+    announcementEnabled: !!form.announcementEnabled,
+    announcementExtraMessage: form.announcementExtraMessage.trim(),
     announcementMessage: form.announcementMessage.trim(),
+    announcementLinkLabel: form.announcementLinkLabel.trim(),
+    announcementLinkUrl: String(form.announcementLinkUrl || '').trim() || DEFAULT_ANNOUNCEMENT_LINK_URL,
+    announcementShowIcon: !!form.announcementShowIcon,
     instagramUrl: form.instagramUrl.trim(),
     shipping: {
       shippingFee: Math.round(Number(form.shippingFee) || 0),

@@ -238,6 +238,30 @@ export async function deleteCatalogCategory(authFetch, id) {
   })
 }
 
+// --- Catalog collections ---
+
+export async function listCatalogCollections(authFetch) {
+  const data = await authFetch('/api/admin/catalog/collections')
+  return Array.isArray(data?.collections) ? data.collections : []
+}
+
+export async function createCatalogCollection(authFetch, body) {
+  return authFetch('/api/admin/catalog/collections', { method: 'POST', body })
+}
+
+export async function updateCatalogCollection(authFetch, id, body) {
+  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function deleteCatalogCollection(authFetch, id) {
+  return authFetch(`/api/admin/catalog/collections/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
 // --- Merchandising ---
 
 export async function getNewArrivals(authFetch) {
@@ -312,7 +336,7 @@ export async function patchUser(authFetch, id, body) {
 }
 
 export async function patchUserDisabled(authFetch, id, disabled) {
-  return authFetch(`/api/admin/users/${encodeURIComponent(id)}`, {
+  return authFetch(`/api/admin/users/${encodeURIComponent(id)}/disabled`, {
     method: 'PATCH',
     body: { disabled: Boolean(disabled) },
   })

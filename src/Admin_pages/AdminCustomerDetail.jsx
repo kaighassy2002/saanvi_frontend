@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminAuth } from '../context/AdminAuthProvider'
 import { getUser, patchUser } from './services/adminApi'
@@ -7,9 +7,24 @@ import AdminBreadcrumbs from './components/AdminBreadcrumbs'
 import AdminErrorBanner from './components/AdminErrorBanner'
 import AdminDataTable from './components/AdminDataTable'
 import AdminStatusBadge from './components/AdminStatusBadge'
+import AdminConfirmDialog from './components/AdminConfirmDialog'
 
 function formatPrice(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
+}
+
+function formatDate(value) {
+  const iso = String(value || '').trim()
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return iso
+  }
 }
 
 function AdminCustomerDetail() {
@@ -24,6 +39,7 @@ function AdminCustomerDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDisable, setConfirmDisable] = useState(false)
 
   const load = useCallback(async () => {
     setError('')
@@ -44,6 +60,12 @@ function AdminCustomerDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  const orderStats = useMemo(() => {
+    const totalSpend = orders.reduce((sum, o) => sum + Number(o.total || 0), 0)
+    const lastOrder = orders[0]
+    return { totalSpend, lastOrderDate: lastOrder?.date || lastOrder?.createdAt || '' }
+  }, [orders])
 
   const handleSave = async () => {
     setSaving(true)
@@ -66,6 +88,7 @@ function AdminCustomerDetail() {
       const updated = await patchUser(authFetch, id, { disabled: !user.disabled })
       setUser(updated)
       toast(updated.disabled ? 'Customer disabled.' : 'Customer enabled.')
+      setConfirmDisable(false)
     } catch (e) {
       toast(e?.message || 'Update failed', 'error')
     }
@@ -96,6 +119,9 @@ function AdminCustomerDetail() {
   const inputClass =
     'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none'
 
+  const tagList = Array.isArray(user.tags) ? user.tags.filter(Boolean) : []
+  const addresses = Array.isArray(user.addresses) ? user.addresses : []
+
   return (
     <div className="max-w-4xl">
       <AdminBreadcrumbs
@@ -109,19 +135,59 @@ function AdminCustomerDetail() {
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="admin-page-title">{name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="admin-page-title">{name}</h1>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                user.disabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+              }`}
+            >
+              {user.disabled ? 'Disabled' : 'Active'}
+            </span>
+          </div>
           <p className="admin-page-lead">{user.email}</p>
           {user.phone ? <p className="admin-body-sm">{user.phone}</p> : null}
+          {tagList.length ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tagList.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-[#f4e8db] px-2.5 py-0.5 text-xs text-ink"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={toggleDisabled}
+            onClick={() => setConfirmDisable(true)}
             className="rounded-lg border border-[#d8c4a7] px-3 py-2 text-sm hover:bg-[#f7ecee]"
           >
             {user.disabled ? 'Enable account' : 'Disable account'}
           </button>
         </div>
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="lux-card p-4">
+          <p className="text-xs text-muted uppercase tracking-wide">Orders</p>
+          <p className="admin-metric mt-1 text-2xl">{orders.length}</p>
+        </section>
+        <section className="lux-card p-4">
+          <p className="text-xs text-muted uppercase tracking-wide">Lifetime spend</p>
+          <p className="admin-metric mt-1 text-2xl">{formatPrice(orderStats.totalSpend)}</p>
+        </section>
+        <section className="lux-card p-4">
+          <p className="text-xs text-muted uppercase tracking-wide">Last order</p>
+          <p className="mt-1 text-sm text-ink">{formatDate(orderStats.lastOrderDate)}</p>
+        </section>
+        <section className="lux-card p-4">
+          <p className="text-xs text-muted uppercase tracking-wide">Joined</p>
+          <p className="mt-1 text-sm text-ink">{formatDate(user.createdAt)}</p>
+        </section>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2 mb-8">
@@ -145,10 +211,40 @@ function AdminCustomerDetail() {
             {saving ? 'Saving…' : 'Save notes'}
           </button>
         </section>
-        <section className="lux-card p-5">
-          <p className="text-xs text-muted uppercase tracking-wide">Order history</p>
-          <p className="admin-metric mt-2 text-3xl">{orders.length}</p>
-          <p className="text-sm text-muted">orders placed</p>
+
+        <section className="lux-card p-5 space-y-3">
+          <h2 className="admin-section-title text-base">Account</h2>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Sign-in</dt>
+              <dd className="text-ink">{user.googleId ? 'Google' : 'Email & password'}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Customer ID</dt>
+              <dd className="font-mono text-xs text-ink">{user.id}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Saved addresses</dt>
+              <dd className="text-ink">{addresses.length}</dd>
+            </div>
+          </dl>
+          {addresses.length ? (
+            <ul className="space-y-2 border-t border-[#f0e6d6] pt-3">
+              {addresses.map((addr) => (
+                <li key={addr.id} className="rounded-lg bg-[#faf7f2] p-3 text-xs">
+                  <p className="font-medium text-ink">
+                    {[addr.firstName, addr.lastName].filter(Boolean).join(' ') || addr.label || 'Address'}
+                  </p>
+                  <p className="mt-1 text-muted">
+                    {[addr.address, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ')}
+                  </p>
+                  {addr.phone ? <p className="mt-1 text-muted">{addr.phone}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted border-t border-[#f0e6d6] pt-3">No saved addresses.</p>
+          )}
         </section>
       </div>
 
@@ -161,7 +257,7 @@ function AdminCustomerDetail() {
             onClick={() => navigate(`/admin/orders/${encodeURIComponent(o.id)}`)}
           >
             <td className="px-4 py-3 font-mono text-xs">{o.id}</td>
-            <td className="px-4 py-3 text-muted">{o.date || '—'}</td>
+            <td className="px-4 py-3 text-muted">{formatDate(o.date || o.createdAt)}</td>
             <td className="px-4 py-3">{formatPrice(o.total)}</td>
             <td className="px-4 py-3">
               <AdminStatusBadge status={o.status} />
@@ -169,6 +265,19 @@ function AdminCustomerDetail() {
           </tr>
         ))}
       </AdminDataTable>
+
+      <AdminConfirmDialog
+        open={confirmDisable}
+        title={user.disabled ? 'Enable customer' : 'Disable customer'}
+        message={
+          user.disabled
+            ? `Re-enable access for ${user.email}?`
+            : `Disable ${user.email}? They will not be able to sign in or checkout.`
+        }
+        confirmLabel={user.disabled ? 'Enable' : 'Disable'}
+        onConfirm={toggleDisabled}
+        onCancel={() => setConfirmDisable(false)}
+      />
     </div>
   )
 }

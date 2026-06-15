@@ -32,7 +32,7 @@ export default defineConfig({
       '/sitemap.xml': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        rewrite: (path) => '/api/sitemap.xml',
+        rewrite: () => '/api/sitemap.xml',
       },
     },
   },
