@@ -393,3 +393,35 @@ export async function updateSizeChart(authFetch, id, body) {
 export async function deleteSizeChart(authFetch, id) {
   return authFetch(`/api/admin/size-charts/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
+
+// --- Account ---
+
+export async function changeAdminPassword(authFetch, { currentPassword, newPassword }) {
+  return authFetch('/api/admin/auth/password', {
+    method: 'PATCH',
+    body: { currentPassword, newPassword },
+  })
+}
+
+// --- Staff ---
+
+export async function getStaffPermissionsMeta(authFetch) {
+  return authFetch('/api/admin/staff/permissions-meta')
+}
+
+export async function listStaff(authFetch) {
+  const data = await authFetch('/api/admin/staff')
+  return Array.isArray(data?.items) ? data.items : []
+}
+
+export async function createStaff(authFetch, body) {
+  return authFetch('/api/admin/staff', { method: 'POST', body })
+}
+
+export async function updateStaff(authFetch, id, body) {
+  return authFetch(`/api/admin/staff/${encodeURIComponent(id)}`, { method: 'PATCH', body })
+}
+
+export async function deleteStaff(authFetch, id) {
+  return authFetch(`/api/admin/staff/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}

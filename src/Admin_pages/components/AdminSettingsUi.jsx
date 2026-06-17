@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function SettingsSection({ title, description, children, action }) {
@@ -75,3 +75,38 @@ export const INPUT_CLASS =
   'w-full rounded-lg border border-[#e8d5c0] bg-white px-3 py-2 text-sm focus:border-[#9f7a2c] focus:outline-none focus:ring-1 focus:ring-[#9f7a2c]/30'
 
 export const SELECT_CLASS = INPUT_CLASS
+
+export function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  required,
+  minLength,
+  className = INPUT_CLASS,
+}) {
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <div className="relative">
+      <input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        className={`${className} pr-10`}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        required={required}
+        minLength={minLength}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted hover:text-ink transition"
+        aria-label={visible ? 'Hide password' : 'Show password'}
+      >
+        <i className={`fa-solid ${visible ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden />
+      </button>
+    </div>
+  )
+}

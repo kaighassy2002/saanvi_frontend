@@ -137,6 +137,16 @@ export function IconCollections() {
   )
 }
 
+export function IconStaff() {
+  return (
+    <svg {...iconProps}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 19c0-3 2.5-5 6-5" />
+      <path d="M16 11h5M18.5 8.5v5" />
+    </svg>
+  )
+}
+
 const ICON_MAP = {
   dashboard: IconDashboard,
   orders: IconOrders,
@@ -148,6 +158,8 @@ const ICON_MAP = {
   reviews: IconReviews,
   analytics: IconAnalytics,
   settings: IconSettings,
+  staff: IconStaff,
+  account: IconCustomers,
   'size-charts': IconSizeCharts,
   coupons: IconCoupons,
   collections: IconCollections,

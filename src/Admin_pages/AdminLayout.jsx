@@ -7,6 +7,12 @@ import { getDashboardSummary } from './services/adminApi'
 import AdminBreadcrumbs from './components/AdminBreadcrumbs'
 import AdminTopBar from './components/AdminTopBar'
 import { AdminNavIcon } from './components/AdminNavIcons'
+import {
+  canAccessAdminPath,
+  firstAllowedAdminPath,
+  hasAdminPermission,
+  navItemPermission,
+} from './utils/adminPermissions'
 
 const NAV_GROUPS = [
   {
@@ -46,6 +52,8 @@ const NAV_GROUPS = [
     label: 'Settings',
     items: [
       { to: '/admin/settings', label: 'Store settings', icon: 'settings' },
+      { to: '/admin/staff', label: 'Staff accounts', icon: 'staff' },
+      { to: '/admin/account', label: 'Account', icon: 'account' },
       { to: '/admin/size-charts', label: 'Size charts', icon: 'size-charts' },
     ],
   },
@@ -75,6 +83,8 @@ function AdminLayoutInner() {
       '/admin/reviews': 'Reviews',
       '/admin/analytics': 'Analytics',
       '/admin/settings': 'Settings',
+      '/admin/staff': 'Staff',
+      '/admin/account': 'Account',
       '/admin/coupons': 'Coupons',
       '/admin/size-charts': 'Size charts',
     }
@@ -120,6 +130,18 @@ function AdminLayoutInner() {
 
   if (!isAdmin) return <Navigate to="/admin/login" replace />
 
+  if (!canAccessAdminPath(profile, location.pathname)) {
+    return <Navigate to={firstAllowedAdminPath(profile)} replace />
+  }
+
+  const visibleNavGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      const permission = navItemPermission(item.to)
+      return !permission || hasAdminPermission(profile, permission)
+    }),
+  })).filter((group) => group.items.length > 0)
+
   const handleLogout = () => {
     logout()
     navigate('/admin/login')
@@ -133,7 +155,7 @@ function AdminLayoutInner() {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
-        {NAV_GROUPS.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.label}>
             <p className="admin-eyebrow mb-1 px-2.5 opacity-80">
               {group.label}

@@ -4,8 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 function AdminTopBar({ profile, badges = {} }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const alertCount =
-    (Number(badges.pendingReviews) || 0) + (Number(badges.processingOrders) || 0)
+  const orderCount = Number(badges.processingOrders) || 0
+  const reminderCount =
+    (Number(badges.pendingReviews) || 0) + (Number(badges.lowStock) || 0)
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -41,18 +42,23 @@ function AdminTopBar({ profile, badges = {} }) {
             <circle cx="9" cy="20" r="1" />
             <circle cx="18" cy="20" r="1" />
           </svg>
-          {badges.processingOrders > 0 ? (
-            <span className="admin-topbar-icon-btn__badge">{badges.processingOrders > 9 ? '9+' : badges.processingOrders}</span>
+          {orderCount > 0 ? (
+            <span className="admin-topbar-icon-btn__badge">{orderCount > 9 ? '9+' : orderCount}</span>
           ) : null}
         </Link>
 
-        <Link to="/admin/reviews?status=pending" className="admin-topbar-icon-btn" title="Notifications" aria-label="Notifications">
+        <Link
+          to="/admin/reviews?status=pending"
+          className="admin-topbar-icon-btn"
+          title="Reminders"
+          aria-label="Reminders"
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
             <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5" />
             <path d="M10 20a2 2 0 0 0 4 0" />
           </svg>
-          {alertCount > 0 ? (
-            <span className="admin-topbar-icon-btn__badge">{alertCount > 9 ? '9+' : alertCount}</span>
+          {reminderCount > 0 ? (
+            <span className="admin-topbar-icon-btn__badge">{reminderCount > 9 ? '9+' : reminderCount}</span>
           ) : null}
         </Link>
 
